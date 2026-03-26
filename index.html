@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MKH Cardio OPD Allocator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060c18;
+    --surface: #0e1828;
+    --surface2: #152032;
+    --surface3: #1a2840;
+    --border: #1e2f47;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --text-muted: #4a6080;
+    --text-dim: #8aa0bc;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image: linear-gradient(rgba(59,130,246,0.025) 1px,transparent 1px), linear-gradient(90deg,rgba(59,130,246,0.025) 1px,transparent 1px);
+    background-size:48px 48px; pointer-events:none;
+  }
+
+/* HEADER */
+header {
+padding:16px 20px; border-bottom:1px solid var(–border);
+display:flex; align-items:center; gap:12px;
+background:rgba(14,24,40,0.95); backdrop-filter:blur(12px);
+position:sticky; top:0; z-index:100;
+}
+.hicon {
+width:40px; height:40px;
+background:linear-gradient(135deg,#1d4ed8,#0891b2);
+border-radius:10px; display:flex; align-items:center; justify-content:center;
+font-size:19px; flex-shrink:0; box-shadow:0 4px 16px rgba(29,78,216,0.4);
+}
+header h1 { font-family:‘DM Serif Display’,serif; font-size:16px; letter-spacing:-0.3px; line-height:1.2; }
+header p { font-size:10px; color:var(–text-muted); font-family:‘DM Mono’,monospace; letter-spacing:0.8px; }
+.day-badge {
+margin-left:auto; background:var(–surface2); border:1px solid var(–border);
+border-radius:8px; padding:5px 12px; font-family:‘DM Mono’,monospace;
+font-size:11px; color:var(–accent2); text-align:center; flex-shrink:0;
+}
+.day-badge strong { display:block; font-size:14px; color:var(–text); }
+
+/* SYNC STATUS */
+.sync-bar {
+display:flex; align-items:center; gap:8px;
+padding:8px 20px; font-family:‘DM Mono’,monospace; font-size:11px;
+border-bottom:1px solid var(–border); background:var(–surface);
+}
+.sync-dot { width:7px; height:7px; border-radius:50%; background:var(–text-muted); flex-shrink:0; }
+.sync-dot.live { background:var(–success); box-shadow:0 0 6px var(–success); animation:pulse 2s infinite; }
+.sync-dot.error { background:var(–danger); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* TABS */
+.tabs { display:flex; border-bottom:1px solid var(–border); background:var(–surface); padding:0 20px; }
+.tab {
+padding:11px 16px; font-size:11px; font-family:‘DM Mono’,monospace;
+letter-spacing:1px; text-transform:uppercase; color:var(–text-muted); cursor:pointer;
+border-bottom:2px solid transparent; transition:all 0.2s;
+background:none; border-top:none; border-left:none; border-right:none;
+}
+.tab:hover { color:var(–text-dim); }
+.tab.active { color:var(–accent); border-bottom-color:var(–accent); }
+
+.page { display:none; padding:20px; max-width:960px; margin:0 auto; }
+.page.active { display:block; }
+
+/* ASSIGN */
+.assign-hero { background:var(–surface); border:1px solid var(–border); border-radius:16px; padding:24px; margin-bottom:16px; }
+.clinic-result-box {
+background:var(–surface2); border:1px solid var(–border); border-radius:12px;
+padding:20px 24px; margin-bottom:20px;
+display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:center;
+}
+@media(max-width:560px){ .clinic-result-box{grid-template-columns:1fr;} }
+.rl-label { font-size:10px; font-family:‘DM Mono’,monospace; letter-spacing:2px; text-transform:uppercase; color:var(–text-muted); margin-bottom:6px; }
+.rl-doctor {
+font-family:‘DM Serif Display’,serif; font-size:28px; color:var(–accent);
+line-height:1.1; transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.rl-doctor.pop { transform:scale(1.06); color:var(–success); }
+.rl-room { font-family:‘DM Mono’,monospace; font-size:13px; color:var(–text-dim); margin-top:4px; }
+.result-right { display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+@media(max-width:560px){ .result-right{align-items:flex-start;} }
+.day-slot {
+display:flex; align-items:center; gap:8px;
+background:var(–surface3); border:1px solid var(–border);
+border-radius:6px; padding:4px 10px;
+font-family:‘DM Mono’,monospace; font-size:11px; color:var(–text-dim);
+}
+.day-slot .dn { color:var(–accent2); font-weight:500; }
+.today-tag { font-size:10px; color:var(–success); background:rgba(16,185,129,0.1); border-radius:3px; padding:1px 5px; }
+.rot-bar { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:20px; justify-content:center; }
+.rdot { width:7px; height:7px; border-radius:50%; background:var(–border); transition:all 0.3s; }
+.rdot.active { background:var(–accent); transform:scale(1.5); }
+.form-row { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
+@media(max-width:560px){ .form-row{grid-template-columns:1fr;} }
+.field label { display:block; font-size:10px; font-family:‘DM Mono’,monospace; letter-spacing:1.5px; text-transform:uppercase; color:var(–text-muted); margin-bottom:6px; }
+.field input, .field select {
+width:100%; background:var(–surface2); border:1px solid var(–border);
+border-radius:8px; padding:11px 13px; color:var(–text);
+font-family:‘DM Mono’,monospace; font-size:13px; outline:none; transition:border-color 0.2s;
+}
+.field input:focus, .field select:focus { border-color:var(–accent); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+.field select option { background:var(–surface2); }
+.assign-btn {
+background:linear-gradient(135deg,#2563eb,#0891b2); border:none; border-radius:8px;
+padding:11px 22px; color:white; font-family:‘DM Sans’,sans-serif; font-size:14px; font-weight:600;
+cursor:pointer; white-space:nowrap; transition:all 0.2s; box-shadow:0 4px 16px rgba(37,99,235,0.3);
+}
+.assign-btn:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(37,99,235,0.4); }
+.assign-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+.flash { display:none; margin-top:14px; padding:14px 18px; border-radius:10px; background:rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.2); animation:fadeUp 0.35s ease; }
+.flash.show { display:flex; align-items:center; gap:12px; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.flash-icon { font-size:22px; flex-shrink:0; }
+.flash-text strong { display:block; font-size:15px; color:var(–success); font-family:‘DM Serif Display’,serif; }
+.flash-text span { font-size:12px; color:var(–text-dim); font-family:‘DM Mono’,monospace; }
+
+/* LOG */
+.log-filters { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+.filter-btn { background:var(–surface2); border:1px solid var(–border); color:var(–text-dim); border-radius:6px; padding:5px 12px; cursor:pointer; font-family:‘DM Mono’,monospace; font-size:11px; letter-spacing:1px; transition:all 0.2s; }
+.filter-btn.active, .filter-btn:hover { border-color:var(–accent); color:var(–accent); background:rgba(59,130,246,0.07); }
+.log-table { background:var(–surface); border:1px solid var(–border); border-radius:12px; overflow:hidden; }
+.lt-header { display:grid; grid-template-columns:65px 1fr 1fr 1fr 55px; padding:9px 14px; background:var(–surface2); border-bottom:1px solid var(–border); font-family:‘DM Mono’,monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(–text-muted); }
+.lt-row { display:grid; grid-template-columns:65px 1fr 1fr 1fr 55px; padding:11px 14px; border-bottom:1px solid var(–border); font-size:12px; animation:fadeUp 0.3s ease; transition:background 0.15s; }
+.lt-row:last-child { border-bottom:none; }
+.lt-row:hover { background:var(–surface2); }
+.lt-time { font-family:‘DM Mono’,monospace; font-size:11px; color:var(–text-muted); }
+.lt-mrn { font-family:‘DM Mono’,monospace; font-weight:500; }
+.room-tag { font-family:‘DM Mono’,monospace; font-size:10px; color:var(–accent2); background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.2); border-radius:4px; padding:2px 6px; display:inline-block; width:fit-content; margin-top:2px; }
+.lt-reg { font-size:11px; color:var(–text-dim); }
+.empty-state { padding:40px; text-align:center; color:var(–text-muted); font-family:‘DM Mono’,monospace; font-size:13px; }
+
+/* DISTRIBUTION */
+.dist-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:10px; }
+.dist-card { background:var(–surface); border:1px solid var(–border); border-radius:12px; padding:14px; transition:all 0.2s; }
+.dist-card.next-up { border-color:var(–accent); background:rgba(59,130,246,0.06); box-shadow:0 0 16px rgba(59,130,246,0.12); }
+.dist-doctor { font-size:13px; font-weight:500; margin-bottom:2px; }
+.dist-room { font-family:‘DM Mono’,monospace; font-size:10px; color:var(–text-muted); margin-bottom:8px; }
+.dist-count { font-family:‘DM Serif Display’,serif; font-size:30px; color:var(–text); }
+.dist-card.next-up .dist-count { color:var(–accent); }
+.dist-bar { height:3px; background:var(–border); border-radius:2px; margin-top:6px; overflow:hidden; }
+.dist-fill { height:100%; background:var(–accent); border-radius:2px; transition:width 0.5s ease; }
+.dist-card.next-up .dist-fill { background:var(–accent2); }
+
+/* ADMIN */
+.admin-card { background:var(–surface); border:1px solid var(–border); border-radius:12px; padding:22px; margin-bottom:14px; }
+.admin-card h3 { font-size:11px; font-family:‘DM Mono’,monospace; letter-spacing:2px; text-transform:uppercase; color:var(–text-muted); margin-bottom:14px; }
+.pin-gate { display:flex; flex-direction:column; gap:10px; max-width:260px; }
+.pin-input { background:var(–surface2); border:1px solid var(–border); border-radius:8px; padding:11px 14px; color:var(–text); font-family:‘DM Mono’,monospace; font-size:16px; letter-spacing:6px; outline:none; width:100%; transition:border-color 0.2s; }
+.pin-input:focus { border-color:var(–accent); }
+.unlock-btn { background:var(–surface2); border:1px solid var(–border); color:var(–text-dim); border-radius:8px; padding:10px 18px; cursor:pointer; font-family:‘DM Mono’,monospace; font-size:12px; transition:all 0.2s; }
+.unlock-btn:hover { border-color:var(–warning); color:var(–warning); }
+.err { font-size:11px; color:var(–danger); font-family:‘DM Mono’,monospace; }
+.admin-controls { display:none; }
+.admin-controls.open { display:block; }
+.admin-row { display:flex; gap:10px; align-items:end; margin-bottom:12px; flex-wrap:wrap; }
+.admin-row .field { flex:1; min-width:150px; }
+.danger-btn { background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); color:var(–danger); border-radius:8px; padding:10px 16px; cursor:pointer; font-family:‘DM Mono’,monospace; font-size:12px; transition:all 0.2s; }
+.danger-btn:hover { background:rgba(239,68,68,0.15); }
+.apply-btn { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); color:var(–warning); border-radius:8px; padding:10px 16px; cursor:pointer; font-family:‘DM Mono’,monospace; font-size:12px; transition:all 0.2s; }
+.apply-btn:hover { background:rgba(245,158,11,0.15); }
+.info-box { background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.15); border-radius:8px; padding:14px 16px; font-size:12px; color:var(–text-dim); font-family:‘DM Mono’,monospace; line-height:1.9; }
+.loading-overlay { position:fixed; inset:0; background:rgba(6,12,24,0.85); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999; gap:16px; }
+.spinner { width:36px; height:36px; border:3px solid var(–border); border-top-color:var(–accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.loading-overlay p { font-family:‘DM Mono’,monospace; font-size:13px; color:var(–text-dim); }
+</style>
+
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p>Connecting to database...</p>
+</div>
+
+<header>
+  <div class="hicon">🫀</div>
+  <div>
+    <h1>MKH Cardio OPD Allocator</h1>
+    <p>MUBARAK AL-KABEER HOSPITAL · CCU WARD 2</p>
+  </div>
+  <div class="day-badge">
+    <strong id="dayName">—</strong>
+    <span id="dateStr">—</span>
+  </div>
+</header>
+
+<div class="sync-bar">
+  <div class="sync-dot" id="syncDot"></div>
+  <span id="syncText">Connecting...</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('assign',this)">Assign</button>
+  <button class="tab" onclick="switchTab('log',this)">Log</button>
+  <button class="tab" onclick="switchTab('dist',this)">Distribution</button>
+  <button class="tab" onclick="switchTab('admin',this)">Admin</button>
+</div>
+
+<!-- ASSIGN -->
+
+<div class="page active" id="page-assign">
+  <div class="assign-hero">
+    <div class="clinic-result-box">
+      <div>
+        <div class="rl-label">Next Assigned Clinic</div>
+        <div class="rl-doctor" id="nextDoctor">Loading...</div>
+        <div class="rl-room" id="nextRoom">—</div>
+      </div>
+      <div class="result-right" id="nextDays"></div>
+    </div>
+    <div class="rot-bar" id="rotBar"></div>
+    <div class="form-row">
+      <div class="field">
+        <label>File Number</label>
+        <input type="text" id="fileInput" placeholder="e.g. 123456" autocomplete="off"/>
+      </div>
+      <div class="field">
+        <label>Registrar</label>
+        <select id="regSelect">
+          <option value="">— Select —</option>
+          <option>Dr. Rehan</option>
+          <option>Dr. Ramy</option>
+          <option>Dr. Badawy</option>
+          <option>Dr. Sharkawy</option>
+          <option>Dr. Mostafa</option>
+          <option>Dr. Ibrahim</option>
+          <option>Dr. Hadad</option>
+          <option>Dr. Emara</option>
+          <option>Dr. Rahim</option>
+          <option>Dr. Mamdouh</option>
+          <option>Dr. Slam</option>
+          <option>Dr. Ezz</option>
+          <option>Dr. R Gamal</option>
+          <option>Dr. Moghl</option>
+          <option>Dr. Darwish</option>
+          <option>Dr. Omar</option>
+          <option>Dr. Sajid</option>
+          <option>Dr. Hamza</option>
+          <option>Dr. Eyad</option>
+          <option>Dr. Mongy</option>
+        </select>
+      </div>
+      <button class="assign-btn" id="assignBtn" onclick="doAssign()">Assign →</button>
+    </div>
+    <div class="flash" id="flash">
+      <div class="flash-icon">✅</div>
+      <div class="flash-text">
+        <strong id="flashDoctor">—</strong>
+        <span id="flashDetail">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOG -->
+
+<div class="page" id="page-log">
+  <div class="log-filters">
+    <button class="filter-btn active" onclick="filterLog('all',this)">All</button>
+    <button class="filter-btn" onclick="filterLog('Sun',this)">Sun</button>
+    <button class="filter-btn" onclick="filterLog('Mon',this)">Mon</button>
+    <button class="filter-btn" onclick="filterLog('Tue',this)">Tue</button>
+    <button class="filter-btn" onclick="filterLog('Wed',this)">Wed</button>
+    <button class="filter-btn" onclick="filterLog('Thu',this)">Thu</button>
+  </div>
+  <div class="log-table">
+    <div class="lt-header"><div>Time</div><div>File No.</div><div>Doctor / Room</div><div>Registrar</div><div>Day</div></div>
+    <div id="logBody"><div class="empty-state">Loading...</div></div>
+  </div>
+</div>
+
+<!-- DISTRIBUTION -->
+
+<div class="page" id="page-dist">
+  <div class="dist-grid" id="distGrid"></div>
+</div>
+
+<!-- ADMIN -->
+
+<div class="page" id="page-admin">
+  <div class="admin-card">
+    <h3>🔒 Admin Access</h3>
+    <div class="pin-gate" id="pinGate">
+      <input class="pin-input" type="password" id="pinInput" maxlength="4" placeholder="PIN"/>
+      <button class="unlock-btn" onclick="checkPin()">Unlock</button>
+      <div class="err" id="pinErr"></div>
+    </div>
+    <div class="admin-controls" id="adminCtrls">
+      <div class="admin-row">
+        <div class="field">
+          <label>Set Rotation Pointer (1–19)</label>
+          <input type="number" id="pointerInput" min="1" max="19" placeholder="e.g. 3"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;width:100%"/>
+        </div>
+        <button class="apply-btn" onclick="applyPointer()">Apply</button>
+      </div>
+      <div class="admin-row">
+        <button class="danger-btn" onclick="resetAll()">⚠ Reset All Counts &amp; Log</button>
+      </div>
+      <div class="info-box" id="infoBox">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, query, orderBy, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC7NsJ5Wo9F3qgKzlkUxN8sUE6wiSY6YcI",
+  authDomain: "mkh-cardio-opd-allocator.firebaseapp.com",
+  projectId: "mkh-cardio-opd-allocator",
+  storageBucket: "mkh-cardio-opd-allocator.appspot.com",
+  messagingSenderId: "1094997278819",
+  appId: "1:1094997278819:web:51394957d70624b8c3f6e4",
+  measurementId: "G-C2ZQTS1KQG"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// =============================================
+// CLINIC DATA
+// =============================================
+const CLINICS = [
+  { doctor:"Hisham",  room:"Room 10", days:["Sun"] },
+  { doctor:"Hisham",  room:"Room 8",  days:["Tue"] },
+  { doctor:"Farag",   room:"Room 8",  days:["Mon"] },
+  { doctor:"Farag",   room:"Room 10", days:["Wed"] },
+  { doctor:"Akmal",   room:"Room 10", days:["Mon"] },
+  { doctor:"Ibrahim", room:"Room 10", days:["Tue"] },
+  { doctor:"Ibrahim", room:"Room 13", days:["Thu"] },
+  { doctor:"Maged",   room:"Room 20", days:["Sun"] },
+  { doctor:"Maged",   room:"Room 11", days:["Tue"] },
+  { doctor:"Ali",     room:"Room 11", days:["Wed"] },
+  { doctor:"Hany",    room:"Room 16", days:["Sun"] },
+  { doctor:"Zaher",   room:"Room 20", days:["Tue"] },
+  { doctor:"Fawzy",   room:"Room 20", days:["Wed"] },
+  { doctor:"Ashraf",  room:"Room 20", days:["Thu"] },
+  { doctor:"Fahd",    room:"Room 24", days:["Mon"] },
+  { doctor:"Nazanin", room:"Room 25", days:["Sun"] },
+  { doctor:"Ehab",    room:"Room 25", days:["Mon"] },
+  { doctor:"Arab",    room:"Room 25", days:["Tue"] },
+  { doctor:"Shafie",  room:"Room 25", days:["Thu"] },
+];
+
+const ADMIN_PIN = "2025";
+let currentPointer = 0;
+let allLogs = [];
+let currentLogFilter = 'all';
+
+// =============================================
+// HELPERS
+// =============================================
+function todayName() { return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()]; }
+function nowTime() { return new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }
+function curIdx() { return currentPointer % CLINICS.length; }
+
+// =============================================
+// FIRESTORE — POINTER (real-time sync)
+// =============================================
+const pointerRef = doc(db, "state", "pointer");
+
+async function initPointer() {
+  const snap = await getDoc(pointerRef);
+  if (!snap.exists()) {
+    await setDoc(pointerRef, { value: 0 });
+  }
+}
+
+// Live listener on pointer
+onSnapshot(pointerRef, (snap) => {
+  if (snap.exists()) {
+    currentPointer = snap.data().value || 0;
+    renderNextClinic();
+    renderRotBar();
+    renderDist();
+    renderAdminInfo();
+  }
+  setSynced(true);
+  document.getElementById('loadingOverlay').style.display = 'none';
+}, (err) => {
+  setSynced(false);
+  console.error(err);
+});
+
+// Live listener on log
+const logsRef = collection(db, "logs");
+const logsQuery = query(logsRef, orderBy("ts", "desc"));
+onSnapshot(logsQuery, (snap) => {
+  allLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderLog(currentLogFilter);
+  renderDist();
+}, (err) => { console.error(err); });
+
+// =============================================
+// SYNC UI
+// =============================================
+function setSynced(ok) {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  dot.className = 'sync-dot' + (ok ? ' live' : ' error');
+  txt.textContent = ok ? 'Live — synced across all devices' : 'Connection error — check internet';
+}
+
+// =============================================
+// RENDER
+// =============================================
+function renderHeader() {
+  const d = new Date();
+  document.getElementById('dayName').textContent = todayName();
+  document.getElementById('dateStr').textContent = d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+
+function renderNextClinic() {
+  const c = CLINICS[curIdx()];
+  document.getElementById('nextDoctor').textContent = "Dr. " + c.doctor;
+  document.getElementById('nextRoom').textContent = c.room;
+  const today = todayName();
+  const daysEl = document.getElementById('nextDays');
+  daysEl.innerHTML = '';
+  c.days.forEach(day => {
+    const el = document.createElement('div');
+    el.className = 'day-slot';
+    el.innerHTML = `<span class="dn">${day}</span>${day===today?'<span class="today-tag">TODAY</span>':''}`;
+    daysEl.appendChild(el);
+  });
+}
+
+function renderRotBar() {
+  const bar = document.getElementById('rotBar');
+  bar.innerHTML = '';
+  CLINICS.forEach((c,i) => {
+    const dot = document.createElement('div');
+    dot.className = 'rdot'+(i===curIdx()?' active':'');
+    dot.title = 'Dr.'+c.doctor+' · '+c.room;
+    bar.appendChild(dot);
+  });
+}
+
+function renderDist() {
+  const grid = document.getElementById('distGrid');
+  grid.innerHTML = '';
+  // Count per clinic slot
+  const counts = new Array(CLINICS.length).fill(0);
+  allLogs.forEach(e => { if (e.slotIdx !== undefined) counts[e.slotIdx]++; });
+  const max = Math.max(...counts, 1);
+  CLINICS.forEach((c,i) => {
+    const pct = Math.round((counts[i]/max)*100);
+    const card = document.createElement('div');
+    card.className = 'dist-card'+(i===curIdx()?' next-up':'');
+    card.innerHTML = `
+      <div class="dist-doctor">Dr. ${c.doctor}</div>
+      <div class="dist-room">${c.room} · ${c.days.join(',')}</div>
+      <div class="dist-count">${counts[i]}</div>
+      <div class="dist-bar"><div class="dist-fill" style="width:${pct}%"></div></div>`;
+    grid.appendChild(card);
+  });
+}
+
+function renderLog(filter) {
+  currentLogFilter = filter;
+  const body = document.getElementById('logBody');
+  let entries = allLogs;
+  if (filter !== 'all') entries = entries.filter(e => e.day === filter);
+  if (!entries.length) { body.innerHTML = '<div class="empty-state">No assignments found.</div>'; return; }
+  body.innerHTML = '';
+  entries.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'lt-row';
+    row.innerHTML = `
+      <div class="lt-time">${e.time}</div>
+      <div class="lt-mrn">${e.fileNo}</div>
+      <div>Dr. ${e.doctor}<br><span class="room-tag">${e.room}</span></div>
+      <div class="lt-reg">${e.reg}</div>
+      <div class="lt-time">${e.day}</div>`;
+    body.appendChild(row);
+  });
+}
+
+function renderAdminInfo() {
+  document.getElementById('infoBox').innerHTML =
+    `Current pointer: <b style="color:var(--text)">Slot ${curIdx()+1} → Dr. ${CLINICS[curIdx()].doctor} · ${CLINICS[curIdx()].room}</b><br>
+     Total assignments: <b style="color:var(--text)">${allLogs.length}</b>`;
+}
+
+// =============================================
+// ASSIGN
+// =============================================
+async function doAssign() {
+  const fileNo = document.getElementById('fileInput').value.trim();
+  const reg = document.getElementById('regSelect').value;
+  if (!fileNo) { alert('Enter file number.'); return; }
+  if (!reg) { alert('Select a registrar.'); return; }
+
+  const btn = document.getElementById('assignBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const i = curIdx();
+    const c = CLINICS[i];
+    const newPointer = currentPointer + 1;
+
+    // Write log entry
+    await addDoc(logsRef, {
+      fileNo, reg,
+      doctor: c.doctor,
+      room: c.room,
+      slotIdx: i,
+      day: todayName(),
+      time: nowTime(),
+      ts: Date.now()
+    });
+
+    // Advance pointer
+    await setDoc(pointerRef, { value: newPointer });
+
+    // Flash
+    document.getElementById('flashDoctor').textContent = `→ Dr. ${c.doctor}  ·  ${c.room}`;
+    document.getElementById('flashDetail').textContent = `File ${fileNo}  ·  ${reg}  ·  ${nowTime()}`;
+    document.getElementById('flash').className = 'flash show';
+
+    const el = document.getElementById('nextDoctor');
+    el.classList.add('pop');
+    setTimeout(() => el.classList.remove('pop'), 500);
+
+    document.getElementById('fileInput').value = '';
+    document.getElementById('regSelect').value = '';
+  } catch(err) {
+    alert('Error saving. Check your connection.');
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Assign →';
+}
+
+document.getElementById('fileInput').addEventListener('keydown', e => { if(e.key==='Enter') doAssign(); });
+
+// =============================================
+// TABS
+// =============================================
+window.switchTab = function(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+};
+
+// =============================================
+// LOG FILTER
+// =============================================
+window.filterLog = function(f, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLog(f);
+};
+
+// =============================================
+// ADMIN
+// =============================================
+window.checkPin = function() {
+  if (document.getElementById('pinInput').value === ADMIN_PIN) {
+    document.getElementById('adminCtrls').classList.add('open');
+    document.getElementById('pinGate').style.display = 'none';
+    renderAdminInfo();
+  } else {
+    document.getElementById('pinErr').textContent = 'Incorrect PIN.';
+  }
+};
+
+window.applyPointer = async function() {
+  const v = parseInt(document.getElementById('pointerInput').value);
+  if (isNaN(v) || v < 1 || v > CLINICS.length) { alert('Enter 1–19'); return; }
+  await setDoc(pointerRef, { value: v-1 });
+  alert('Rotation set to Dr. '+CLINICS[(v-1)%CLINICS.length].doctor);
+};
+
+window.resetAll = async function() {
+  if (!confirm('Reset ALL counts and log? Cannot be undone.')) return;
+  // Delete all logs
+  const snap = await getDocs(logsRef);
+  const deletes = snap.docs.map(d => deleteDoc(doc(db,"logs",d.id)));
+  await Promise.all(deletes);
+  await setDoc(pointerRef, { value: 0 });
+  alert('Reset complete.');
+};
+
+// =============================================
+// INIT
+// =============================================
+renderHeader();
+initPointer();
+</script>
+
+</body>
+</html>
