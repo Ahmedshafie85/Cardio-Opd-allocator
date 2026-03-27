@@ -299,12 +299,10 @@ header p{font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace}
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.min.js"></script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-firestore-compat.min.js"></script>
-
-<script>
-firebase.initializeApp({
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, collection, getDoc, setDoc, addDoc, getDocs, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const _app = initializeApp({
   apiKey:"AIzaSyC7NsJ5Wo9F3qgKzlkUxN8sUE6wiSY6YcI",
   authDomain:"mkh-cardio-opd-allocator.firebaseapp.com",
   projectId:"mkh-cardio-opd-allocator",
@@ -312,10 +310,10 @@ firebase.initializeApp({
   messagingSenderId:"1094997278819",
   appId:"1:1094997278819:web:51394957d70624b8c3f6e4"
 });
-const db = firebase.firestore();
-const pointerRef = db.collection('state').doc('pointer');
-const logsRef = db.collection('logs');
-const opLogsRef = db.collection('op_logs');
+const db = getFirestore(_app);
+const pointerRef = doc(db,"state","pointer");
+const logsRef = collection(db,"logs");
+const opLogsRef = collection(db,"op_logs");
 
 const CLINICS = [
   {doctor:"Hisham", room:"Room 10", days:["Sun"]},
@@ -436,17 +434,17 @@ function setSynced(ok){
 }
 
 // FIRESTORE LISTENERS
-pointerRef.onSnapshot(function(snap){
+onSnapshot(pointerRef,function(snap){
   if(snap.exists){currentPointer=snap.data().value||0}
   setSynced(true);renderNextClinic();renderRotBar();renderDist();renderAdminInfo();
 },function(err){setSynced(false);console.error(err)});
 
-logsRef.orderBy('ts','desc').onSnapshot(function(snap){
+onSnapshot(query(logsRef,orderBy('ts','desc')),function(snap){
   allLogs=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())});
   renderLog(currentLogFilter);renderNextClinic();renderRotBar();renderDist();
 },function(err){console.error(err)});
 
-opLogsRef.orderBy('ts','desc').onSnapshot(function(snap){
+onSnapshot(query(opLogsRef,orderBy('ts','desc')),function(snap){
   allOpLogs=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())});
   renderOutpatient();renderNextClinic();renderDist();
 },function(err){console.error(err)});
@@ -460,8 +458,8 @@ function doAssign(){
   var btn=document.getElementById('assignBtn');btn.disabled=true;btn.textContent='Saving...';
   var i=0;try{i=getSmartNextIdx()}catch(e){}
   var c=CLINICS[i];
-  logsRef.add({fileNo:fileNo,reg:reg,doctor:c.doctor,room:c.room,slotIdx:i,day:todayName(),clinicDay:c.days[0],assignDate:nowDate(),time:nowTime(),ts:Date.now()})
-  .then(function(){return pointerRef.set({value:currentPointer+1})})
+  addDoc(logsRef,{fileNo:fileNo,reg:reg,doctor:c.doctor,room:c.room,slotIdx:i,day:todayName(),clinicDay:c.days[0],assignDate:nowDate(),time:nowTime(),ts:Date.now()})
+  .then(function(){return setDoc(pointerRef,{value:currentPointer+1})})
   .then(function(){
     document.getElementById('flashDoctor').textContent='→ Dr. '+c.doctor+' · '+c.room;
     document.getElementById('flashDetail').textContent='File '+fileNo+' · '+reg+' · '+nowTime();
@@ -524,7 +522,7 @@ function doOutpatientAssign(){
   if(todayName()==='Fri'||todayName()==='Sat'){alert('Outpatient runs Sun–Thu only.');return}
   var best=getLeastLoadedToday();if(!best)return;
   var btn=document.getElementById('opAssignBtn');btn.disabled=true;btn.textContent='Saving...';
-  opLogsRef.add({fileNo:fileNo,clerk:clerk,doctor:best.doctor,room:best.room,slotIdx:best.idx,clinicDay:todayName(),assignDate:nowDate(),time:nowTime(),ts:Date.now()})
+  addDoc(opLogsRef,{fileNo:fileNo,clerk:clerk,doctor:best.doctor,room:best.room,slotIdx:best.idx,clinicDay:todayName(),assignDate:nowDate(),time:nowTime(),ts:Date.now()})
   .then(function(){
     document.getElementById('opFlashDoctor').textContent='→ Dr. '+best.doctor+' · '+best.room;
     document.getElementById('opFlashDetail').textContent='File '+fileNo+' · '+clerk+' · '+nowTime();
@@ -565,14 +563,14 @@ window.checkClerkPin=function(){
 window.applyPointer=function(){
   var v=parseInt(document.getElementById('pointerInput').value);
   if(isNaN(v)||v<1||v>CLINICS.length){alert('Enter 1–19');return}
-  pointerRef.set({value:v-1}).then(function(){alert('Set to Dr. '+CLINICS[(v-1)%CLINICS.length].doctor)});
+  setDoc(pointerRef,{value:v-1}).then(function(){alert('Set to Dr. '+CLINICS[(v-1)%CLINICS.length].doctor)});
 };
 window.resetAll=function(){
   if(!confirm('Reset ALL?'))return;
-  logsRef.get().then(function(s){var b=db.batch();s.docs.forEach(function(d){b.delete(d.ref)});return b.commit()})
-  .then(function(){return opLogsRef.get()})
+  getDocs(logsRef).then(function(s){var b=db.batch();s.docs.forEach(function(d){b.delete(d.ref)});return b.commit()})
+  .then(function(){return getDocs(opLogsRef)})
   .then(function(s){var b=db.batch();s.docs.forEach(function(d){b.delete(d.ref)});return b.commit()})
-  .then(function(){return pointerRef.set({value:0})})
+  .then(function(){return setDoc(pointerRef,{value:0})})
   .then(function(){alert('Done.')});
 };
 window.deleteFakeEntry=function(){
@@ -585,7 +583,7 @@ window.deleteFakeEntry=function(){
   var entry=ipM||opM,isIP=!!ipM,coll=isIP?'logs':'op_logs';
   if(!confirm('Remove entry for file '+fileNo+' (Dr. '+entry.doctor+')?'))return;
   db.collection(coll).doc(entry.id).delete()
-  .then(function(){if(isIP)return pointerRef.set({value:Math.max(0,currentPointer-1)})})
+  .then(function(){if(isIP)return setDoc(pointerRef,{value:Math.max(0,currentPointer-1)})})
   .then(function(){msgEl.style.color='var(--success)';msgEl.textContent='Removed. Dr. '+entry.doctor+' gets next patient.';document.getElementById('deleteFileInput').value=''})
   .catch(function(err){msgEl.textContent='Error: '+err.message});
 };
@@ -646,7 +644,7 @@ var win=window.open(’’,’_blank’);win.document.write(html);win.document.c
 renderHeader();
 renderNextClinic();
 renderRotBar();
-</script>
 
+</script>
 </body>
 </html>
