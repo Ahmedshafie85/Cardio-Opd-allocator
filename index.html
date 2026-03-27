@@ -174,7 +174,7 @@ cursor:pointer; white-space:nowrap; transition:all 0.2s; box-shadow:0 4px 16px r
 .apply-btn { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); color:var(–warning); border-radius:8px; padding:10px 16px; cursor:pointer; font-family:‘DM Mono’,monospace; font-size:12px; transition:all 0.2s; }
 .apply-btn:hover { background:rgba(245,158,11,0.15); }
 .info-box { background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.15); border-radius:8px; padding:14px 16px; font-size:12px; color:var(–text-dim); font-family:‘DM Mono’,monospace; line-height:1.9; }
-.loading-overlay { position:fixed; inset:0; background:rgba(6,12,24,0.85); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999; gap:16px; }
+
 .spinner { width:36px; height:36px; border:3px solid var(–border); border-top-color:var(–accent); border-radius:50%; animation:spin 0.8s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
 .loading-overlay p { font-family:‘DM Mono’,monospace; font-size:13px; color:var(–text-dim); }
@@ -225,9 +225,7 @@ gap:6px; animation:fadeUp 0.2s ease;
 </head>
 <body>
 
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
-  <p>Connecting to database...</p>
+<p>Connecting to database...</p>
 </div>
 
 <header>
@@ -484,7 +482,7 @@ onSnapshot(pointerRef, (snap) => {
     renderAdminInfo();
   }
   setSynced(true);
-  document.getElementById('loadingOverlay').style.display = 'none';
+  
 }, (err) => {
   setSynced(false);
   console.error(err);
@@ -712,7 +710,7 @@ renderHeader();
 initPointer();
 // Force hide loading overlay after 3 seconds max
 setTimeout(() => {
-  document.getElementById("loadingOverlay").style.display = "none";
+  
 }, 3000);
 
 // =============================================
@@ -824,15 +822,15 @@ function renderOutpatient() {
     const isBest = best && c.idx === best.idx;
     const bar = document.createElement('div');
     bar.style.cssText = 'display:grid;grid-template-columns:110px 1fr 30px;gap:8px;align-items:center;margin-bottom:10px;';
-    bar.innerHTML = \`
-      <div style="font-size:12px;font-family:'DM Mono',monospace;color:\${isBest?'var(--accent)':'var(--text-dim)'}">
-        Dr. \${c.doctor}<br><span style="font-size:10px;color:var(--text-muted)">\${c.room}</span>
-      </div>
-      <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
-        <div style="height:100%;width:\${pct}%;background:\${isBest?'var(--accent)':'var(--surface3)'};border-radius:3px;transition:width 0.4s;border:1px solid \${isBest?'var(--accent)':'var(--border)'}"></div>
-      </div>
-      <div style="font-size:12px;font-family:'DM Serif Display',serif;color:\${isBest?'var(--accent)':'var(--text-dim)'};\${isBest?'font-weight:600':''}">\${count}</div>
-    \`;
+    const ac = isBest ? 'var(--accent)' : 'var(--text-dim)';
+    const bc = isBest ? 'var(--accent)' : 'var(--surface3)';
+    const bb = isBest ? 'var(--accent)' : 'var(--border)';
+    const fw = isBest ? 'font-weight:600' : '';
+    bar.innerHTML = '<div style="font-size:12px;font-family:DM Mono,monospace;color:' + ac + '">'
+      + 'Dr. ' + c.doctor + '<br><span style="font-size:10px;color:var(--text-muted)">' + c.room + '</span></div>'
+      + '<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">'
+      + '<div style="height:100%;width:' + pct + '%;background:' + bc + ';border-radius:3px;transition:width 0.4s;border:1px solid ' + bb + '"></div></div>'
+      + '<div style="font-size:12px;font-family:DM Serif Display,serif;color:' + ac + ';' + fw + '">' + count + '</div>';
     barsEl.appendChild(bar);
   });
 }
