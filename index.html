@@ -248,7 +248,8 @@ gap:6px; animation:fadeUp 0.2s ease;
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('assign',this)">Assign</button>
+  <button class="tab active" onclick="switchTab('assign',this)">Inpatient</button>
+  <button class="tab" onclick="switchTab('outpatient',this)">Outpatient</button>
   <button class="tab" onclick="switchTab('log',this)">Log</button>
   <button class="tab" onclick="switchTab('dist',this)">Distribution</button>
   <button class="tab" onclick="switchTab('admin',this)">Admin</button>
@@ -308,6 +309,52 @@ gap:6px; animation:fadeUp 0.2s ease;
         <span id="flashDetail">—</span>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- OUTPATIENT -->
+
+<div class="page" id="page-outpatient">
+  <div class="assign-hero">
+    <div class="clinic-result-box">
+      <div>
+        <div class="rl-label">Next Available Clinic Today</div>
+        <div class="rl-doctor" id="opNextDoctor">Loading...</div>
+        <div class="rl-room" id="opNextRoom">—</div>
+      </div>
+      <div class="result-right" id="opNextInfo"></div>
+    </div>
+
+```
+<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px;">
+  <div style="font-size:10px;font-family:'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;">Today's Clinic Load</div>
+  <div id="opClinicBars"></div>
+</div>
+
+<div class="form-row">
+  <div class="field" style="grid-column:1/-1">
+    <label>Clerk / Employee</label>
+    <select id="opClerkSelect">
+      <option value="">— Select —</option>
+      <option>Clerk</option>
+      <option>Employee 1</option>
+      <option>Employee 2</option>
+      <option>Employee 3</option>
+      <option>Reception</option>
+    </select>
+  </div>
+</div>
+<button class="assign-btn" id="opAssignBtn" onclick="doOutpatientAssign()" style="width:100%;margin-top:12px;">Assign Outpatient →</button>
+
+<div class="flash" id="opFlash">
+  <div class="flash-icon">✅</div>
+  <div class="flash-text">
+    <strong id="opFlashDoctor">—</strong>
+    <span id="opFlashDetail">—</span>
+  </div>
+</div>
+```
+
   </div>
 </div>
 
@@ -677,7 +724,9 @@ window.openClinicModal = function(slotIdx) {
     return;
   }
   const c = CLINICS[slotIdx];
-  const patients = allLogs.filter(e => e.slotIdx === slotIdx);
+  const ipPatients = allLogs.filter(e => e.slotIdx === slotIdx);
+  const opPatients = allOpLogs.filter(e => e.slotIdx === slotIdx);
+  const patients = [...ipPatients.map(p=>({...p,type:'IP'})), ...opPatients.map(p=>({...p,type:'OP'}))].sort((a,b)=>b.ts-a.ts);
   
   document.getElementById('modalTitle').textContent = 'Dr. ' + c.doctor;
   document.getElementById('modalSubtitle').textContent = c.room + ' · ' + c.days.join(', ');
@@ -692,8 +741,8 @@ window.openClinicModal = function(slotIdx) {
       const row = document.createElement('div');
       row.className = 'modal-row';
       row.innerHTML = `
-        <div class="modal-file">📋 ${p.fileNo}</div>
-        <div class="modal-reg">${p.reg}</div>
+        <div class="modal-file">${p.type==='OP'?'🚶':'📋'} ${p.fileNo||'Outpatient'}</div>
+        <div class="modal-reg">${p.reg||p.clerk||''}</div>
         <div class="modal-date">${p.assignDate || ''}</div>
         <div class="modal-time">${p.time}</div>`;
       body.appendChild(row);
@@ -705,6 +754,133 @@ window.openClinicModal = function(slotIdx) {
 window.closeModal = function() {
   document.getElementById('clinicModal').classList.remove('open');
 };
+
+// =============================================
+// OUTPATIENT LOGIC
+// =============================================
+const opLogsRef = collection(db, "op_logs");
+const opLogsQuery = query(opLogsRef, orderBy("ts", "desc"));
+let allOpLogs = [];
+
+onSnapshot(opLogsQuery, (snap) => {
+  allOpLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderOutpatient();
+}, (err) => { console.error(err); });
+
+function getTodayClinics() {
+  const today = todayName();
+  return CLINICS.map((c, i) => ({ ...c, idx: i })).filter(c => c.days.includes(today));
+}
+
+function getCombinedCount(slotIdx) {
+  const ipCount = allLogs.filter(e => e.slotIdx === slotIdx).length;
+  const opCount = allOpLogs.filter(e => e.slotIdx === slotIdx).length;
+  return ipCount + opCount;
+}
+
+function getLeastLoadedToday() {
+  const todayClinics = getTodayClinics();
+  if (!todayClinics.length) return null;
+  return todayClinics.reduce((least, c) => {
+    return getCombinedCount(c.idx) < getCombinedCount(least.idx) ? c : least;
+  }, todayClinics[0]);
+}
+
+function renderOutpatient() {
+  const todayClinics = getTodayClinics();
+  const today = todayName();
+
+  if (!todayClinics.length) {
+    document.getElementById('opNextDoctor').textContent = 'No clinics today';
+    document.getElementById('opNextRoom').textContent = 'Clinics run Sun–Thu only';
+    document.getElementById('opNextInfo').innerHTML = '';
+    document.getElementById('opClinicBars').innerHTML = '';
+    return;
+  }
+
+  const best = getLeastLoadedToday();
+  if (best) {
+    document.getElementById('opNextDoctor').textContent = 'Dr. ' + best.doctor;
+    document.getElementById('opNextRoom').textContent = best.room;
+    const infoEl = document.getElementById('opNextInfo');
+    infoEl.innerHTML = '';
+    const slot = document.createElement('div');
+    slot.className = 'day-slot';
+    slot.innerHTML = '<span class="dn">' + today + '</span><span class="today-tag">TODAY</span>';
+    infoEl.appendChild(slot);
+    const countEl = document.createElement('div');
+    countEl.className = 'day-slot';
+    countEl.innerHTML = '<span class="dn">' + getCombinedCount(best.idx) + '</span><span>patients so far</span>';
+    infoEl.appendChild(countEl);
+  }
+
+  // Render clinic load bars
+  const barsEl = document.getElementById('opClinicBars');
+  barsEl.innerHTML = '';
+  const maxCount = Math.max(...todayClinics.map(c => getCombinedCount(c.idx)), 1);
+  todayClinics.forEach(c => {
+    const count = getCombinedCount(c.idx);
+    const pct = Math.round((count / maxCount) * 100);
+    const isBest = best && c.idx === best.idx;
+    const bar = document.createElement('div');
+    bar.style.cssText = 'display:grid;grid-template-columns:110px 1fr 30px;gap:8px;align-items:center;margin-bottom:10px;';
+    bar.innerHTML = \`
+      <div style="font-size:12px;font-family:'DM Mono',monospace;color:\${isBest?'var(--accent)':'var(--text-dim)'}">
+        Dr. \${c.doctor}<br><span style="font-size:10px;color:var(--text-muted)">\${c.room}</span>
+      </div>
+      <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:\${pct}%;background:\${isBest?'var(--accent)':'var(--surface3)'};border-radius:3px;transition:width 0.4s;border:1px solid \${isBest?'var(--accent)':'var(--border)'}"></div>
+      </div>
+      <div style="font-size:12px;font-family:'DM Serif Display',serif;color:\${isBest?'var(--accent)':'var(--text-dim)'};\${isBest?'font-weight:600':''}">\${count}</div>
+    \`;
+    barsEl.appendChild(bar);
+  });
+}
+
+window.doOutpatientAssign = async function() {
+  const clerk = document.getElementById('opClerkSelect').value;
+  if (!clerk) { alert('Select a clerk/employee.'); return; }
+
+  const todayClinics = getTodayClinics();
+  if (!todayClinics.length) { alert('No clinics available today.'); return; }
+
+  const best = getLeastLoadedToday();
+  if (!best) return;
+
+  const btn = document.getElementById('opAssignBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    await addDoc(opLogsRef, {
+      clerk,
+      doctor: best.doctor,
+      room: best.room,
+      slotIdx: best.idx,
+      clinicDay: todayName(),
+      assignDate: nowDate(),
+      time: nowTime(),
+      ts: Date.now()
+    });
+
+    document.getElementById('opFlashDoctor').textContent = '→ Dr. ' + best.doctor + '  ·  ' + best.room;
+    document.getElementById('opFlashDetail').textContent = clerk + '  ·  ' + nowTime();
+    document.getElementById('opFlash').className = 'flash show';
+
+    const el = document.getElementById('opNextDoctor');
+    el.classList.add('pop');
+    setTimeout(() => el.classList.remove('pop'), 500);
+
+    document.getElementById('opClerkSelect').value = '';
+  } catch(err) {
+    alert('Error saving. Check connection.');
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Assign Outpatient →';
+};
+
 </script>
 
 <!-- CLINIC DETAIL MODAL -->
