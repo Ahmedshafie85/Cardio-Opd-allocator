@@ -602,9 +602,10 @@ function renderNextClinic() {
 function renderRotBar() {
   const bar = document.getElementById('rotBar');
   bar.innerHTML = '';
+  const si = getSmartNextIdx();
   CLINICS.forEach((c,i) => {
     const dot = document.createElement('div');
-    dot.className = 'rdot'+(i===curIdx()?' active':'');
+    dot.className = 'rdot'+(i===si?' active':'');
     dot.title = 'Dr.'+c.doctor+' · '+c.room;
     bar.appendChild(dot);
   });
@@ -613,14 +614,15 @@ function renderRotBar() {
 function renderDist() {
   const grid = document.getElementById('distGrid');
   grid.innerHTML = '';
-  // Count per clinic slot
   const counts = new Array(CLINICS.length).fill(0);
   allLogs.forEach(e => { if (e.slotIdx !== undefined) counts[e.slotIdx]++; });
+  allOpLogs.forEach(e => { if (e.slotIdx !== undefined) counts[e.slotIdx]++; });
   const max = Math.max(...counts, 1);
+  const si = getSmartNextIdx();
   CLINICS.forEach((c,i) => {
     const pct = Math.round((counts[i]/max)*100);
     const card = document.createElement('div');
-    card.className = 'dist-card'+(i===curIdx()?' next-up':'');
+    card.className = 'dist-card'+(i===si?' next-up':'');
     card.style.cursor='pointer';
     card.onclick = () => window.openClinicModal(i);
     if (!adminUnlocked) {
@@ -649,19 +651,20 @@ function renderLog(filter) {
     const row = document.createElement('div');
     row.className = 'lt-row';
     row.innerHTML = `
-      <div class="lt-time">${e.time}</div>
-      <div class="lt-mrn">${e.fileNo}</div>
+      <div class="lt-time">${e.assignDate||''}<br><span style="font-size:10px;color:var(--text-muted)">${e.time}</span></div>
+      <div class="lt-mrn">${e.fileNo||'—'}</div>
       <div>Dr. ${e.doctor}<br><span class="room-tag">${e.room} · ${e.clinicDay||e.day}</span></div>
-      <div class="lt-reg">${e.reg}</div>
-      <div class="lt-time">${e.day}</div>`;
+      <div class="lt-reg">${e.reg||e.clerk||''}</div>`;
     body.appendChild(row);
   });
 }
 
 function renderAdminInfo() {
+  const si = getSmartNextIdx();
   document.getElementById('infoBox').innerHTML =
-    `Current pointer: <b style="color:var(--text)">Slot ${curIdx()+1} → Dr. ${CLINICS[curIdx()].doctor} · ${CLINICS[curIdx()].room}</b><br>
-     Total assignments: <b style="color:var(--text)">${allLogs.length}</b>`;
+    `Current pointer: <b style="color:var(--text)">Next → Dr. ${CLINICS[si].doctor} · ${CLINICS[si].room}</b><br>
+     Total inpatient: <b style="color:var(--text)">${allLogs.length}</b><br>
+     Total outpatient: <b style="color:var(--text)">${allOpLogs.length}</b>`;
 }
 
 // =============================================
@@ -678,7 +681,7 @@ window.doAssign = async function() {
   btn.textContent = 'Saving...';
 
   try {
-    const i = curIdx();
+    const i = getSmartNextIdx();
     const c = CLINICS[i];
     const newPointer = currentPointer + 1;
 
