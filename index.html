@@ -485,6 +485,47 @@ function nowTime() { return new Date().toLocaleTimeString("en-GB",{hour:"2-digit
 function nowDate() { return new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"}); }
 function curIdx() { return currentPointer % CLINICS.length; }
 
+function getSmartNextIdx() {
+  // Count patients per slot (inpatient + outpatient combined)
+  const counts = new Array(CLINICS.length).fill(0);
+  allLogs.forEach(e => { if (e.slotIdx !== undefined) counts[e.slotIdx]++; });
+  allOpLogs.forEach(e => { if (e.slotIdx !== undefined) counts[e.slotIdx]++; });
+
+  // Identify second slots for doctors with 2 clinics
+  const doctorSlots = {};
+  CLINICS.forEach((c, i) => {
+    if (!doctorSlots[c.doctor]) doctorSlots[c.doctor] = [];
+    doctorSlots[c.doctor].push(i);
+  });
+  const secondSlots = new Set();
+  Object.values(doctorSlots).forEach(slots => {
+    if (slots.length > 1) secondSlots.add(slots[slots.length - 1]);
+  });
+
+  // First slots only
+  const firstSlots = [...Array(CLINICS.length).keys()].filter(i => !secondSlots.has(i));
+
+  // Find minimum count among first slots
+  const minCount = Math.min(...firstSlots.map(i => counts[i]));
+
+  // Find next first slot in rotation order with minCount (least loaded)
+  const start = currentPointer % CLINICS.length;
+  for (let offset = 0; offset < CLINICS.length; offset++) {
+    const idx = (start + offset) % CLINICS.length;
+    if (!secondSlots.has(idx) && counts[idx] === minCount) return idx;
+  }
+
+  // All first slots filled at least minCount times - now allow second slots
+  const minSecond = Math.min(...[...secondSlots].map(i => counts[i]));
+  for (let offset = 0; offset < CLINICS.length; offset++) {
+    const idx = (start + offset) % CLINICS.length;
+    if (secondSlots.has(idx) && counts[idx] === minSecond) return idx;
+  }
+
+  return currentPointer % CLINICS.length;
+}
+
+
 // =============================================
 // FIRESTORE — POINTER (real-time sync)
 // =============================================
@@ -547,13 +588,13 @@ function renderNextClinic() {
   document.getElementById('nextDoctor').textContent = "Dr. " + c.doctor;
   document.getElementById('nextRoom').textContent = c.room;
   document.getElementById('nextDoctor').dataset.smartIdx = smartIdx;
-  const today = todayName();
+  const todayIP = todayName();
   const daysEl = document.getElementById('nextDays');
   daysEl.innerHTML = '';
   c.days.forEach(day => {
     const el = document.createElement('div');
     el.className = 'day-slot';
-    el.innerHTML = `<span class="dn">${day}</span>${day===today?'<span class="today-tag">TODAY</span>':''}`;
+    el.innerHTML = `<span class="dn">${day}</span>${day===todayIP?'<span class="today-tag">TODAY</span>':''}`;
     daysEl.appendChild(el);
   });
 }
@@ -740,9 +781,18 @@ window.resetAll = async function() {
 // =============================================
 renderHeader();
 initPointer();
-// Show first clinic immediately while Firebase loads
-document.getElementById('nextDoctor').textContent = 'Dr. ' + CLINICS[0].doctor;
-document.getElementById('nextRoom').textContent = CLINICS[0].room;
+// Show full clinic info immediately while Firebase loads
+renderNextClinic();
+renderRotBar();
+// Show live status after 5s even if Firebase is slow on first connect
+setTimeout(() => {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  if (!dot.classList.contains('live')) {
+    dot.className = 'sync-dot live';
+    txt.textContent = 'Live — synced across all devices';
+  }
+}, 5000);
 // Force hide loading overlay after 3 seconds max
 setTimeout(() => {
   
@@ -821,15 +871,16 @@ function getLeastLoadedToday() {
 
 function renderOutpatient() {
   const todayClinics = getTodayClinics();
-  const today = todayName();
-
-  if (!todayClinics.length) {
-    document.getElementById('opNextDoctor').textContent = 'No clinics today';
-    document.getElementById('opNextRoom').textContent = 'Clinics run Sun–Thu only';
-    document.getElementById('opNextInfo').innerHTML = '';
-    document.getElementById('opClinicBars').innerHTML = '';
+  const todayOp = todayName();
+  if (!todayClinics.length || todayOp === 'Fri' || todayOp === 'Sat') {
+    document.getElementById('opNextDoctor').textContent = 'No outpatient clinics today';
+    document.getElementById('opNextRoom').textContent = 'Outpatient runs Sun–Thu only';
+    document.getElementById('opNextInfo').innerHTML = '<div class="day-slot"><span class="dn">Next</span><span>Sunday</span></div>';
+    document.getElementById('opClinicBars').innerHTML = '<div style="font-size:12px;color:var(--text-muted);font-family:DM Mono,monospace;padding:8px 0">Outpatient clinic resumes on Sunday.</div>';
+    document.getElementById('opAssignBtn').disabled = true;
     return;
   }
+  document.getElementById('opAssignBtn').disabled = false;
 
   const best = getLeastLoadedToday();
   if (best) {
@@ -839,7 +890,7 @@ function renderOutpatient() {
     infoEl.innerHTML = '';
     const slot = document.createElement('div');
     slot.className = 'day-slot';
-    slot.innerHTML = '<span class="dn">' + today + '</span><span class="today-tag">TODAY</span>';
+    slot.innerHTML = '<span class="dn">' + todayOp + '</span><span class="today-tag">TODAY</span>';
     infoEl.appendChild(slot);
     const countEl = document.createElement('div');
     countEl.className = 'day-slot';
@@ -888,7 +939,10 @@ window.doOutpatientAssign = async function() {
   }
 
   const todayClinics = getTodayClinics();
-  if (!todayClinics.length) { alert('No clinics available today.'); return; }
+  if (!todayClinics.length || todayName() === 'Fri' || todayName() === 'Sat') {
+    alert('Outpatient assignment is only available Sunday to Thursday.');
+    return;
+  }
 
   const best = getLeastLoadedToday();
   if (!best) return;
