@@ -414,6 +414,15 @@ gap:6px; animation:fadeUp 0.2s ease;
       <div class="admin-row">
         <button class="danger-btn" onclick="resetAll()">⚠ Reset All Counts &amp; Log</button>
       </div>
+      <div class="admin-row" style="margin-top:8px;">
+        <div class="field" style="flex:1">
+          <label>Remove Fake Entry by File Number</label>
+          <input type="text" id="deleteFileInput" placeholder="Enter file number"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;width:100%"/>
+          <div id="deleteMsg" style="font-size:11px;margin-top:4px;font-family:'DM Mono',monospace;"></div>
+        </div>
+        <button class="danger-btn" onclick="deleteFakeEntry()">🗑 Remove</button>
+      </div>
       <div class="admin-row">
         <div style="flex:1">
           <div style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Export Weekly Report</div>
@@ -1087,6 +1096,56 @@ function exportWeek(weekLabel, entries) {
   </body></html>`);
   win.document.close();
 }
+
+// =============================================
+// DELETE FAKE ENTRY
+// =============================================
+window.deleteFakeEntry = async function() {
+const fileNo = document.getElementById(‘deleteFileInput’).value.trim();
+const msgEl = document.getElementById(‘deleteMsg’);
+msgEl.textContent = ‘’;
+msgEl.style.color = ‘var(–danger)’;
+
+if (!fileNo) { msgEl.textContent = ‘Enter a file number.’; return; }
+
+// Search in inpatient logs
+const ipMatch = allLogs.find(e => e.fileNo === fileNo);
+// Search in outpatient logs
+const opMatch = allOpLogs.find(e => e.fileNo === fileNo);
+
+if (!ipMatch && !opMatch) {
+msgEl.textContent = ‘File number ’ + fileNo + ’ not found in records.’;
+return;
+}
+
+const entry = ipMatch || opMatch;
+const isIP = !!ipMatch;
+const collName = isIP ? ‘logs’ : ‘op_logs’;
+const type = isIP ? ‘Inpatient’ : ‘Outpatient’;
+
+if (!confirm(’Remove ’ + type + ’ entry for file ’ + fileNo + ’ (Dr. ’ + entry.doctor + ’ · ’ + entry.room + ‘)? This will adjust the rotation.’)) return;
+
+try {
+// Delete the entry
+await deleteDoc(doc(db, collName, entry.id));
+
+```
+// Compensate rotation: move pointer back by 1 so that slot gets filled again
+if (isIP && entry.slotIdx !== undefined) {
+  const newPointer = Math.max(0, currentPointer - 1);
+  await setDoc(pointerRef, { value: newPointer });
+}
+
+msgEl.style.color = 'var(--success)';
+msgEl.textContent = '✓ Entry removed. Rotation adjusted — Dr. ' + entry.doctor + ' will receive the next patient.';
+document.getElementById('deleteFileInput').value = '';
+```
+
+} catch(err) {
+msgEl.textContent = ’Error removing entry: ’ + err.message;
+console.error(err);
+}
+};
 
 </script>
 
