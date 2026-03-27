@@ -242,7 +242,7 @@ gap:6px; animation:fadeUp 0.2s ease;
 
 <div class="sync-bar">
   <div class="sync-dot" id="syncDot"></div>
-  <span id="syncText">Connecting...</span>
+  <span id="syncText">Syncing with database...</span>
 </div>
 
 <div class="tabs">
@@ -740,6 +740,9 @@ window.resetAll = async function() {
 // =============================================
 renderHeader();
 initPointer();
+// Show first clinic immediately while Firebase loads
+document.getElementById('nextDoctor').textContent = 'Dr. ' + CLINICS[0].doctor;
+document.getElementById('nextRoom').textContent = CLINICS[0].room;
 // Force hide loading overlay after 3 seconds max
 setTimeout(() => {
   
