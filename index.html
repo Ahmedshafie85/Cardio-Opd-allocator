@@ -476,6 +476,7 @@ let currentPointer = 0;
 let allLogs = [];
 let currentLogFilter = 'all';
 let adminUnlocked = false;
+let allOpLogs = [];
 
 // =============================================
 // HELPERS
@@ -488,8 +489,8 @@ function curIdx() { return currentPointer % CLINICS.length; }
 function getSmartNextIdx() {
   // Count patients per slot (inpatient + outpatient combined)
   const counts = new Array(CLINICS.length).fill(0);
-  allLogs.forEach(e => { if (e.slotIdx !== undefined) counts[e.slotIdx]++; });
-  allOpLogs.forEach(e => { if (e.slotIdx !== undefined) counts[e.slotIdx]++; });
+  if (allLogs) allLogs.forEach(e => { if (e.slotIdx !== undefined) counts[e.slotIdx]++; });
+  if (allOpLogs) allOpLogs.forEach(e => { if (e.slotIdx !== undefined) counts[e.slotIdx]++; });
 
   // Identify second slots for doctors with 2 clinics
   const doctorSlots = {};
@@ -583,20 +584,27 @@ function renderHeader() {
 }
 
 function renderNextClinic() {
-  const smartIdx = getSmartNextIdx();
-  const c = CLINICS[smartIdx];
-  document.getElementById('nextDoctor').textContent = "Dr. " + c.doctor;
-  document.getElementById('nextRoom').textContent = c.room;
-  document.getElementById('nextDoctor').dataset.smartIdx = smartIdx;
-  const todayIP = todayName();
-  const daysEl = document.getElementById('nextDays');
-  daysEl.innerHTML = '';
-  c.days.forEach(day => {
-    const el = document.createElement('div');
-    el.className = 'day-slot';
-    el.innerHTML = `<span class="dn">${day}</span>${day===todayIP?'<span class="today-tag">TODAY</span>':''}`;
-    daysEl.appendChild(el);
-  });
+  try {
+    const smartIdx = getSmartNextIdx();
+    const c = CLINICS[smartIdx];
+    document.getElementById('nextDoctor').textContent = "Dr. " + c.doctor;
+    document.getElementById('nextRoom').textContent = c.room;
+    document.getElementById('nextDoctor').dataset.smartIdx = smartIdx;
+    const todayIP = todayName();
+    const daysEl = document.getElementById('nextDays');
+    daysEl.innerHTML = '';
+    c.days.forEach(day => {
+      const el = document.createElement('div');
+      el.className = 'day-slot';
+      el.innerHTML = '<span class="dn">'+day+'</span>'+(day===todayIP?'<span class="today-tag">TODAY</span>':'');
+      daysEl.appendChild(el);
+    });
+  } catch(e) {
+    const idx = currentPointer % CLINICS.length;
+    const c = CLINICS[idx];
+    document.getElementById('nextDoctor').textContent = "Dr. " + c.doctor;
+    document.getElementById('nextRoom').textContent = c.room;
+  }
 }
 
 function renderRotBar() {
@@ -846,7 +854,6 @@ window.closeModal = function() {
 // =============================================
 const opLogsRef = collection(db, "op_logs");
 const opLogsQuery = query(opLogsRef, orderBy("ts", "desc"));
-let allOpLogs = [];
 
 onSnapshot(opLogsQuery, (snap) => {
   allOpLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
