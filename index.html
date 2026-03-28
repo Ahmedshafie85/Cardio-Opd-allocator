@@ -155,8 +155,8 @@ select option{background:var(--sur2)}
       <div class="dr" id="ndays"></div>
     </div>
     <div class="rb" id="rb"></div>
-    <div><label>File Number</label>
-    <input type="text" id="fi" placeholder="e.g. 123456" autocomplete="off"></div>
+    <div><label>File Number (6 Digits)</label>
+    <input type="text" id="fi" placeholder="e.g. 123456" autocomplete="off" maxlength="6" inputmode="numeric"></div>
     <div><label>Registrar</label>
     <select id="rs">
       <option value="">— Select —</option>
@@ -196,8 +196,8 @@ select option{background:var(--sur2)}
         <div class="dr" id="opinfo"></div>
       </div>
       <div id="opbars" style="margin-bottom:16px"></div>
-      <div><label>Patient File Number</label>
-      <input type="text" id="opfi" placeholder="e.g. 123456" autocomplete="off">
+      <div><label>Patient File Number (6 Digits)</label>
+      <input type="text" id="opfi" placeholder="e.g. 123456" autocomplete="off" maxlength="6" inputmode="numeric">
       <div class="er" id="opfe"></div></div>
       <div><label>Assigned By</label>
       <select id="opcs">
@@ -383,7 +383,7 @@ function rAdmin(){
 function doAssign(){
   var fn=document.getElementById("fi").value.trim();
   var reg=document.getElementById("rs").value;
-  if(!fn){alert("Enter file number.");return}
+  if(!/^\d{6}$/.test(fn)){alert("File number must be exactly 6 digits.");return}
   if(!reg){alert("Select registrar.");return}
   var i=smartIdx(),c=CL[i];
   window.S.logs.push({fn:fn,reg:reg,doc:c.d,room:c.r,si:i,day:tn(),cd:c.days[0],ad:nd(),time:nt(),ts:Date.now()});
@@ -439,7 +439,7 @@ function doOpAssign(){
   var fn=document.getElementById("opfi").value.trim();
   var cl=document.getElementById("opcs").value;
   var err=document.getElementById("opfe");err.textContent="";
-  if(!fn){err.textContent="File number required.";return}
+  if(!/^\d{6}$/.test(fn)){err.textContent="File number must be exactly 6 digits.";return}
   if(!cl){alert("Select assigned by.");return}
   if(window.S.logs.find(function(e){return e.fn===fn})||window.S.oplogs.find(function(e){return e.fn===fn})){err.textContent="File "+fn+" already assigned. Possible duplicate.";return}
   if(tn()==="Fri"||tn()==="Sat"){alert("Outpatient runs Sun–Thu only.");return}
