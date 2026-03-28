@@ -40,8 +40,7 @@ header p{font-size:10px;color:var(--dim);font-family:'DM Mono',monospace}
 label{display:block;font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
 input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:11px;color:var(--txt);font-family:'DM Mono',monospace;font-size:14px;outline:none;margin-bottom:11px}
 .btn{width:100%;background:linear-gradient(135deg,#2563eb,#0891b2);border:none;border-radius:8px;padding:12px;color:#fff;font-weight:600;cursor:pointer;margin-bottom:5px}
-.flash{display:none;margin-top:12px;padding:13px;border-radius:9px;background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2)}
-.flash.on{display:flex;align-items:center;gap:11px}
+.btn-warn{background:linear-gradient(135deg,#f87171,#ef4444);margin-top:10px}
 .lt{background:var(--sur);border:1px solid var(--bor);border-radius:11px;overflow:hidden}
 .lh{display:grid;grid-template-columns:80px 1fr 1fr 1fr;padding:8px 13px;background:var(--sur2);border-bottom:1px solid var(--bor);font-family:'DM Mono',monospace;font-size:10px;color:var(--dim)}
 .lr{display:grid;grid-template-columns:80px 1fr 1fr 1fr;padding:10px 13px;border-bottom:1px solid var(--bor);font-size:12px}
@@ -67,7 +66,7 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
   <div class="db"><strong id="dayName">—</strong><span id="dateStr">—</span></div>
 </header>
 
-<div class="sb"><div class="sd" id="syncDot"></div><span id="syncText">Connecting to database...</span></div>
+<div class="sb"><div class="sd" id="syncDot"></div><span id="syncText">Connecting...</span></div>
 
 <div class="tabs">
   <button class="tab on" onclick="goTab('ip',this)">Inpatient</button>
@@ -84,7 +83,6 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
     <label>File Number (6 Digits)</label><input type="text" id="fi" maxlength="6" inputmode="numeric">
     <label>Registrar PIN</label><input type="password" id="rpin" maxlength="4" inputmode="numeric">
     <button class="btn" onclick="doAssign()">Assign →</button>
-    <div class="flash" id="fl"><div class="ft"><strong id="fd">—</strong><span id="fdt">—</span></div></div>
   </div>
 </div>
 
@@ -104,9 +102,14 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
 <div class="pg" id="pg-adm">
   <div class="card" id="apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api" maxlength="4"><button class="btn" onclick="adminLogin()">Unlock</button></div>
   <div id="ac2" style="display:none">
-    <div class="card"><h3>Admin Controls</h3>
-      <button class="btn" style="margin-top:10px" onclick="exportWeekly()">📊 Weekly General PDF</button>
-      <button class="btn" style="background:#f87171;margin-top:10px" onclick="resetAll()">⚠ Reset All Data</button>
+    <div class="card">
+        <h3>Admin Controls</h3>
+        <button class="btn" style="margin-top:10px" onclick="exportWeekly()">📊 Weekly General PDF</button>
+        <hr style="border:0;border-top:1px solid var(--bor);margin:20px 0">
+        <label>Remove Specific Patient Entry</label>
+        <input type="text" id="dfi" placeholder="Enter File Number" maxlength="6" inputmode="numeric">
+        <button class="btn" style="background:#fbbf24;color:#000" onclick="delEntry()">🗑 Remove Entry</button>
+        <button class="btn btn-warn" onclick="resetAll()">⚠ Wipe All Database Data</button>
     </div>
   </div>
 </div>
@@ -169,7 +172,7 @@ window.doAssign = function(){
   window.S.logs.push({fn:fn,reg:docPINs[pin],doc:c.d,room:c.r,si:i,ad:nd(),time:nt(),ts:Date.now()});
   window.S.ptr++; set(dbRef, window.S);
   document.getElementById("fi").value=""; document.getElementById("rpin").value="";
-  alert("Assigned to Dr. "+c.d); rAll();
+  rAll();
 };
 
 window.doOpAssign = function(){
@@ -178,7 +181,7 @@ window.doOpAssign = function(){
   if(!tc.length) return alert("No clinics today");
   var best=tc.reduce((a,b)=> (cCnt(a.i) < cCnt(b.i) ? a : b));
   window.S.oplogs.push({fn:fn,clerk:"Clerk",doc:best.d,room:best.r,si:best.i,ad:nd(),time:nt(),ts:Date.now()});
-  set(dbRef, window.S); document.getElementById("opfi").value=""; alert("Assigned to Dr. "+best.d); rAll();
+  set(dbRef, window.S); document.getElementById("opfi").value=""; rAll();
 };
 
 function cCnt(i){ return (window.S.logs||[]).concat(window.S.oplogs||[]).filter(e=>e.si===i).length; }
@@ -225,6 +228,25 @@ window.adminLogin = function(){ if(document.getElementById("api").value==="2025"
 
 window.exportWeekly = function(){ exportPDF("Weekly General Report", (window.S.logs||[]).concat(window.S.oplogs||[])); };
 
+window.delEntry = function() {
+  var fn = document.getElementById("dfi").value.trim();
+  if(!fn) return alert("Enter file number");
+  var ipIdx = (window.S.logs || []).findIndex(e => e.fn === fn);
+  var opIdx = (window.S.oplogs || []).findIndex(e => e.fn === fn);
+  if(ipIdx === -1 && opIdx === -1) return alert("File not found");
+  if(!confirm("Remove entry for File " + fn + "?")) return;
+  if(ipIdx !== -1) {
+    window.S.logs.splice(ipIdx, 1);
+    window.S.ptr = Math.max(0, window.S.ptr - 1);
+  } else {
+    window.S.oplogs.splice(opIdx, 1);
+  }
+  set(dbRef, window.S);
+  document.getElementById("dfi").value = "";
+  alert("Removed. Rotation adjusted.");
+  rAll();
+};
+
 function exportPDF(title, data){
   var rows = data.map(e=> `<tr><td>${e.ad}</td><td>${e.time}</td><td>${e.fn}</td><td>${e.doc}</td><td>${e.room}</td><td>${e.reg||"Clerk"}</td></tr>`).join("");
   var h = `<html><head><style>table{width:100%;border-collapse:collapse;font-family:sans-serif;font-size:12px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f4f4f4}</style></head>
@@ -240,7 +262,6 @@ function rAll(){
   var i=smartIdx(); document.getElementById("nd").textContent="Dr. "+CL[i].d; document.getElementById("nr").textContent=CL[i].r;
   var b=document.getElementById("rb"); b.innerHTML=""; CL.forEach((_,idx)=>{ var d=document.createElement("div"); d.className="dot"+(idx===i?" on":""); b.appendChild(d); });
   rLog(); rDist();
-  // Update Outpatient display
   var tc=CL.map((c,idx)=>({...c,idx})).filter(c=>c.days.includes(tn()));
   if(tc.length){
     var best=tc.reduce((a,b)=> (cCnt(a.idx) < cCnt(b.idx) ? a : b));
