@@ -39,7 +39,7 @@ header p{font-size:10px;color:var(--dim);font-family:'DM Mono',monospace}
 .dot.on{background:var(--acc);transform:scale(1.5)}
 label{display:block;font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
 input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:11px;color:var(--txt);font-family:'DM Mono',monospace;font-size:14px;outline:none;margin-bottom:11px}
-.btn{width:100%;background:linear-gradient(135deg,#2563eb,#0891b2);border:none;border-radius:8px;padding:12px;color:#fff;font-weight:600;cursor:pointer;margin-bottom:5px}
+.btn{width:100%;background:linear-gradient(135deg,#2563eb,#0891b2);border:none;border-radius:8px;padding:12px;color:#fff;font-weight:600;cursor:pointer;margin-bottom:5px;transition:all 0.2s}
 .btn-warn{background:linear-gradient(135deg,#f87171,#ef4444);margin-top:10px}
 .lf{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
 .fb{background:var(--sur2);border:1px solid var(--bor);color:var(--mid);border-radius:6px;padding:5px 11px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px}
@@ -52,8 +52,10 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
 .lgx{font-size:11px;color:var(--mid)}
 .rt{font-family:'DM Mono',monospace;font-size:10px;color:var(--acc2);background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);border-radius:3px;padding:2px 5px;display:inline-block;margin-top:2px}
 .dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px}
-.dc{background:var(--sur);border:1px solid var(--bor);border-radius:11px;padding:13px;cursor:pointer}
+.dc{background:var(--sur);border:1px solid var(--bor);border-radius:11px;padding:13px;cursor:pointer;transition:all 0.2s}
 .dc.nx{border-color:var(--acc);background:rgba(59,130,246,.06)}
+.dc.lv{opacity:0.6; border-color:var(--err); background:rgba(239,68,68,0.05)}
+.dc.lv .dn2{color:var(--err); font-size:14px; font-weight:600; letter-spacing:1px; margin-top:8px; margin-bottom:5px}
 .dd{font-size:12px;font-weight:500;margin-bottom:2px}
 .dn2{font-family:'DM Serif Display',serif;font-size:26px}
 .pi{background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:12px;color:var(--txt);font-family:'DM Mono',monospace;font-size:15px;text-align:center;width:100%;margin-bottom:9px}
@@ -126,6 +128,10 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
   <div class="card" id="apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api" maxlength="4"><button class="btn" onclick="adminLogin()">Unlock</button></div>
   <div id="ac2" style="display:none">
     <div class="card">
+        <h3>Doctor Leave Management</h3>
+        <p style="font-size:11px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">Click to toggle leave status. Allocator will automatically skip doctors on leave.</p>
+        <div id="leave-grid" class="dg" style="margin-bottom:20px;"></div>
+        <hr style="border:0;border-top:1px solid var(--bor);margin:20px 0">
         <h3>Admin Controls</h3>
         <button class="btn" style="margin-top:10px" onclick="exportWeekly()">📊 Weekly General PDF</button>
         <hr style="border:0;border-top:1px solid var(--bor);margin:20px 0">
@@ -181,12 +187,18 @@ var CL=[
   {d:"Hany",r:"Room 16",days:["Sun"]}
 ];
 
-window.S={ptr:0,logs:[],oplogs:[]};
+window.S={ptr:0,logs:[],oplogs:[],leave:{}};
 var adm=false; var clk=false;
 window.lf="all";
 
 onValue(dbRef, (snap) => {
-  const d = snap.val(); if(d) { window.S = d; if(!window.S.logs)window.S.logs=[]; if(!window.S.oplogs)window.S.oplogs=[]; }
+  const d = snap.val(); 
+  if(d) { 
+    window.S = d; 
+    if(!window.S.logs) window.S.logs=[]; 
+    if(!window.S.oplogs) window.S.oplogs=[]; 
+    if(!window.S.leave) window.S.leave={};
+  }
   document.getElementById("syncDot").style.background="#34d399"; document.getElementById("syncText").textContent="Live — Synced";
   rAll();
 });
@@ -198,9 +210,19 @@ function nd(){return new Date().toLocaleDateString("en-GB",{day:"numeric",month:
 function smartIdx(){
   var cnt=new Array(CL.length).fill(0);
   (window.S.logs||[]).concat(window.S.oplogs||[]).forEach(e=>{if(e.si!=null)cnt[e.si]++});
-  var min = Math.min(...cnt);
-  for(var o=0;o<CL.length;o++){var i=(window.S.ptr+o)%CL.length;if(cnt[i]===min)return i}
-  return window.S.ptr % CL.length;
+  
+  // Filter out doctors who are on leave
+  var activeIndices = CL.map((c,i)=>i).filter(i => !(window.S.leave && window.S.leave[i]));
+  
+  // Fallback if everyone is somehow on leave
+  if(activeIndices.length === 0) return window.S.ptr % CL.length;
+
+  var min = Math.min(...activeIndices.map(i => cnt[i]));
+  for(var o=0;o<CL.length;o++){
+    var i=(window.S.ptr+o)%CL.length;
+    if(activeIndices.includes(i) && cnt[i]===min) return i;
+  }
+  return activeIndices[0];
 }
 
 window.goTab = function(id,btn){
@@ -220,6 +242,10 @@ window.filterLog = function(f, btn){
 window.doAssign = function(){
   var fn=document.getElementById("fi").value.trim(); var pin=document.getElementById("rpin").value.trim();
   if(!/^\d{6}$/.test(fn)||!docPINs[pin]) return alert("Check File (6 digits) and PIN");
+  
+  var activeIndices = CL.map((c,i)=>i).filter(i => !(window.S.leave && window.S.leave[i]));
+  if(activeIndices.length === 0) return alert("All doctors are currently on leave!");
+
   if(!confirm("Assign Inpatient File "+fn+" to "+docPINs[pin]+"?")) return;
   var i=smartIdx(), c=CL[i];
   window.S.logs.push({fn:fn,reg:docPINs[pin],doc:c.d,room:c.r,si:i,cd:c.days[0],ad:nd(),time:nt(),ts:Date.now()});
@@ -241,8 +267,9 @@ window.doOpAssign = function(){
   else if(fn) finalFn = fn;
   else finalFn = ph;
 
-  var tc=CL.map((c,idx)=>({...c,idx})).filter(c=>c.days.includes(tn()));
-  if(!tc.length) return alert("No clinics today");
+  // Filter for today AND not on leave
+  var tc=CL.map((c,idx)=>({...c,idx})).filter(c=>c.days.includes(tn()) && !(window.S.leave && window.S.leave[c.idx]));
+  if(!tc.length) return alert("No active clinics available today.");
   var best=tc.reduce((a,b)=> (cCnt(a.idx) < cCnt(b.idx) ? a : b));
   
   window.S.oplogs.push({fn:finalFn,clerk:"Clerk",doc:best.d,room:best.r,si:best.idx,cd:tn(),ad:nd(),time:nt(),ts:Date.now()});
@@ -257,8 +284,18 @@ function cCnt(i){ return (window.S.logs||[]).concat(window.S.oplogs||[]).filter(
 function rDist(){
   var g=document.getElementById("dg"); g.innerHTML="";
   CL.forEach((c,i)=>{
-    var d=document.createElement("div"); d.className="dc"+(i===smartIdx()?" nx":"");
-    d.innerHTML=`<div class="dd">Dr. ${c.d}</div><div style="font-size:10px;color:var(--dim)">${c.r} · ${c.days.join(", ")}</div><div class="dn2">${cCnt(i)}</div>`;
+    var isLeave = window.S.leave && window.S.leave[i];
+    var isNext = (i===smartIdx() && !isLeave);
+    
+    var d=document.createElement("div"); 
+    d.className="dc" + (isNext ? " nx" : "") + (isLeave ? " lv" : "");
+    
+    if(isLeave) {
+        d.innerHTML=`<div class="dd">Dr. ${c.d}</div><div style="font-size:10px;color:var(--dim)">${c.r}</div><div class="dn2">ON LEAVE</div>`;
+    } else {
+        d.innerHTML=`<div class="dd">Dr. ${c.d}</div><div style="font-size:10px;color:var(--dim)">${c.r} · ${c.days.join(", ")}</div><div class="dn2">${cCnt(i)}</div>`;
+    }
+    
     d.onclick=()=>openMo(i); g.appendChild(d);
   });
 }
@@ -294,8 +331,10 @@ function openMo(i){
     b.appendChild(d);
   });
   var pb=document.getElementById("mprint"); pb.innerHTML="";
-  var btn=document.createElement("button"); btn.className="btn"; btn.textContent="Print Clinic List";
-  btn.onclick=()=>exportPDF(c.d+" - "+c.r+" ("+c.days.join(", ")+")", pts); pb.appendChild(btn);
+  if(pts.length > 0) {
+      var btn=document.createElement("button"); btn.className="btn"; btn.textContent="Print Clinic List";
+      btn.onclick=()=>exportPDF(c.d+" - "+c.r+" ("+c.days.join(", ")+")", pts); pb.appendChild(btn);
+  }
   document.getElementById("mo").classList.add("on");
 }
 window.closeMo = function(){document.getElementById("mo").classList.remove("on")};
@@ -304,6 +343,34 @@ window.clerkLogin = function(){ if(document.getElementById("opi").value==="2026"
 window.adminLogin = function(){ if(document.getElementById("api").value==="2025"){adm=true; document.getElementById("apgate").style.display="none"; document.getElementById("ac2").style.display="block"; rAll();}};
 
 window.exportWeekly = function(){ exportPDF("Weekly General Report", (window.S.logs||[]).concat(window.S.oplogs||[])); };
+
+window.toggleLeave = function(i) {
+    if(!window.S.leave) window.S.leave = {};
+    window.S.leave[i] = !window.S.leave[i];
+    set(dbRef, window.S);
+    rAll();
+};
+
+function renderLeaveAdmin() {
+    var g = document.getElementById("leave-grid");
+    if(!g) return;
+    g.innerHTML = "";
+    CL.forEach((c, i) => {
+        var isLeave = window.S.leave && window.S.leave[i];
+        var d = document.createElement("div");
+        d.className = "dc" + (isLeave ? " lv" : "");
+        d.style.textAlign = "center";
+        d.style.padding = "10px";
+        d.innerHTML = `
+            <div class="dd">Dr. ${c.d}</div>
+            <div style="font-size:10px;color:var(--dim);margin-bottom:8px">${c.r}</div>
+            <button class="btn ${isLeave ? 'btn-warn' : ''}" style="padding:6px;font-size:10px;margin:0;letter-spacing:1px" onclick="toggleLeave(${i})">
+                ${isLeave ? '🔴 ON LEAVE' : '🟢 ACTIVE'}
+            </button>
+        `;
+        g.appendChild(d);
+    });
+}
 
 window.delEntry = function() {
   var searchVal = document.getElementById("dfi").value.trim();
@@ -335,28 +402,44 @@ function exportPDF(title, data){
   var w=window.open("","_blank"); w.document.write(h); w.document.close();
 }
 
-window.resetAll = function(){ if(confirm("Wipe everything?")) { window.S={ptr:0,logs:[],oplogs:[]}; set(dbRef, window.S); alert("Done"); rAll(); }};
+window.resetAll = function(){ if(confirm("Wipe everything?")) { window.S={ptr:0,logs:[],oplogs:[],leave:{}}; set(dbRef, window.S); alert("Done"); rAll(); }};
 
 function rAll(){
   document.getElementById("dayName").textContent=tn(); document.getElementById("dateStr").textContent=nd();
-  var i=smartIdx(), c=CL[i], t=tn();
-  document.getElementById("nd").textContent="Dr. "+c.d; 
-  document.getElementById("nr").textContent=c.r;
   
-  var dayEl = document.getElementById("ndays"); dayEl.innerHTML="";
-  c.days.forEach(day => {
-    var d = document.createElement("div"); d.className="ds";
-    d.innerHTML = `<span>${day}</span>` + (day===t ? `<span class="tt">TODAY</span>` : "");
-    dayEl.appendChild(d);
-  });
+  var activeIndices = CL.map((c,i)=>i).filter(i => !(window.S.leave && window.S.leave[i]));
+  
+  if(activeIndices.length > 0) {
+      var i=smartIdx(), c=CL[i], t=tn();
+      document.getElementById("nd").textContent="Dr. "+c.d; 
+      document.getElementById("nr").textContent=c.r;
+      
+      var dayEl = document.getElementById("ndays"); dayEl.innerHTML="";
+      c.days.forEach(day => {
+        var d = document.createElement("div"); d.className="ds";
+        d.innerHTML = `<span>${day}</span>` + (day===t ? `<span class="tt">TODAY</span>` : "");
+        dayEl.appendChild(d);
+      });
 
-  var b=document.getElementById("rb"); b.innerHTML=""; CL.forEach((_,idx)=>{ var d=document.createElement("div"); d.className="dot"+(idx===i?" on":""); b.appendChild(d); });
+      var b=document.getElementById("rb"); b.innerHTML=""; CL.forEach((_,idx)=>{ var d=document.createElement("div"); d.className="dot"+(idx===i?" on":""); b.appendChild(d); });
+  } else {
+      document.getElementById("nd").textContent="ALL ON LEAVE"; 
+      document.getElementById("nr").textContent="—";
+      document.getElementById("ndays").innerHTML="";
+      document.getElementById("rb").innerHTML="";
+  }
+
   rLog(); rDist();
-  var tc=CL.map((cl,idx)=>({...cl,idx})).filter(cl=>cl.days.includes(tn()));
+  
+  var tc=CL.map((cl,idx)=>({...cl,idx})).filter(cl=>cl.days.includes(tn()) && !(window.S.leave && window.S.leave[cl.idx]));
   if(tc.length){
     var best=tc.reduce((a,b)=> (cCnt(a.idx) < cCnt(b.idx) ? a : b));
     document.getElementById("opd").textContent="Dr. "+best.d; document.getElementById("opr").textContent=best.r;
+  } else {
+    document.getElementById("opd").textContent="No active clinics"; document.getElementById("opr").textContent="—";
   }
+  
+  if(adm) renderLeaveAdmin();
 }
 </script>
 </body>
