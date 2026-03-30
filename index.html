@@ -158,7 +158,29 @@ const db = getDatabase(app);
 const dbRef = ref(db, 'mkh_clinic_data');
 
 var docPINs = {"1001":"Dr. Rehan","1002":"Dr. Ramy","1003":"Dr. Badawy","1004":"Dr. Sharkawy","1005":"Dr. Mostafa","1006":"Dr. Ibrahim","1007":"Dr. Hadad","1008":"Dr. Emara","1009":"Dr. Rahim","1010":"Dr. Mamdouh","1011":"Dr. Slam","1012":"Dr. Ezz","1013":"Dr. R Gamal","1014":"Dr. Moghl","1015":"Dr. Darwish","1016":"Dr. Omar","1017":"Dr. Sajid","1018":"Dr. Hamza","1019":"Dr. Eyad","1020":"Dr. Mongy","1021":"Dr. Bahlol"};
-var CL=[{d:"Hisham",r:"Room 10",days:["Sun"]},{d:"Farag",r:"Room 8",days:["Mon"]},{d:"Ibrahim",r:"Room 10",days:["Tue"]},{d:"Hany",r:"Room 16",days:["Sun"]},{d:"Fahd",r:"Room 24",days:["Mon"]},{d:"Ali",r:"Room 11",days:["Wed"]},{d:"Nazanin",r:"Room 25",days:["Sun"]},{d:"Arab",r:"Room 25",days:["Tue"]},{d:"Ehab",r:"Room 25",days:["Mon"]},{d:"Maged",r:"Room 20",days:["Sun"]},{d:"Fawzy",r:"Room 20",days:["Wed"]},{d:"Ashraf",r:"Room 20",days:["Thu"]},{d:"Akmal",r:"Room 10",days:["Mon"]},{d:"Zaher",r:"Room 20",days:["Tue"]},{d:"Shafie",r:"Room 25",days:["Thu"]},{d:"Hisham",r:"Room 8",days:["Tue"]},{d:"Farag",r:"Room 10",days:["Wed"]},{d:"Ibrahim",r:"Room 13",days:["Thu"]},{d:"Maged",r:"Room 11",days:["Tue"]}];
+
+var CL=[
+  {d:"Hisham",r:"Room 10",days:["Sun"]},
+  {d:"Maged",r:"Room 11",days:["Tue"]},
+  {d:"Zaher",r:"Room 20",days:["Tue"]},
+  {d:"Maged",r:"Room 20",days:["Sun"]},
+  {d:"Fahd",r:"Room 24",days:["Mon"]},
+  {d:"Akmal",r:"Room 10",days:["Mon"]},
+  {d:"Nazanin",r:"Room 25",days:["Sun"]},
+  {d:"Hisham",r:"Room 8",days:["Tue"]},
+  {d:"Ali",r:"Room 11",days:["Wed"]},
+  {d:"Ehab",r:"Room 25",days:["Mon"]},
+  {d:"Farag",r:"Room 10",days:["Wed"]},
+  {d:"Arab",r:"Room 25",days:["Tue"]},
+  {d:"Ibrahim",r:"Room 10",days:["Tue"]},
+  {d:"Fawzy",r:"Room 20",days:["Wed"]},
+  {d:"Shafie",r:"Room 25",days:["Thu"]},
+  {d:"Ashraf",r:"Room 20",days:["Thu"]},
+  {d:"Farag",r:"Room 8",days:["Mon"]},
+  {d:"Ibrahim",r:"Room 13",days:["Thu"]},
+  {d:"Hany",r:"Room 16",days:["Sun"]}
+];
+
 window.S={ptr:0,logs:[],oplogs:[]};
 var adm=false; var clk=false;
 window.lf="all";
