@@ -247,6 +247,12 @@ function isOff(idx, type) {
     return window.S.leave[docName][type] === true;
 }
 
+function isDuplicate(val) {
+    if (!val) return false;
+    var allLogs = (window.S.logs || []).concat(window.S.oplogs || []);
+    return allLogs.some(e => e.fn && e.fn.includes(val));
+}
+
 function smartIdx(){
   var cnt=new Array(CL.length).fill(0);
   (window.S.logs||[]).concat(window.S.oplogs||[]).forEach(e=>{if(e.si!=null)cnt[e.si]++});
@@ -275,6 +281,7 @@ window.filterLog = function(f, btn){
 window.doAssign = function(){
   var fn=document.getElementById("fi").value.trim(); var pin=document.getElementById("rpin").value.trim();
   if(!/^\d{6}$/.test(fn)||!docPINs[pin]) return alert("Check File (6 digits) and PIN");
+  if(isDuplicate(fn)) return alert("DUPLICATE ENTRY: This File Number has already been assigned.");
   if(!confirm("Assign Inpatient File "+fn+" to "+docPINs[pin]+"?")) return;
   
   var fdEl = document.getElementById("fd-sel");
@@ -292,6 +299,9 @@ window.doOpAssign = function(){
   if(!fn && !ph) return alert("Enter File or Phone Number.");
   if(fn && !/^\d{6}$/.test(fn)) return alert("File 6 digits.");
   if(ph && !/^\d{8}$/.test(ph)) return alert("Phone 8 digits.");
+  if(fn && isDuplicate(fn)) return alert("DUPLICATE ENTRY: This File Number has already been assigned.");
+  if(ph && isDuplicate(ph)) return alert("DUPLICATE ENTRY: This Phone Number has already been assigned.");
+  
   var finalFn = (fn && ph) ? fn + " / " + ph : (fn || ph);
   var tc=CL.map((c,idx)=>({...c,idx})).filter(c=>c.days.includes(tn()) && !isOff(c.idx, 'op'));
   if(!tc.length) return alert("No active OP clinics today.");
