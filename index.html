@@ -156,7 +156,7 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
   <div class="ac-content">
     <div class="card">
         <h3>Unified Perpetual Rotation</h3>
-        <p style="font-size:10px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">The master pointer never stops. Outpatient search looks ahead indefinitely. Duplicate file numbers are strictly blocked across the entire database.</p>
+        <p style="font-size:10px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">System auto-resets bucket if no tickets remain for today. Duplicate checking is now strictly hardcoded to scan all history.</p>
         <div id="leave-grid" class="dg" style="margin-bottom:20px;"></div>
         <hr style="border:0;border-top:1px solid var(--bor);margin:20px 0">
         <h3>Admin Controls</h3>
@@ -231,26 +231,36 @@ function isDocOff(docName, type) {
     return window.S.leave[docName][type] === true;
 }
 
+// HARDCORE DUPLICATE SCAN
 function isDuplicate(val) {
     if (!val) return false;
     const cleanVal = val.toString().trim();
-    return (window.S.logs||[]).concat(window.S.oplogs||[]).some(e => e.fn && e.fn.toString().includes(cleanVal));
+    // Check both arrays and ensure no partial string matches either
+    const all = (window.S.logs||[]).concat(window.S.oplogs||[]);
+    return all.some(e => e.fn && e.fn.toString().includes(cleanVal));
 }
 
-// PERPETUAL SEARCH: Searches up to 2 full cycles (54 slots) to guarantee a match
+// THE AGGRESSIVE ENGINE: Never returns -1 if a doctor works today
 function getNextSlot(type) {
     const today = tn();
+    // Scan up to 54 slots (two cycles) to guarantee we find a valid ticket
     for (let o = 0; o < 54; o++) {
         let i = (window.S.ptr + o) % 27;
-        if (window.S.used[i]) continue;
+        
+        // If we are looking into the 'future' cycle (o >= 27), 
+        // pretend the ticket isn't used yet.
+        const isBurned = (o < 27) ? window.S.used[i] : false;
+        
+        if (isBurned) continue;
+        
         let c = CL[i];
         if (type === 'ip') {
-            if (!isDocOff(c.d, 'ip')) return i;
+            if (!isDocOff(c.d, 'ip')) return {idx: i, resetNeeded: (o >= 27)};
         } else {
-            if (c.days.includes(today) && !isDocOff(c.d, 'op')) return i;
+            if (c.days.includes(today) && !isDocOff(c.d, 'op')) return {idx: i, resetNeeded: (o >= 27)};
         }
     }
-    return -1;
+    return null;
 }
 
 window.doAssign = function(type){
@@ -271,21 +281,23 @@ window.doAssign = function(type){
 
   if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected. File Number "+fn+" is already assigned.");
   
-  var i = getNextSlot(type);
+  var res = getNextSlot(type);
   
-  if (i === -1) {
+  if (!res) return alert("No valid clinics scheduled for Today.");
+
+  // AUTO-RESET BUCKET SILENTLY IF SEARCH PUSHED INTO NEXT CYCLE
+  if (res.resetNeeded) {
       window.S.used = new Array(27).fill(false);
-      i = getNextSlot(type);
-      if (i === -1) return alert("No valid clinics scheduled for Today.");
   }
   
+  var i = res.idx;
   var c = CL[i];
   var entry = {fn:fn, reg:docPINs[pin]||pin, doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
   if(type === 'ip') window.S.logs.push(entry); else window.S.oplogs.push(entry);
   
   window.S.used[i] = true;
   
-  // Advance master pointer past any consumed slots
+  // Sync the pointer
   if (i === window.S.ptr) {
       window.S.ptr = (window.S.ptr + 1) % 27;
       while (window.S.used[window.S.ptr]) {
@@ -310,7 +322,8 @@ function cCnt(i){ return (window.S.logs||[]).concat(window.S.oplogs||[]).filter(
 function rDist(){
   var g=document.getElementById("dg"); g.innerHTML="";
   CL.forEach((c,i)=>{
-    var ipO = isDocOff(c.d,'ip'), opO = isDocOff(c.d,'op'), isN = (i===getNextSlot('ip'));
+    var ipO = isDocOff(c.d,'ip'), opO = isDocOff(c.d,'op'), ipNext = getNextSlot('ip');
+    var isN = ipNext && (i === ipNext.idx);
     var d=document.createElement("div"); d.className="dc"+(isN?" nx":"");
     d.innerHTML=`<div class="dd">Dr. ${c.d}</div><div style="font-size:10px;color:var(--dim)">${c.r} • ${c.days.join(", ")}</div><div class="dn2">${cCnt(i)}</div>
     <div class="stbox"><div class="stb ${ipO?'stb-off':'stb-ok'}">IP:${ipO?'OFF':'OK'}</div><div class="stb ${opO?'stb-off':'stb-ok'}">OP:${opO?'OFF':'OK'}</div></div>`;
@@ -349,21 +362,19 @@ function rAll(){
   document.getElementById("dayName").textContent=tn(); document.getElementById("dateStr").textContent=nd();
   var ipI = getNextSlot('ip'), opI = getNextSlot('op');
   
-  if(ipI !== -1){
-    var c = CL[ipI]; document.getElementById("nd").textContent="Dr. "+c.d; document.getElementById("nr").textContent=c.r;
+  if(ipI){
+    var c = CL[ipI.idx]; document.getElementById("nd").textContent="Dr. "+c.d; document.getElementById("nr").textContent=c.r;
     updateFutureDates(c.days);
-  } else {
-    document.getElementById("nd").textContent="Cycling Master Pack..."; 
   }
 
-  if(opI !== -1){ document.getElementById("opd").textContent="Dr. "+CL[opI].d; document.getElementById("opr").textContent=CL[opI].r; }
-  else { document.getElementById("opd").textContent="Searching next cycle..."; }
+  if(opI){ document.getElementById("opd").textContent="Dr. "+CL[opI.idx].d; document.getElementById("opr").textContent=CL[opI.idx].r; }
+  else { document.getElementById("opd").textContent="No Clinic Match"; }
 
   var rb=document.getElementById("rb"); rb.innerHTML=""; 
   CL.forEach((_,idx)=>{ 
       var d=document.createElement("div"); 
       var usedClass = window.S.used[idx] ? " used" : "";
-      var onClass = (idx === ipI) ? " on" : "";
+      var onClass = (ipI && idx === ipI.idx) ? " on" : "";
       d.className="dot" + usedClass + onClass; 
       rb.appendChild(d); 
   });
@@ -392,7 +403,7 @@ function renderLeaveAdmin() {
 }
 window.delEntry = () => {
   var s=document.getElementById("dfi").value.trim(); if(!s)return;
-  var idxL=window.S.logs.findIndex(e=>e.fn===s), idxO=window.S.oplogs.findIndex(e=>e.fn===s);
+  var idxL=window.S.logs.findIndex(e=>e.fn.includes(s)), idxO=window.S.oplogs.findIndex(e=>e.fn.includes(s));
   if(idxL===-1 && idxO===-1)return alert("Not found");
   if(confirm("Delete?")){ if(idxL!==-1)window.S.logs.splice(idxL,1); else window.S.oplogs.splice(idxO,1); set(dbRef,window.S); rAll();}
 };
