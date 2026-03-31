@@ -71,6 +71,7 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
 .lv-btn{font-size:9px;padding:5px 0;border-radius:4px;border:none;cursor:pointer;font-family:'DM Mono',monospace;color:white;font-weight:600}
 .lv-btn.on{background:var(--ok)}
 .lv-btn.off{background:var(--err)}
+.ac-content{display:none}
 </style>
 </head>
 <body>
@@ -114,25 +115,33 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
 </div>
 
 <div class="pg" id="pg-log">
-  <div class="lf">
-    <button class="fb on" onclick="filterLog('all',this)">All</button>
-    <button class="fb" onclick="filterLog('Sun',this)">Sun</button>
-    <button class="fb" onclick="filterLog('Mon',this)">Mon</button>
-    <button class="fb" onclick="filterLog('Tue',this)">Tue</button>
-    <button class="fb" onclick="filterLog('Wed',this)">Wed</button>
-    <button class="fb" onclick="filterLog('Thu',this)">Thu</button>
-  </div>
-  <div class="lt">
-    <div class="lh"><div>Date</div><div>File / Phone</div><div>Doctor / Room</div><div>By</div></div>
-    <div id="lb"></div>
+  <div class="card apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api-log" maxlength="4"><button class="btn" onclick="adminLogin('api-log')">Unlock</button></div>
+  <div class="ac-content">
+      <div class="lf">
+        <button class="fb on" onclick="filterLog('all',this)">All</button>
+        <button class="fb" onclick="filterLog('Sun',this)">Sun</button>
+        <button class="fb" onclick="filterLog('Mon',this)">Mon</button>
+        <button class="fb" onclick="filterLog('Tue',this)">Tue</button>
+        <button class="fb" onclick="filterLog('Wed',this)">Wed</button>
+        <button class="fb" onclick="filterLog('Thu',this)">Thu</button>
+      </div>
+      <div class="lt">
+        <div class="lh"><div>Date</div><div>File / Phone</div><div>Doctor / Room</div><div>By</div></div>
+        <div id="lb"></div>
+      </div>
   </div>
 </div>
 
-<div class="pg" id="pg-dist"><div class="dg" id="dg"></div></div>
+<div class="pg" id="pg-dist">
+  <div class="card apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api-dist" maxlength="4"><button class="btn" onclick="adminLogin('api-dist')">Unlock</button></div>
+  <div class="ac-content">
+    <div class="dg" id="dg"></div>
+  </div>
+</div>
 
 <div class="pg" id="pg-adm">
-  <div class="card" id="apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api" maxlength="4"><button class="btn" onclick="adminLogin()">Unlock</button></div>
-  <div id="ac2" style="display:none">
+  <div class="card apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api-adm" maxlength="4"><button class="btn" onclick="adminLogin('api-adm')">Unlock</button></div>
+  <div class="ac-content">
     <div class="card">
         <h3>Doctor Availability Management</h3>
         <p style="font-size:10px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">Split toggles for Inpatient (IP) and Outpatient (OP) flow.</p>
@@ -304,7 +313,18 @@ function openMo(i){
 window.closeMo = function(){document.getElementById("mo").classList.remove("on")};
 
 window.clerkLogin = function(){ if(document.getElementById("opi").value==="2026"){clk=true; document.getElementById("opgate").style.display="none"; document.getElementById("opc").style.display="block";}};
-window.adminLogin = function(){ if(document.getElementById("api").value==="2025"){adm=true; document.getElementById("apgate").style.display="none"; document.getElementById("ac2").style.display="block"; rAll();}};
+
+window.adminLogin = function(inputId){ 
+    var val = document.getElementById(inputId).value;
+    if(val === "2025"){
+        adm = true; 
+        document.querySelectorAll('.apgate').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.ac-content').forEach(el => el.style.display = 'block');
+        rAll();
+    } else {
+        alert("Incorrect Admin PIN");
+    }
+};
 
 window.toggleS = function(i, type) {
     if(!window.S.leave[i]) window.S.leave[i] = {ip: false, op: false};
