@@ -31,9 +31,6 @@ header p{font-size:10px;color:var(--dim);font-family:'DM Mono',monospace}
 .rl{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
 .rd{font-family:'DM Serif Display',serif;font-size:26px;color:var(--acc);margin-bottom:3px}
 .rr{font-family:'DM Mono',monospace;font-size:12px;color:var(--mid);margin-bottom:9px}
-.dr{display:flex;gap:5px;flex-wrap:wrap}
-.ds{display:flex;align-items:center;gap:5px;background:var(--sur3);border:1px solid var(--bor);border-radius:5px;padding:3px 9px;font-family:'DM Mono',monospace;font-size:11px;color:var(--mid)}
-.tt{font-size:10px;color:var(--ok);background:rgba(16,185,129,.1);border-radius:3px;padding:1px 5px;margin-left:4px}
 .rb{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;justify-content:center}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--bor);transition:all .3s}
 .dot.used{background:var(--sur3);opacity:0.3}
@@ -101,7 +98,6 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
         <div class="rl">Next Inpatient Work Ticket</div>
         <div class="rd" id="nd">—</div>
         <div class="rr" id="nr">—</div>
-        <div class="dr" id="ndays"></div>
         <div style="margin-top:15px; border-top:1px dashed var(--bor); padding-top:12px;">
             <label style="color:var(--dim); font-size:9px;">AVAILABLE FOLLOW-UP DATES (NEXT 4 MONTHS)</label>
             <select id="fd-sel" class="fd-sel"></select>
@@ -159,8 +155,8 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
   <div class="card apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api-adm" maxlength="4"><button class="btn" onclick="adminLogin('api-adm')">Unlock</button></div>
   <div class="ac-content">
     <div class="card">
-        <h3>Unified Rotation Management</h3>
-        <p style="font-size:10px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">The master pointer cycles through all 27 weighted slots. Both IP and OP assignments consume the same tickets. Outpatient walk-ins search ahead for "Today" tickets, which are then skipped by the Inpatient discharge queue.</p>
+        <h3>Unified Perpetual Rotation</h3>
+        <p style="font-size:10px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">The master pointer never stops. If no valid slots remain for Today, the app instantly opens a new 27-slot cycle to maintain clinical flow.</p>
         <div id="leave-grid" class="dg" style="margin-bottom:20px;"></div>
         <hr style="border:0;border-top:1px solid var(--bor);margin:20px 0">
         <h3>Admin Controls</h3>
@@ -196,7 +192,6 @@ const dbRef = ref(db, 'mkh_clinic_data');
 
 var docPINs = {"1001":"Dr. Rehan","1002":"Dr. Ramy","1003":"Dr. Badawy","1004":"Dr. Sharkawy","1005":"Dr. Mostafa","1006":"Dr. Ibrahim","1007":"Dr. Hadad","1008":"Dr. Emara","1009":"Dr. Rahim","1010":"Dr. Mamdouh","1011":"Dr. Slam","1012":"Dr. Ezz","1013":"Dr. R Gamal","1014":"Dr. Moghl","1015":"Dr. Darwish","1016":"Dr. Omar","1017":"Dr. Sajid","1018":"Dr. Hamza","1019":"Dr. Eyad","1020":"Dr. Mongy","1021":"Dr. Bahlol","9999":"Admin"};
 
-// 27-Slot Rotation Master Sequence
 var CL=[
   {d:"Hisham",r:"Room 10",days:["Sun"]}, {d:"Maged",r:"Room 11",days:["Tue"]}, {d:"Hisham",r:"Room 10",days:["Sun"]},
   {d:"Maged",r:"Room 11",days:["Tue"]}, {d:"Fahd",r:"Room 24",days:["Mon"]}, {d:"Akmal",r:"Room 10",days:["Mon"]},
@@ -222,7 +217,7 @@ onValue(dbRef, (snap) => {
     if(!window.S.leave) window.S.leave={};
     if(!window.S.used) window.S.used = new Array(27).fill(false);
   }
-  document.getElementById("syncDot").style.background="#34d399"; document.getElementById("syncText").textContent="Live — Synced";
+  document.getElementById("syncDot").style.background="#34d399";
   rAll();
 });
 
@@ -240,33 +235,24 @@ function isDuplicate(val) {
     return (window.S.logs||[]).concat(window.S.oplogs||[]).some(e => e.fn && e.fn.includes(val));
 }
 
-// THE SEARCH ENGINE
+// SEARCH ENGINE (WITH SILENT AUTO-RESET FOR CONTINUOUS LOOP)
 function getNextSlot(type) {
     const today = tn();
-    
-    // Cycle starts searching from the current master pointer
     for (let o = 0; o < 27; o++) {
         let i = (window.S.ptr + o) % 27;
-        
-        // If slot is already "burned" in this cycle, skip it
         if (window.S.used[i]) continue;
-        
         let c = CL[i];
-        
         if (type === 'ip') {
-            // Inpatient just takes the very next non-burned slot
             if (!isDocOff(c.d, 'ip')) return i;
         } else {
-            // Outpatient must search forward for a "Today" slot
             if (c.days.includes(today) && !isDocOff(c.d, 'op')) return i;
         }
     }
-    return -1; // Bucket empty
+    return -1;
 }
 
 window.doAssign = function(type){
   var fn, pin, apt = "";
-  
   if(type === 'ip') {
     fn = document.getElementById("fi").value.trim();
     pin = document.getElementById("rpin").value.trim();
@@ -284,40 +270,37 @@ window.doAssign = function(type){
   if(isDuplicate(fn)) return alert("DUPLICATE ENTRY DETECTED.");
   
   var i = getNextSlot(type);
+  
+  // CONTINUOUS LOOP LOGIC: SILENT AUTO-RESET
   if (i === -1) {
-      // If bucket empty for today, reset the bucket and try once more
-      if (confirm("Rotation cycle completed or no matches found today. Reset ticket bucket?")) {
-          window.S.used = new Array(27).fill(false);
-          i = getNextSlot(type);
-      } else return;
+      window.S.used = new Array(27).fill(false);
+      window.S.ptr = 0;
+      i = getNextSlot(type);
+      if (i === -1) return alert("No valid clinics scheduled for Today.");
   }
   
   var c = CL[i];
   var entry = {fn:fn, reg:docPINs[pin]||pin, doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
-  
   if(type === 'ip') window.S.logs.push(entry); else window.S.oplogs.push(entry);
   
-  // BURN TICKET
   window.S.used[i] = true;
   
-  // Update pointer if we consumed the current head of the queue
+  // Advance pointer if head was consumed
   if (i === window.S.ptr) {
       window.S.ptr = (window.S.ptr + 1) % 27;
-      // Also advance pointer past any already burned slots
       while (window.S.used[window.S.ptr]) {
           window.S.ptr = (window.S.ptr + 1) % 27;
           if (window.S.used.every(v => v === true)) break;
       }
   }
 
-  // Automatic bucket reset if all 27 used
+  // Final check for bucket depletion
   if (window.S.used.every(v => v === true)) {
       window.S.used = new Array(27).fill(false);
       window.S.ptr = 0;
   }
   
   set(dbRef, window.S);
-  
   if(type==='ip'){document.getElementById("fi").value="";document.getElementById("rpin").value="";}
   else{document.getElementById("opfi").value="";document.getElementById("opphone").value="";}
   rAll();
@@ -330,7 +313,7 @@ function rDist(){
   CL.forEach((c,i)=>{
     var ipO = isDocOff(c.d,'ip'), opO = isDocOff(c.d,'op'), isN = (i===getNextSlot('ip'));
     var d=document.createElement("div"); d.className="dc"+(isN?" nx":"");
-    d.innerHTML=`<div class="dd">Dr. ${c.d}</div><div style="font-size:10px;color:var(--dim)">${c.r}</div><div class="dn2">${cCnt(i)}</div>
+    d.innerHTML=`<div class="dd">Dr. ${c.d}</div><div style="font-size:10px;color:var(--dim)">${c.r} • ${c.days.join(", ")}</div><div class="dn2">${cCnt(i)}</div>
     <div class="stbox"><div class="stb ${ipO?'stb-off':'stb-ok'}">IP:${ipO?'OFF':'OK'}</div><div class="stb ${opO?'stb-off':'stb-ok'}">OP:${opO?'OFF':'OK'}</div></div>`;
     d.onclick=()=>openMo(i); g.appendChild(d);
   });
@@ -369,15 +352,14 @@ function rAll(){
   
   if(ipI !== -1){
     var c = CL[ipI]; document.getElementById("nd").textContent="Dr. "+c.d; document.getElementById("nr").textContent=c.r;
-    var dy = document.getElementById("ndays"); dy.innerHTML="";
-    c.days.forEach(d => { var el=document.createElement("div"); el.className="ds"; el.innerHTML=`<span>${d}</span>`+(d===tn()?`<span class="tt">TODAY</span>`:""); dy.appendChild(el); });
     updateFutureDates(c.days);
   } else {
-    document.getElementById("nd").textContent="Bucket Complete"; document.getElementById("fd-sel").innerHTML="<option>N/A</option>";
+    // This state should rarely be visible with Perpetual logic
+    document.getElementById("nd").textContent="Auto-Cycling Queue"; 
   }
 
   if(opI !== -1){ document.getElementById("opd").textContent="Dr. "+CL[opI].d; document.getElementById("opr").textContent=CL[opI].r; }
-  else { document.getElementById("opd").textContent="No Match Today"; }
+  else { document.getElementById("opd").textContent="Search in next cycle..."; }
 
   var rb=document.getElementById("rb"); rb.innerHTML=""; 
   CL.forEach((_,idx)=>{ 
@@ -387,7 +369,6 @@ function rAll(){
       d.className="dot" + usedClass + onClass; 
       rb.appendChild(d); 
   });
-  
   rLog(); rDist(); if(adm) renderLeaveAdmin();
 }
 
@@ -400,6 +381,7 @@ window.filterLog = (f,b) => { document.querySelectorAll(".fb").forEach(x=>x.clas
 window.clerkLogin = () => { if(document.getElementById("opi").value==="2026"){document.getElementById("opgate").style.display="none"; document.getElementById("opc").style.display="block";}};
 window.adminLogin = (id) => { if(document.getElementById(id).value==="2025"){adm=true; document.querySelectorAll(".apgate").forEach(e=>e.style.display="none"); document.querySelectorAll(".ac-content").forEach(e=>e.style.display="block"); rAll();}};
 window.toggleS = (name,type) => { if(!window.S.leave[name])window.S.leave[name]={ip:false,op:false}; window.S.leave[name][type]=!window.S.leave[name][type]; set(dbRef,window.S); rAll(); };
+
 function renderLeaveAdmin() {
   var g=document.getElementById("leave-grid"); g.innerHTML="";
   [...new Set(CL.map(c=>c.d))].forEach(name => {
