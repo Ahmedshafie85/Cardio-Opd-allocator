@@ -156,7 +156,7 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
   <div class="ac-content">
     <div class="card">
         <h3>Unified Perpetual Rotation</h3>
-        <p style="font-size:10px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">The master pointer never stops. Both IP and OP assignments consume the same tickets. Outpatient walk-ins search ahead for "Today" tickets.</p>
+        <p style="font-size:10px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">The master pointer never stops. Outpatient search looks ahead indefinitely. Duplicate file numbers are strictly blocked across the entire database.</p>
         <div id="leave-grid" class="dg" style="margin-bottom:20px;"></div>
         <hr style="border:0;border-top:1px solid var(--bor);margin:20px 0">
         <h3>Admin Controls</h3>
@@ -217,7 +217,6 @@ onValue(dbRef, (snap) => {
     if(!window.S.leave) window.S.leave={};
     if(!window.S.used) window.S.used = new Array(27).fill(false);
   }
-  // FIX: Bright Green Dot & Updated Label
   document.getElementById("syncDot").style.background="var(--ok)";
   document.getElementById("syncText").textContent="Live — Synced";
   rAll();
@@ -234,12 +233,14 @@ function isDocOff(docName, type) {
 
 function isDuplicate(val) {
     if (!val) return false;
-    return (window.S.logs||[]).concat(window.S.oplogs||[]).some(e => e.fn && e.fn.includes(val));
+    const cleanVal = val.toString().trim();
+    return (window.S.logs||[]).concat(window.S.oplogs||[]).some(e => e.fn && e.fn.toString().includes(cleanVal));
 }
 
+// PERPETUAL SEARCH: Searches up to 2 full cycles (54 slots) to guarantee a match
 function getNextSlot(type) {
     const today = tn();
-    for (let o = 0; o < 27; o++) {
+    for (let o = 0; o < 54; o++) {
         let i = (window.S.ptr + o) % 27;
         if (window.S.used[i]) continue;
         let c = CL[i];
@@ -268,13 +269,12 @@ window.doAssign = function(type){
     pin = "Clerk";
   }
 
-  if(isDuplicate(fn)) return alert("DUPLICATE ENTRY DETECTED.");
+  if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected. File Number "+fn+" is already assigned.");
   
   var i = getNextSlot(type);
   
   if (i === -1) {
       window.S.used = new Array(27).fill(false);
-      window.S.ptr = 0;
       i = getNextSlot(type);
       if (i === -1) return alert("No valid clinics scheduled for Today.");
   }
@@ -285,6 +285,7 @@ window.doAssign = function(type){
   
   window.S.used[i] = true;
   
+  // Advance master pointer past any consumed slots
   if (i === window.S.ptr) {
       window.S.ptr = (window.S.ptr + 1) % 27;
       while (window.S.used[window.S.ptr]) {
@@ -352,11 +353,11 @@ function rAll(){
     var c = CL[ipI]; document.getElementById("nd").textContent="Dr. "+c.d; document.getElementById("nr").textContent=c.r;
     updateFutureDates(c.days);
   } else {
-    document.getElementById("nd").textContent="Auto-Cycling Queue"; 
+    document.getElementById("nd").textContent="Cycling Master Pack..."; 
   }
 
   if(opI !== -1){ document.getElementById("opd").textContent="Dr. "+CL[opI].d; document.getElementById("opr").textContent=CL[opI].r; }
-  else { document.getElementById("opd").textContent="Search in next cycle..."; }
+  else { document.getElementById("opd").textContent="Searching next cycle..."; }
 
   var rb=document.getElementById("rb"); rb.innerHTML=""; 
   CL.forEach((_,idx)=>{ 
