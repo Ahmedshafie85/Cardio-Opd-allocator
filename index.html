@@ -73,14 +73,14 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
 .lv-btn.off{background:var(--err)}
 .ac-content{display:none}
 
-/* Updated Appointment Date Selector Styles */
+/* Sleek Tech Blue Appointment Date Selector Styles */
 .fd-sel { 
     width:100%; 
-    background:rgba(251, 191, 36, 0.1); /* Soft amber background */
-    border:1px solid var(--warn);       /* Amber border */
+    background:rgba(56, 189, 248, 0.05); /* Very subtle cyan tint */
+    border:1px solid var(--acc2);       /* Cyan accent border */
     border-radius:5px; 
     padding:8px; 
-    color:var(--warn);                  /* Amber text */
+    color:var(--acc2);                  /* Cyan text */
     font-family:'DM Mono',monospace; 
     font-size:13px; 
     font-weight:600;
@@ -90,8 +90,8 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
     text-align: center;
 }
 .fd-sel option {
-    background: var(--sur); /* Keep dropdown list background dark */
-    color: var(--txt);      /* Keep dropdown text white */
+    background: var(--sur); 
+    color: var(--txt);      
     text-align: left;
 }
 </style>
@@ -209,7 +209,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dbRef = ref(db, 'mkh_clinic_data');
 
-var docPINs = {"1001":"Dr. Rehan","1002":"Dr. Ramy","1003":"Dr. Badawy","1004":"Dr. Sharkawy","1005":"Dr. Mostafa","1006":"Dr. Ibrahim","1007":"Dr. Hadad","1008":"Dr. Emara","1009":"Dr. Rahim","1010":"Dr. Mamdouh","1011":"Dr. Slam","1012":"Dr. Ezz","1013":"Dr. R Gamal","1014":"Dr. Moghl","1015":"Dr. Darwish","1016":"Dr. Omar","1017":"Dr. Sajid","1018":"Dr. Hamza","1019":"Dr. Eyad","1020":"Dr. Mongy","1021":"Dr. Bahlol"};
+var docPINs = {"1001":"Dr. Rehan","1002":"Dr. Ramy","1003":"Dr. Badawy","1004":"Dr. Sharkawy","1005":"Dr. Mostafa","1006":"Dr. Ibrahim","1007":"Dr. Hadad","1008":"Dr. Emara","1009":"Dr. Rahim","1010":"Dr. Mamdouh","1011":"Dr. Slam","1012":"Dr. Ezz","1013":"Dr. R Gamal","1014":"Dr. Moghl","1015":"Dr. Darwish","1016":"Dr. Omar","1017":"Dr. Sajid","1018":"Dr. Hamza","1019":"Dr. Eyad","1020":"Dr. Mongy","1021":"Dr. Bahlol","9999":"Admin"};
 
 var CL=[
   {d:"Hisham",r:"Room 10",days:["Sun"]},
@@ -307,7 +307,6 @@ window.doAssign = function(){
   var fdEl = document.getElementById("fd-sel");
   var aptDate = fdEl && fdEl.value ? fdEl.value : "";
   
-  // Mandatory check for appointment date
   if(!aptDate) {
       alert("MANDATORY FIELD: Please select a Follow-up Date.");
       return;
@@ -449,11 +448,9 @@ window.resetAll = function(){ if(confirm("Wipe all data?")) { window.S={ptr:0,lo
 function updateFutureDates(daysStrArray) {
     var dayMap = {"Sun":0,"Mon":1,"Tue":2,"Wed":3,"Thu":4,"Fri":5,"Sat":6};
     var targets = daysStrArray.map(d => dayMap[d]);
-    // Added a blank placeholder option selected by default
     var opts = `<option value="" disabled selected>Select Follow-up Date...</option>`;
     var d = new Date();
     
-    // Look ahead 120 days (approx 4 months)
     for(var i=0; i<120; i++) {
         if(targets.includes(d.getDay())) {
             var dateStr = d.toLocaleDateString("en-GB", {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
