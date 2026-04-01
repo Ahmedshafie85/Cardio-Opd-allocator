@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MKH Cardio Master Queue</title>
+<title>Cardio OPD Allocator</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -78,7 +78,7 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
 
 <header>
   <div class="hi">🫀</div>
-  <div><h1>MKH Cardio Master Queue</h1><p>MUBARAK AL-KABEER HOSPITAL</p></div>
+  <div><h1>Cardio OPD Allocator</h1><p>MUBARAK AL-KABEER HOSPITAL</p></div>
   <div class="db"><strong id="dayName">—</strong><span id="dateStr">—</span></div>
 </header>
 
@@ -155,8 +155,8 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
   <div class="card apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api-adm" maxlength="4"><button class="btn" onclick="adminLogin('api-adm')">Unlock</button></div>
   <div class="ac-content">
     <div class="card">
-        <h3>Pure Count-Driven Logic Active</h3>
-        <p style="font-size:10px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">The confusing "moving pointer" has been deleted. The app now scans strictly from Index 0 to 26 and finds the very first lowest distribution number, preventing Outpatient chaos from disrupting the Inpatient sequence.</p>
+        <h3>Distribution-Driven Logic</h3>
+        <p style="font-size:10px;color:var(--dim);margin-bottom:12px;font-family:'DM Mono',monospace;">The app scans strictly from Index 0 to 26 and finds the very first lowest distribution number, preventing Outpatient chaos from disrupting the Inpatient sequence.</p>
         <div id="leave-grid" class="dg" style="margin-bottom:20px;"></div>
         <hr style="border:0;border-top:1px solid var(--bor);margin:20px 0">
         <h3>Admin Controls</h3>
@@ -236,12 +236,10 @@ function isDuplicate(val) {
     return all.some(e => e.fn && e.fn.toString().includes(s));
 }
 
-// Counts exactly how many patients are in a specific slot (0-26)
 function cCnt(i){ 
     return (window.S.logs||[]).concat(window.S.oplogs||[]).filter(e=>e.si===i).length; 
 }
 
-// Finds the absolute minimum number among all doctors working IP
 function getGlobalMin() {
     let minCount = Infinity;
     for(let i=0; i<27; i++) {
@@ -253,12 +251,10 @@ function getGlobalMin() {
     return minCount;
 }
 
-// ALGORITHM 1: Pure Top-To-Bottom Distribution Scan for Inpatient
 function getNextSlotIp() {
     let minCount = getGlobalMin();
     if(minCount === Infinity) return -1; 
     
-    // Always start from Index 0. First one to match the minimum gets the patient.
     for(let i=0; i<27; i++) {
         if(!isDocOff(CL[i].d, 'ip') && cCnt(i) === minCount) {
             return i;
@@ -267,7 +263,6 @@ function getNextSlotIp() {
     return -1;
 }
 
-// ALGORITHM 2: Pure Top-To-Bottom Distribution Scan for Today's Outpatient
 function getNextSlotOp() {
     let today = tn();
     let validSlots = [];
@@ -286,7 +281,6 @@ function getNextSlotOp() {
         if(cnt < minTodayCount) minTodayCount = cnt;
     });
     
-    // Always start from Index 0. First today-doctor to match the minimum gets the patient.
     for(let i=0; i<27; i++) {
         if(validSlots.includes(i) && cCnt(i) === minTodayCount) {
             return i;
@@ -296,29 +290,41 @@ function getNextSlotOp() {
 }
 
 window.doAssign = function(type){
-  var fn, pin, apt = "";
+  var fn, pin, apt = "", regName;
+  
   if(type === 'ip') {
     fn = document.getElementById("fi").value.trim();
     pin = document.getElementById("rpin").value.trim();
     apt = document.getElementById("fd-sel").value;
+    
     if(!/^\d{6}$/.test(fn)||!docPINs[pin]) return alert("Check File (6 digits) and PIN");
     if(!apt) return alert("Select Follow-up Date.");
+    
+    regName = docPINs[pin];
+    if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected.");
+    
+    if(!confirm("Confirm Inpatient Assignment:\n\nFile Number: " + fn + "\nRegistrar: " + regName)) {
+        return;
+    }
+
   } else {
     var ofn = document.getElementById("opfi").value.trim();
     var ph = document.getElementById("opphone").value.trim();
+    
     if(!ofn && !ph) return alert("Enter File or Phone Number.");
     fn = (ofn && ph) ? ofn + " / " + ph : (ofn || ph);
     pin = "Clerk";
+    regName = "Clerk";
+    
+    if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected.");
   }
-
-  if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected.");
   
   var i = (type === 'ip') ? getNextSlotIp() : getNextSlotOp();
   
   if (i === -1) return alert("No valid clinics scheduled.");
   
   var c = CL[i];
-  var entry = {fn:fn, reg:docPINs[pin]||pin, doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
+  var entry = {fn:fn, reg:regName, doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
   
   if(type === 'ip') window.S.logs.push(entry); 
   else window.S.oplogs.push(entry);
@@ -450,3 +456,5 @@ function exportPDF(title, data){
 </script>
 </body>
 </html>
+
+ 
