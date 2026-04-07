@@ -81,6 +81,18 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
 .ac-content{display:none}
 .fd-sel { width:100%; background:rgba(56, 189, 248, 0.05); border:1px solid var(--acc2); border-radius:5px; padding:8px; color:var(--acc2); font-family:'DM Mono',monospace; font-size:13px; font-weight:600; outline:none; margin-top:5px; cursor:pointer; text-align: center; }
 .fd-sel option { background: var(--sur); color: var(--txt); text-align: left; }
+
+/* Manual Assignment Styles */
+.manual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.manual-btn { background: var(--sur2); border: 1px solid var(--bor); border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s; text-align: left; position: relative; }
+.manual-btn:hover:not(:disabled) { border-color: var(--acc); background: rgba(59,130,246,0.1); }
+.manual-btn:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.8); }
+.manual-doc { font-weight: 600; font-size: 13px; color: var(--txt); margin-bottom: 2px; }
+.manual-info { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--dim); }
+.manual-count { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--acc); }
+.manual-section { margin-top: 20px; border-top: 1px dashed var(--bor); padding-top: 16px; }
+.manual-title { font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; color: var(--dim); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.manual-badge { background: var(--warn); color: var(--bg); font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -104,7 +116,7 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
 <div class="pg on" id="pg-ip">
   <div class="card">
     <div class="cbox">
-        <div class="rl">NEXT AVAILABLE CLINIC</div>
+        <div class="rl">NEXT AVAILABLE CLINIC (AUTO)</div>
         <div class="rd" id="nd">—</div>
         <div class="rr" id="nr">—</div>
         <div style="margin-top:15px; border-top:1px dashed var(--bor); padding-top:12px;">
@@ -115,7 +127,18 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
     <div class="rb" id="rb"></div>
     <label>File Number (6 Digits)</label><input type="text" id="fi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456">
     <label>Registrar PIN</label><input type="password" id="rpin" maxlength="4" inputmode="numeric">
-    <button class="btn" onclick="doAssign('ip')">Assign IP Discharge →</button>
+    <button class="btn" onclick="doAssign('ip')">Assign IP Discharge (Auto) →</button>
+    
+    <!-- Manual Assignment Section -->
+    <div class="manual-section">
+        <div class="manual-title">
+            <span>Manual Assignment</span>
+            <span class="manual-badge">Specific Doctors</span>
+        </div>
+        <div class="manual-grid" id="manual-grid">
+            <!-- Buttons injected by JS -->
+        </div>
+    </div>
   </div>
 </div>
 
@@ -213,6 +236,14 @@ var CL=[
   {d:"Arab",r:"Room 25",days:["Tue"]}, {d:"Ashraf",r:"Room 20",days:["Thu"]}, {d:"Hany",r:"Room 16",days:["Sun"]}
 ];
 
+// Manual assignment targets: Fahd (4,8), Ali (19), Arab (24), Nazanin (17)
+var manualDocs = [
+  {name: "Fahd", indices: [4, 8], room: "Room 24", days: "Mon"},
+  {name: "Ali", indices: [19], room: "Room 11", days: "Wed"},
+  {name: "Arab", indices: [24], room: "Room 25", days: "Tue"},
+  {name: "Nazanin", indices: [17], room: "Room 25", days: "Sun"}
+];
+
 window.S={logs:[], oplogs:[], leave:{}};
 var adm=false; 
 window.lf="all";
@@ -298,7 +329,25 @@ function getNextSlotOp() {
     return -1;
 }
 
-window.doAssign = function(type){
+// Get best available index for manual doctor (lowest count among their slots)
+function getManualSlotIndex(docIndices) {
+    let minCount = Infinity;
+    let bestIndex = -1;
+    
+    docIndices.forEach(idx => {
+        if(!isDocOff(CL[idx].d, 'ip')) {
+            let cnt = cCnt(idx);
+            if(cnt < minCount) {
+                minCount = cnt;
+                bestIndex = idx;
+            }
+        }
+    });
+    
+    return bestIndex;
+}
+
+window.doAssign = function(type, manualSlotIndex = null){
   var fn, pin, apt = "", regName;
   
   if(type === 'ip') {
@@ -312,7 +361,27 @@ window.doAssign = function(type){
     regName = docPINs[pin];
     if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected.");
     
-    if(!confirm("Confirm Inpatient Assignment:\n\nFile Number: " + fn + "\nRegistrar: " + regName)) {
+    var i;
+    var isManual = false;
+    var manualDocName = "";
+    
+    if(manualSlotIndex !== null) {
+        i = manualSlotIndex;
+        isManual = true;
+        manualDocName = CL[i].d;
+        if(isDocOff(CL[i].d, 'ip')) return alert("Doctor " + CL[i].d + " is currently marked as OFF/Leave.");
+    } else {
+        i = getNextSlotIp();
+    }
+    
+    if (i === -1) return alert("No valid clinics scheduled.");
+    
+    var c = CL[i];
+    var confirmMsg = isManual 
+        ? "Confirm MANUAL Assignment to Dr. " + manualDocName + ":\n\nFile Number: " + fn + "\nRegistrar: " + regName + "\n\n⚠️ This bypasses normal distribution."
+        : "Confirm Inpatient Assignment:\n\nFile Number: " + fn + "\nRegistrar: " + regName;
+    
+    if(!confirm(confirmMsg)) {
         return;
     }
 
@@ -326,13 +395,12 @@ window.doAssign = function(type){
     regName = "Clerk";
     
     if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected.");
+    
+    var i = getNextSlotOp();
+    if (i === -1) return alert("No valid clinics scheduled.");
+    var c = CL[i];
   }
   
-  var i = (type === 'ip') ? getNextSlotIp() : getNextSlotOp();
-  
-  if (i === -1) return alert("No valid clinics scheduled.");
-  
-  var c = CL[i];
   var entry = {fn:fn, reg:regName, doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
   
   if(type === 'ip') window.S.logs.push(entry); 
@@ -340,10 +408,52 @@ window.doAssign = function(type){
   
   set(dbRef, window.S);
   
-  if(type==='ip'){document.getElementById("fi").value="";document.getElementById("rpin").value="";}
-  else{document.getElementById("opfi").value="";document.getElementById("opphone").value="";}
+  if(type==='ip'){
+      document.getElementById("fi").value="";
+      document.getElementById("rpin").value="";
+  } else {
+      document.getElementById("opfi").value="";
+      document.getElementById("opphone").value="";
+  }
   rAll();
 };
+
+function renderManualButtons() {
+    var container = document.getElementById("manual-grid");
+    if(!container) return;
+    container.innerHTML = "";
+    
+    manualDocs.forEach(doc => {
+        var btn = document.createElement("button");
+        btn.className = "manual-btn";
+        
+        // Check if doctor is on leave
+        var isOff = isDocOff(doc.name, 'ip');
+        var availIndices = doc.indices.filter(idx => !isDocOff(CL[idx].d, 'ip'));
+        var bestIdx = getManualSlotIndex(doc.indices);
+        var count = bestIdx !== -1 ? cCnt(bestIdx) : "OFF";
+        
+        btn.disabled = isOff || availIndices.length === 0;
+        
+        btn.innerHTML = `
+            <div class="manual-doc">Dr. ${doc.name}</div>
+            <div class="manual-info">${doc.room} • ${doc.days}</div>
+            <div class="manual-count">${count}</div>
+        `;
+        
+        if(!btn.disabled) {
+            btn.onclick = () => {
+                // Use the best available index for this doctor
+                var targetIdx = getManualSlotIndex(doc.indices);
+                if(targetIdx !== -1) {
+                    window.doAssign('ip', targetIdx);
+                }
+            };
+        }
+        
+        container.appendChild(btn);
+    });
+}
 
 function rDist(){
   var g=document.getElementById("dg"); g.innerHTML="";
@@ -419,7 +529,10 @@ function rAll(){
       rb.appendChild(d); 
   });
   
-  rLog(); rDist(); if(adm) renderLeaveAdmin();
+  renderManualButtons(); // Update manual buttons with current counts
+  rLog(); 
+  rDist(); 
+  if(adm) renderLeaveAdmin();
 }
 
 window.goTab = (id,btn) => {
