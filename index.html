@@ -201,15 +201,9 @@ font-family: ‘DM Mono’, monospace;
 
 <div class="pg" id="pg-spec">
   <div class="card">
-    <div class="cbox" style="margin-bottom:16px;">
-      <div class="rl">SPECIFIC CLINIC ASSIGNMENT</div>
-      <div class="rd" style="color:var(--txt)">Select Doctor</div>
-      <div class="rr" style="margin-bottom:0">Choose clinic to see available dates</div>
-    </div>
+    <div class="spec-grid" id="spec-grid"></div>
 
 ```
-<div class="spec-grid" id="spec-grid"></div>
-
 <div class="spec-form" id="spec-form">
   <div class="spec-hint" id="spec-hint">Loading dates...</div>
 
@@ -234,10 +228,14 @@ font-family: ‘DM Mono’, monospace;
   <div id="opc" style="display:none">
     <div class="card">
         <div class="cbox">
-            <div class="rl">Next Available Walk-in Today</div>
+            <div class="rl">AUTO — Next Available Today</div>
             <div class="rd" id="opd">—</div>
             <div class="rr" id="opr">—</div>
         </div>
+        <label>Manual Doctor Override (Optional)</label>
+        <select id="op-doc-sel" class="fd-sel" style="margin-bottom:12px;" onchange="opDocChanged()">
+            <option value="">— Auto (Recommended) —</option>
+        </select>
         <label>Patient File Number (6 Digits)</label>
         <input type="text" id="opfi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456">
         <label>Patient Phone Number (8 Digits)</label>
@@ -347,6 +345,21 @@ window.filterLog=(f,b)=>{ document.querySelectorAll(".fb").forEach(x=>x.classLis
 window.clerkLogin=()=>{ if(document.getElementById("opi").value==="2026"){document.getElementById("opgate").style.display="none"; document.getElementById("opc").style.display="block";}};
 window.adminLogin=(id)=>{ if(document.getElementById(id).value==="2025"){adm=true; document.querySelectorAll(".apgate").forEach(e=>e.style.display="none"); document.querySelectorAll(".ac-content").forEach(e=>e.style.display="block"); rAll();}};
 window.toggleS=(name,type)=>{ if(!window.S.leave[name])window.S.leave[name]={ip:false,op:false}; window.S.leave[name][type]=!window.S.leave[name][type]; dbRef.set(window.S); rAll(); };
+window.opDocChanged = function() {
+    var sel = document.getElementById("op-doc-sel");
+    var idx = sel.value;
+    if(idx === "") {
+        var autoI = getNextSlotOp();
+        if(autoI !== -1) {
+            document.getElementById("opd").textContent = "Dr. " + CL[autoI].d;
+            document.getElementById("opr").textContent = CL[autoI].r;
+        }
+    } else {
+        var c = CL[parseInt(idx)];
+        document.getElementById("opd").textContent = "Dr. " + c.d;
+        document.getElementById("opr").textContent = c.r;
+    }
+};
 window.closeMo=()=>document.getElementById("mo").classList.remove("on");
 window.delEntry=()=>{
   var s=document.getElementById("dfi").value.trim(); if(!s)return;
@@ -484,8 +497,9 @@ window.doAssign = function(type, manualSlotIndex = null){
     fn = (ofn && ph) ? ofn + " / " + ph : (ofn || ph);
     pin = "Clerk"; regName = "Clerk";
     if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected.");
-    var i = getNextSlotOp();
-    if (i === -1) return alert("No valid clinics scheduled.");
+    var manualOpIdx = document.getElementById("op-doc-sel") ? document.getElementById("op-doc-sel").value : "";
+    var i = (manualOpIdx !== "") ? parseInt(manualOpIdx) : getNextSlotOp();
+    if (i === -1) return alert("No valid clinics scheduled today.");
     var c = CL[i];
   }
 
