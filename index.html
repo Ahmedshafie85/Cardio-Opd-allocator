@@ -237,7 +237,7 @@ hr.adm-hr{border:0;border-top:1px solid var(--bor);margin:20px 0}
     <div class="ep-notice-icon">⚠️</div>
     <div class="ep-notice-text">
       <strong>Before booking an EP Clinic appointment</strong><br>
-      You must contact <strong>Dr. Mahmoud Rehan</strong> for approval before registering any patient in this clinic. Unauthorised bookings will be cancelled.
+      You must contact <strong>Dr. Mahmoud Rehan</strong> for approval before registering any patient in this clinic.
     </div>
   </div>
   <div class="card">
@@ -383,8 +383,8 @@ var CL = [
 
 // EP Clinics — outside main rotation
 var EP_CLINICS = [
-  {id:"ep-sun", name:"EP Sunday",  room:"Room 21", day:"Sun", dayNum:0, label:"Sunday"},
-  {id:"ep-tue", name:"EP Tuesday", room:"Room 5",  day:"Tue", dayNum:2, label:"Tuesday"}
+  {id:"ep-sun", name:"EP Device Clinic",   room:"Room 21", day:"Sun", dayNum:0, label:"Sunday"},
+  {id:"ep-tue", name:"EP Ablation Clinic", room:"Room 5",  day:"Tue", dayNum:2, label:"Tuesday"}
 ];
 var EP_MAX_PER_DATE = 12;
 
@@ -474,8 +474,8 @@ function renderEpTab() {
     card.className = "spec-card ep-card";
     card.innerHTML =
       '<div class="rl" style="margin-bottom:4px">EP CLINIC</div>' +
-      '<div class="spec-name" style="color:var(--ep)!important">' + clinic.room + '</div>' +
-      '<div class="spec-meta">' + clinic.label + '</div>';
+      '<div class="spec-name" style="color:var(--ep)!important;font-size:18px">' + clinic.name + '</div>' +
+      '<div class="spec-meta">' + clinic.room + ' • ' + clinic.label + '</div>';
     card.onclick = function() {
       document.querySelectorAll("#ep-clinic-grid .spec-card").forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
@@ -698,8 +698,8 @@ function renderClinicExportGrid() {
     card.style.borderColor = "rgba(167,139,250,0.4)";
     card.innerHTML =
       '<div class="rl" style="color:var(--ep)">EP CLINIC</div>' +
-      '<div class="cex-doc" style="color:var(--ep)">' + ep.room + '</div>' +
-      '<div class="cex-meta">' + ep.label + '</div>' +
+      '<div class="cex-doc" style="color:var(--ep);font-size:14px">' + ep.name + '</div>' +
+      '<div class="cex-meta">' + ep.room + ' • ' + ep.label + '</div>' +
       '<div class="cex-count" style="color:var(--ep)">' + epPts.length + '</div>';
     card.onclick = function() {
       if(epPts.length === 0) return alert("No patients in this EP clinic yet.");
