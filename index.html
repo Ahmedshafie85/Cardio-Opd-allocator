@@ -414,9 +414,6 @@ window.S = {logs:[], oplogs:[], eplogs:[], leave:{}};
 var adm = false;
 window.lf = "all";
 
-// Render UI immediately — don't wait for Firebase
-document.addEventListener("DOMContentLoaded", function() { rAll(); });
-
 // ── TAB NAVIGATION ──────────────────────────────────────────────────────────
 window.goTab = (id, btn) => {
   document.querySelectorAll(".pg").forEach(p => p.classList.remove("on"));
@@ -622,8 +619,8 @@ window.doFixAssign = function() {
   var fn = document.getElementById("fix-fi").value.trim();
   var ph = document.getElementById("fix-phone").value.trim();
   var apt = document.getElementById("fix-date").value;
-  var patId = (fn && ph) ? fn + " / " + ph : (fn || ph || "—");
   if(!apt) return alert("Select a date.");
+  var patId = (fn && ph) ? fn + " / " + ph : (fn || ph || "—");
   if(isDuplicate(patId)) return alert("STOP: Duplicate Patient detected.");
   var c = CL[selectedFixDoc.idx];
   if(!confirm("Book appointment:\n\nPatient: " + patId + "\nDoctor: Dr. " + c.d + "\nRoom: " + c.r + "\nDate: " + apt)) return;
@@ -751,16 +748,6 @@ dbRef.on('value', (snap) => {
   document.getElementById("syncDot").style.background = "var(--ok)";
   document.getElementById("syncText").textContent = "Live — Synced";
   rAll();
-}, (err) => {
-  document.getElementById("syncDot").style.background = "var(--err)";
-  document.getElementById("syncText").textContent = "Firebase Error — " + err.code;
-});
-
-db.ref(".info/connected").on("value", (snap) => {
-  if(!snap.val()) {
-    document.getElementById("syncDot").style.background = "var(--warn)";
-    document.getElementById("syncText").textContent = "Offline — Reconnecting...";
-  }
 });
 
 // ── UTILITIES ─────────────────────────────────────────────────────────────────
