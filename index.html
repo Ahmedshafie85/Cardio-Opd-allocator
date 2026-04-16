@@ -736,6 +736,9 @@ function renderClinicExportGrid() {
 }
 
 // ── FIREBASE SYNC ─────────────────────────────────────────────────────────────
+// Render UI immediately — never freeze waiting for Firebase to connect
+rAll();
+
 dbRef.on('value', (snap) => {
   const d = snap.val();
   if(d) {
