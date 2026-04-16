@@ -142,7 +142,7 @@ hr.adm-hr{border:0;border-top:1px solid var(–bor);margin:20px 0}
 
 <div class="sb"><div class="sd" id="syncDot"></div><span id="syncText">Connecting...</span></div>
 
-<div class="tabs">
+<div class="tabs" id="main-tabs">
   <button class="tab on"  onclick="goTab('ip',this)">Inpatient</button>
   <button class="tab"     onclick="goTab('spec',this)">Interventional</button>
   <button class="tab"     onclick="goTab('op',this)">Outpatient</button>
@@ -367,6 +367,16 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const dbRef = db.ref('mkh_clinic_data');
 
+// Safe write helpers — never call dbRef.set(window.S) as it overwrites the entire DB
+// and causes data loss when multiple clients are connected simultaneously.
+function dbPushLog(entry)   { db.ref('mkh_clinic_data/logs').transaction(cur   => (cur||[]).concat([entry])); }
+function dbPushOplog(entry) { db.ref('mkh_clinic_data/oplogs').transaction(cur => (cur||[]).concat([entry])); }
+function dbPushEplog(entry) { db.ref('mkh_clinic_data/eplogs').transaction(cur => (cur||[]).concat([entry])); }
+function dbSetLeave()       { db.ref('mkh_clinic_data/leave').set(window.S.leave); }
+function dbSpliceLog(arr, key) {
+  db.ref('mkh_clinic_data/' + key).set(arr);
+}
+
 var docPINs = {
   "1001":"Dr. Rehan","1002":"Dr. Ramy","1003":"Dr. Badawy","1004":"Dr. Sharkawy",
   "1005":"Dr. Mostafa","1006":"Dr. Ibrahim","1007":"Dr. Hadad","1008":"Dr. Emara",
@@ -417,7 +427,7 @@ window.lf = "all";
 // ── TAB NAVIGATION ──────────────────────────────────────────────────────────
 window.goTab = (id, btn) => {
   document.querySelectorAll(".pg").forEach(p => p.classList.remove("on"));
-  document.querySelectorAll(".tabs > .tab").forEach(t => t.classList.remove("on"));
+  document.querySelectorAll("#main-tabs > .tab").forEach(t => t.classList.remove("on"));
   document.getElementById("pg-" + id).classList.add("on");
   btn.classList.add("on");
   if(id === "ep") renderEpTab();
@@ -458,7 +468,7 @@ window.adminLogin = (id) => {
 window.toggleS = (name, type) => {
   if(!window.S.leave[name]) window.S.leave[name] = {ip:false, op:false};
   window.S.leave[name][type] = !window.S.leave[name][type];
-  dbRef.set(window.S);
+  dbSetLeave();
   rAll();
 };
 
@@ -559,7 +569,7 @@ window.doEpAssign = function() {
   };
   if(!window.S.eplogs) window.S.eplogs = [];
   window.S.eplogs.push(entry);
-  dbRef.set(window.S);
+  dbPushEplog(entry);
   document.getElementById("ep-fi").value = "";
   document.getElementById("ep-pin").value = "";
   // Refresh dates to update slot counts
@@ -576,7 +586,7 @@ function renderFixClinics() {
   document.getElementById("fix-form").style.display = "none";
   selectedFixDoc = null;
   var seen = {};
-  for(var i = 0; i < 27; i++) {
+  for(var i = 0; i < CL.length; i++) {
     if(!CL[i].days.includes(today) && !isDocOff(CL[i].d, 'op')) {
       var key = CL[i].d + "_" + CL[i].r + "_" + CL[i].days.join("");
       if(!seen[key]) seen[key] = {idx:i, doc:CL[i]};
@@ -625,7 +635,7 @@ window.doFixAssign = function() {
   if(!confirm("Book appointment:\n\nPatient: " + patId + "\nDoctor: Dr. " + c.d + "\nRoom: " + c.r + "\nDate: " + apt)) return;
   var entry = {fn:patId, reg:"Clerk", doc:c.d, room:c.r, si:selectedFixDoc.idx, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
   window.S.oplogs.push(entry);
-  dbRef.set(window.S);
+  dbPushOplog(entry);
   document.getElementById("fix-fi").value = "";
   document.getElementById("fix-phone").value = "";
   document.getElementById("fix-date").value = "";
@@ -645,10 +655,10 @@ window.delEntry = () => {
   var idxE = (window.S.eplogs||[]).findIndex(e => e.fn.toString().includes(s));
   if(idxL === -1 && idxO === -1 && idxE === -1) return alert("Not found");
   if(confirm("Delete?")) {
-    if(idxL !== -1) window.S.logs.splice(idxL, 1);
-    else if(idxO !== -1) window.S.oplogs.splice(idxO, 1);
-    else window.S.eplogs.splice(idxE, 1);
-    dbRef.set(window.S); rAll();
+    if(idxL !== -1) { window.S.logs.splice(idxL, 1); dbSpliceLog(window.S.logs, 'logs'); }
+    else if(idxO !== -1) { window.S.oplogs.splice(idxO, 1); dbSpliceLog(window.S.oplogs, 'oplogs'); }
+    else { window.S.eplogs.splice(idxE, 1); dbSpliceLog(window.S.eplogs, 'eplogs'); }
+    rAll();
   }
 };
 
@@ -771,11 +781,14 @@ function attachFirebaseListener() {
 }
 
 // Monitor actual connection state via .info/connected
+// Only show "Reconnecting" if we haven't received data yet, to avoid flickering
 db.ref('.info/connected').on('value', (snap) => {
-  if(snap.val() === true) {
-    syncSetStatus(true, "Live — Synced");
-  } else {
-    syncSetStatus(false, "Reconnecting...");
+  if(snap.val() !== true) {
+    // Only show reconnecting if we're not already in a synced state
+    var txt = document.getElementById("syncText");
+    if(txt && txt.textContent !== "Live — Synced") {
+      syncSetStatus(false, "Reconnecting...");
+    }
   }
 });
 
@@ -804,7 +817,7 @@ function cCnt(i) {
 
 function getGlobalMin() {
   let minCount = Infinity;
-  for(let i = 0; i < 27; i++) {
+  for(let i = 0; i < CL.length; i++) {
     if(!isDocOff(CL[i].d, 'ip')) {
       let cnt = cCnt(i);
       if(cnt < minCount) minCount = cnt;
@@ -816,7 +829,7 @@ function getGlobalMin() {
 function getNextSlotIp() {
   let minCount = getGlobalMin();
   if(minCount === Infinity) return -1;
-  for(let i = 0; i < 27; i++) {
+  for(let i = 0; i < CL.length; i++) {
     if(!isDocOff(CL[i].d, 'ip') && cCnt(i) === minCount) return i;
   }
   return -1;
@@ -824,13 +837,13 @@ function getNextSlotIp() {
 
 function getNextSlotOp() {
   let today = tn(), validSlots = [];
-  for(let i = 0; i < 27; i++) {
+  for(let i = 0; i < CL.length; i++) {
     if(CL[i].days.includes(today) && !isDocOff(CL[i].d, 'op')) validSlots.push(i);
   }
   if(validSlots.length === 0) return -1;
   let minTodayCount = Infinity;
   validSlots.forEach(i => { let cnt = cCnt(i); if(cnt < minTodayCount) minTodayCount = cnt; });
-  for(let i = 0; i < 27; i++) {
+  for(let i = 0; i < CL.length; i++) {
     if(validSlots.includes(i) && cCnt(i) === minTodayCount) return i;
   }
   return -1;
@@ -873,34 +886,34 @@ window.doAssign = function(type, manualSlotIndex = null) {
     if(!apt) return alert("Select Follow-up Date.");
     regName = docPINs[pin];
     if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected.");
-    var i, isManual = false, manualDocName = "";
+    var slotIdx, isManual = false, manualDocName = "";
     if(manualSlotIndex !== null) {
-      i = manualSlotIndex; isManual = true; manualDocName = CL[i].d;
-      if(isDocOff(CL[i].d, 'ip')) return alert("Doctor " + CL[i].d + " is currently marked as OFF/Leave.");
-    } else { i = getNextSlotIp(); }
-    if(i === -1) return alert("No valid clinics scheduled.");
-    var c = CL[i];
+      slotIdx = manualSlotIndex; isManual = true; manualDocName = CL[slotIdx].d;
+      if(isDocOff(CL[slotIdx].d, 'ip')) return alert("Doctor " + CL[slotIdx].d + " is currently marked as OFF/Leave.");
+    } else { slotIdx = getNextSlotIp(); }
+    if(slotIdx === -1) return alert("No valid clinics scheduled.");
+    var c = CL[slotIdx];
     var confirmMsg = isManual
       ? "Confirm MANUAL Assignment to Dr. " + manualDocName + ":\n\nFile Number: " + fn + "\nRegistrar: " + regName + "\n\n⚠️ This bypasses normal distribution."
       : "Confirm Inpatient Assignment:\n\nFile Number: " + fn + "\nRegistrar: " + regName;
     if(!confirm(confirmMsg)) return;
-    var entry = {fn:fn, reg:regName, doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
+    var entry = {fn:fn, reg:regName, doc:c.d, room:c.r, si:slotIdx, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
     window.S.logs.push(entry);
-    dbRef.set(window.S);
+    dbPushLog(entry);
     document.getElementById("fi").value = "";
     document.getElementById("rpin").value = "";
   } else {
     var ofn = document.getElementById("opfi").value.trim();
-    var ph = document.getElementById("opphone").value.trim();
-    fn = (ofn && ph) ? ofn + " / " + ph : (ofn || ph || "—");
+    var ph  = document.getElementById("opphone").value.trim();
+    fn = (ofn && ph) ? ofn + " / " + ph : (ofn || ph || "");
     pin = "Clerk"; regName = "Clerk";
-    if(isDuplicate(fn)) return alert("STOP: Duplicate Patient detected.");
-    var i = getNextSlotOp();
-    if(i === -1) return alert("No valid clinics scheduled today.");
-    var c = CL[i];
-    var entry = {fn:fn, reg:regName, doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
-    window.S.oplogs.push(entry);
-    dbRef.set(window.S);
+    if(fn && isDuplicate(fn)) return alert("STOP: Duplicate Patient detected.");
+    var opSlot = getNextSlotOp();
+    if(opSlot === -1) return alert("No valid clinics scheduled today.");
+    var oc = CL[opSlot];
+    var opEntry = {fn:(fn||"—"), reg:regName, doc:oc.d, room:oc.r, si:opSlot, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
+    window.S.oplogs.push(opEntry);
+    dbPushOplog(opEntry);
     document.getElementById("opfi").value = "";
     document.getElementById("opphone").value = "";
   }
@@ -923,7 +936,7 @@ window.doSpecificAssign = function() {
   if(!confirm("Confirm Assignment to Dr. " + selectedSpecificDoc.name + ":\n\nFile: " + fn + "\nDate: " + apt + "\nRegistrar: " + regName + "\nRoom: " + c.r)) return;
   var entry = {fn:fn, reg:regName, doc:c.d, room:c.r, si:targetIdx, cd:tn(), ad:nd(), time:nt(), apt:apt, ts:Date.now()};
   window.S.logs.push(entry);
-  dbRef.set(window.S);
+  dbPushLog(entry);
   document.getElementById("spec-fi").value = "";
   document.getElementById("spec-pin").value = "";
   document.getElementById("spec-date").value = "";
