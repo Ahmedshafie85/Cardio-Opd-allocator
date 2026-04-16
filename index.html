@@ -619,7 +619,6 @@ window.doFixAssign = function() {
   var fn = document.getElementById("fix-fi").value.trim();
   var ph = document.getElementById("fix-phone").value.trim();
   var apt = document.getElementById("fix-date").value;
-  if(!apt) return alert("Select a date.");
   var patId = (fn && ph) ? fn + " / " + ph : (fn || ph || "—");
   if(isDuplicate(patId)) return alert("STOP: Duplicate Patient detected.");
   var c = CL[selectedFixDoc.idx];
