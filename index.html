@@ -137,7 +137,7 @@ hr.adm-hr{border:0;border-top:1px solid var(--bor);margin:20px 0}
 <div class="tabs"><button class="tab on" onclick="goTab('ip',this)">Inpatient</button><button class="tab" onclick="goTab('spec',this)">Interventional</button><button class="tab" onclick="goTab('op',this)">Outpatient</button><button class="tab ep-tab" onclick="goTab('ep',this)">EP Clinics</button><button class="tab" onclick="goTab('adm',this)">Admin</button></div>
 
 <!-- INPATIENT -->
-<div class="pg on" id="pg-ip"><div class="card"><div class="cbox"><div class="rl">NEXT AVAILABLE CLINIC (AUTO)</div><div class="rd" id="nd">—</div><div class="rr" id="nr">—</div><div style="margin-top:15px;border-top:1px dashed var(--bor);padding-top:12px;"><label style="color:var(--dim);font-size:9px;">AVAILABLE FOLLOW-UP DATES (NEXT 4 MONTHS)</label><select id="fd-sel" class="fd-sel"></select></div></div><div class="rb" id="rb"></div><label>File Number (6 Digits)</label><input type="text" id="fi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456"><label>Registrar PIN</label><input type="password" id="rpin" maxlength="4" inputmode="numeric"><button class="btn" onclick="doAssign('ip')">Assign IP Discharge (Auto) →</button></div></div>
+<div class="pg on" id="pg-ip"><div class="card"><div id="skip-banner" style="display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.45);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#fbbf24;line-height:1.5"></div><div class="cbox"><div class="rl">NEXT AVAILABLE CLINIC (AUTO)</div><div class="rd" id="nd">—</div><div class="rr" id="nr">—</div><div id="skip-panel" style="display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--bor)"><div style="font-size:10px;color:var(--dim);margin-bottom:6px;text-align:left">⚠ Cath-specific doctor. If this patient was NOT catheterized by <span id="skip-doc-name" style="color:#fbbf24;font-weight:600"></span>, skip to pass this patient to the next doctor. Skipped doctor auto-returns to queue after the next assignment.</div><button class="btn" id="skip-btn" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.5);color:#fbbf24;margin-top:0" onclick="skipCurrentDoc()">⏭ Skip — Not Cathed by This Doctor</button></div><div style="margin-top:15px;border-top:1px dashed var(--bor);padding-top:12px;"><label style="color:var(--dim);font-size:9px;">AVAILABLE FOLLOW-UP DATES (NEXT 4 MONTHS)</label><select id="fd-sel" class="fd-sel"></select></div></div><div class="rb" id="rb"></div><label>File Number (6 Digits)</label><input type="text" id="fi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456"><label>Registrar PIN</label><input type="password" id="rpin" maxlength="4" inputmode="numeric"><button class="btn" onclick="doAssign('ip')">Assign IP Discharge (Auto) →</button></div></div>
 
 <!-- INTERVENTIONAL -->
 <div class="pg" id="pg-spec"><div class="card"><div class="spec-grid" id="spec-grid"></div><div class="spec-form" id="spec-form"><div class="spec-hint" id="spec-hint">Loading dates...</div><label>Follow-up Date</label><select id="spec-date" class="fd-sel" style="margin-bottom:15px;"></select><label>File Number (6 Digits)</label><input type="text" id="spec-fi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456" style="margin-bottom:11px;"><label>Registrar PIN</label><input type="password" id="spec-pin" maxlength="4" inputmode="numeric" style="margin-bottom:15px;"><button class="btn" onclick="doSpecificAssign()">Assign to Selected Clinic →</button></div></div></div>
@@ -149,7 +149,7 @@ hr.adm-hr{border:0;border-top:1px solid var(--bor);margin:20px 0}
 <div class="pg" id="pg-ep"><div class="ep-notice"><div class="ep-notice-icon">⚠️</div><div class="ep-notice-text"><strong>Before booking an EP Clinic appointment</strong><br>You must contact <strong>Dr. Mahmoud Rehan</strong> for approval before registering any patient in this clinic.</div></div><div class="card"><div class="rl" style="margin-bottom:12px;">SELECT EP CLINIC</div><div class="spec-grid" id="ep-clinic-grid" style="margin-bottom:16px;"></div><div id="ep-form" style="display:none"><div class="spec-hint" id="ep-hint" style="border-left-color:var(--ep);background:rgba(167,139,250,0.05);color:var(--ep2);"></div><label>Follow-up Date <span id="ep-date-count-label" style="color:var(--dim);font-style:normal;text-transform:none;font-size:10px;"></span></label><select id="ep-date" class="ep-sel" style="margin-bottom:15px;"></select><label>File Number (6 Digits)</label><input type="text" id="ep-fi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456" style="margin-bottom:11px;"><label>Registrar PIN</label><input type="password" id="ep-pin" maxlength="4" inputmode="numeric" style="margin-bottom:15px;"><button class="btn btn-ep" onclick="doEpAssign()">Book EP Clinic Appointment →</button></div></div></div>
 
 <!-- ADMIN -->
-<div class="pg" id="pg-adm"><div class="card apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api-adm" maxlength="4"><button class="btn" onclick="adminLogin('api-adm')">Unlock</button></div><div class="ac-content"><div class="adm-tabs"><button class="adm-tab on" onclick="goAdmTab('leave',this)">Doctor Leave</button><button class="adm-tab" onclick="goAdmTab('dist',this)">Distribution</button><button class="adm-tab" onclick="goAdmTab('log',this)">Log</button><button class="adm-tab" onclick="goAdmTab('export',this)">Export / Print</button><button class="adm-tab" onclick="goAdmTab('danger',this)">⚠ Danger Zone</button></div><div class="adm-sec on" id="adm-leave"><div class="adm-section-title">Doctor Leave / Status</div><div class="adm-section-sub">Toggle IP and OP availability for each doctor. Changes are saved live.</div><div id="leave-grid" class="dg"></div></div><div class="adm-sec" id="adm-dist"><div class="adm-section-title">Slot Distribution</div><div class="adm-section-sub">Click any slot card to view its patient list and print.</div><div class="dg" id="dg"></div></div><div class="adm-sec" id="adm-log"><div class="adm-section-title">Assignment Log</div><div class="adm-section-sub">Last 50 entries across all assignment types.</div><div class="lf"><button class="fb on" onclick="filterLog('all',this)">All</button><button class="fb" onclick="filterLog('Sun',this)">Sun</button><button class="fb" onclick="filterLog('Mon',this)">Mon</button><button class="fb" onclick="filterLog('Tue',this)">Tue</button><button class="fb" onclick="filterLog('Wed',this)">Wed</button><button class="fb" onclick="filterLog('Thu',this)">Thu</button></div><div class="lt"><div class="lh"><div>Date</div><div>File / Phone</div><div>Doctor / Room</div><div>Follow-up</div><div>By</div><div></div></div><div id="lb"></div></div></div><div class="adm-sec" id="adm-export"><div class="adm-section-title">Export &amp; Print</div><div class="adm-section-sub">Select a clinic card to export all its patients as PDF. Patients are grouped by doctor + room + day.</div><button class="btn" style="margin-bottom:18px" onclick="exportWeekly()">📊 Export Master Log (All Entries)</button><div class="rl" style="margin-bottom:10px;">CLINIC PATIENT LISTS</div><div class="clinic-export-grid" id="clinic-export-grid"></div></div><div class="adm-sec" id="adm-danger"><div class="adm-section-title">Danger Zone</div><div class="adm-section-sub">Irreversible actions. Use with caution.</div><label>Remove Patient Row</label><input type="text" id="dfi" placeholder="Enter File or Phone Number" inputmode="numeric"><button class="btn" style="background:#fbbf24;color:#000;margin-bottom:10px" onclick="delEntry()">🗑 Remove Entry</button><button class="btn btn-warn" style="margin-top:0;margin-bottom:10px" onclick="deleteAnonymousOpd()">🧹 Remove All Anonymous OPD Entries</button><button class="btn btn-warn" onclick="resetAll()">⚠ Wipe All Database Data</button></div></div></div></div>
+<div class="pg" id="pg-adm"><div class="card apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api-adm" maxlength="4"><button class="btn" onclick="adminLogin('api-adm')">Unlock</button></div><div class="ac-content"><div class="adm-tabs"><button class="adm-tab on" onclick="goAdmTab('leave',this)">Doctor Leave</button><button class="adm-tab" onclick="goAdmTab('blocked',this)">Blocked Dates</button><button class="adm-tab" onclick="goAdmTab('dist',this)">Distribution</button><button class="adm-tab" onclick="goAdmTab('log',this)">Log</button><button class="adm-tab" onclick="goAdmTab('export',this)">Export / Print</button><button class="adm-tab" onclick="goAdmTab('danger',this)">⚠ Danger Zone</button></div><div class="adm-sec on" id="adm-leave"><div class="adm-section-title">Doctor Leave / Status</div><div class="adm-section-sub">Toggle IP and OP availability for each doctor. Changes are saved live.</div><div id="leave-grid" class="dg"></div></div><div class="adm-sec" id="adm-blocked"><div class="adm-section-title">Blocked Date Ranges (Per Doctor)</div><div class="adm-section-sub">Block a date range for a specific doctor. All of that doctor's clinic dates within the range will be hidden from follow-up dropdowns (Inpatient, Interventional, Outpatient, EP). Use for travel, leave, conferences, etc. For a single day, set From and To to the same date.</div><div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px"><div><label>Doctor / Clinic</label><select id="blocked-doc-input" class="fd-sel" style="margin-top:5px"></select></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>From</label><input type="date" id="blocked-from-input" class="pi" style="margin-bottom:0"></div><div><label>To</label><input type="date" id="blocked-to-input" class="pi" style="margin-bottom:0"></div></div><button class="btn" style="margin:0" onclick="addBlockedDate()">🚫 Block Range</button></div><div class="rl" style="margin-bottom:8px">CURRENTLY BLOCKED RANGES</div><div id="blocked-list" style="display:flex;flex-direction:column;gap:6px"></div></div><div class="adm-sec" id="adm-dist"><div class="adm-section-title">Slot Distribution</div><div class="adm-section-sub">Click any slot card to view its patient list and print.</div><div class="dg" id="dg"></div></div><div class="adm-sec" id="adm-log"><div class="adm-section-title">Assignment Log</div><div class="adm-section-sub">Last 50 entries across all assignment types.</div><div class="lf"><button class="fb on" onclick="filterLog('all',this)">All</button><button class="fb" onclick="filterLog('Sun',this)">Sun</button><button class="fb" onclick="filterLog('Mon',this)">Mon</button><button class="fb" onclick="filterLog('Tue',this)">Tue</button><button class="fb" onclick="filterLog('Wed',this)">Wed</button><button class="fb" onclick="filterLog('Thu',this)">Thu</button></div><div class="lt"><div class="lh"><div>Date</div><div>File / Phone</div><div>Doctor / Room</div><div>Follow-up</div><div>By</div><div></div></div><div id="lb"></div></div></div><div class="adm-sec" id="adm-export"><div class="adm-section-title">Export &amp; Print</div><div class="adm-section-sub">Select a clinic card to export all its patients as PDF. Patients are grouped by doctor + room + day.</div><button class="btn" style="margin-bottom:18px" onclick="exportWeekly()">📊 Export Master Log (All Entries)</button><div class="rl" style="margin-bottom:10px;">CLINIC PATIENT LISTS</div><div class="clinic-export-grid" id="clinic-export-grid"></div></div><div class="adm-sec" id="adm-danger"><div class="adm-section-title">Danger Zone</div><div class="adm-section-sub">Irreversible actions. Use with caution.</div><label>Remove Patient Row</label><input type="text" id="dfi" placeholder="Enter File or Phone Number" inputmode="numeric"><button class="btn" style="background:#fbbf24;color:#000;margin-bottom:10px" onclick="delEntry()">🗑 Remove Entry</button><button class="btn btn-warn" style="margin-top:0;margin-bottom:10px" onclick="deleteAnonymousOpd()">🧹 Remove All Anonymous OPD Entries</button><button class="btn btn-warn" onclick="resetAll()">⚠ Wipe All Database Data</button></div></div></div></div>
 
 <div class="mo" id="mo"><div class="mb"><div class="mh"><h2 id="mt">—</h2><button onclick="closeMo()">Close</button></div><div class="mbody"><div id="mc2" style="font-size:12px;color:var(--acc2);margin-bottom:10px"></div><div id="mbody"></div><div id="mprint"></div></div></div></div>
 
@@ -178,12 +178,35 @@ async function lookupDocPIN(pin){
   const h = await sha256(String(pin));
   return docPINsHashed[h];
 }
-var CL = [{d:"Hisham",r:"Room 10",days:["Sun"]},{d:"Maged",r:"Room 11",days:["Tue"]},{d:"Hisham",r:"Room 10",days:["Sun"]},{d:"Maged",r:"Room 11",days:["Tue"]},{d:"Fahd",r:"Room 24",days:["Mon"]},{d:"Akmal",r:"Room 10",days:["Mon"]},{d:"Hisham",r:"Room 10",days:["Sun"]},{d:"Maged",r:"Room 11",days:["Tue"]},{d:"Fahd",r:"Room 24",days:["Mon"]},{d:"Farag",r:"Room 8",days:["Mon"]},{d:"Akmal",r:"Room 10",days:["Mon"]},{d:"Farag",r:"Room 8",days:["Mon"]},{d:"Ehab",r:"Room 25",days:["Mon"]},{d:"Ehab",r:"Room 25",days:["Mon"]},{d:"Maged",r:"Room 20",days:["Sun"]},{d:"Hisham",r:"Room 8",days:["Tue"]},{d:"Zaher",r:"Room 20",days:["Tue"]},{d:"Nazanin",r:"Room 25",days:["Sun"]},{d:"Farag",r:"Room 10",days:["Wed"]},{d:"Ali",r:"Room 11",days:["Wed"]},{d:"Fawzy",r:"Room 20",days:["Wed"]},{d:"Shafie",r:"Room 25",days:["Thu"]},{d:"Ibrahim",r:"Room 13",days:["Thu"]},{d:"Ibrahim",r:"Room 10",days:["Tue"]},{d:"Arab",r:"Room 25",days:["Tue"]},{d:"Ashraf",r:"Room 20",days:["Thu"]},{d:"Hany",r:"Room 16",days:["Sun"]}];
+var CL = [
+  {d:"Fahd",    r:"Room 24", days:["Mon"], dist: 0},   // 1
+  {d:"Akmal",   r:"Room 10", days:["Mon"], dist: 0},   // 2
+  {d:"Farag",   r:"Room 8",  days:["Mon"], dist: 0},   // 3
+  {d:"Ehab",    r:"Room 25", days:["Mon"], dist: 0},   // 4
+  {d:"Maged",   r:"Room 20", days:["Sun"], dist: 1},   // 5
+  {d:"Hisham",  r:"Room 8",  days:["Tue"], dist: 1},   // 6
+  {d:"Zaher",   r:"Room 20", days:["Tue"], dist: 0},   // 7
+  {d:"Nazanin", r:"Room 25", days:["Sun"], dist: 2},   // 8
+  {d:"Farag",   r:"Room 10", days:["Wed"], dist: 1},   // 9
+  {d:"Ali",     r:"Room 11", days:["Wed"], dist: 0},   // 10
+  {d:"Fawzy",   r:"Room 20", days:["Wed"], dist: 0},   // 11
+  {d:"Shafie",  r:"Room 25", days:["Thu"], dist: 1},   // 12
+  {d:"Ibrahim", r:"Room 13", days:["Thu"], dist: 1},   // 13
+  {d:"Ibrahim", r:"Room 10", days:["Tue"], dist: 0},   // 14
+  {d:"Arab",    r:"Room 25", days:["Tue"], dist: 1},   // 15
+  {d:"Ashraf",  r:"Room 20", days:["Thu"], dist: 0},   // 16
+  {d:"Hany",    r:"Room 16", days:["Sun"], dist: 0},   // 17
+  {d:"Hisham",  r:"Room 10", days:["Sun"], dist: 0},   // 18
+  {d:"Maged",   r:"Room 11", days:["Tue"], dist: 0}    // 19
+];
 var EP_CLINICS = [{id:"ep-sun", name:"EP Device Clinic", room:"Room 21", day:"Sun", dayNum:0, label:"Sunday"},{id:"ep-tue", name:"EP Ablation Clinic", room:"Room 5", day:"Tue", dayNum:2, label:"Tuesday"}];
 var EP_MAX_PER_DATE = 12;
-var specificDocs = [{name:"Fahd", indices:[4,8], room:"Room 24", day:"Mon", label:"Monday"},{name:"Ali", indices:[19], room:"Room 11", day:"Wed", label:"Wednesday"},{name:"Arab", indices:[24], room:"Room 25", day:"Tue", label:"Tuesday"},{name:"Nazanin", indices:[17], room:"Room 25", day:"Sun", label:"Sunday"}];
+var specificDocs = [{name:"Fahd", indices:[0], room:"Room 24", day:"Mon", label:"Monday"},{name:"Ali", indices:[9], room:"Room 11", day:"Wed", label:"Wednesday"},{name:"Arab", indices:[14], room:"Room 25", day:"Tue", label:"Tuesday"},{name:"Nazanin", indices:[7], room:"Room 25", day:"Sun", label:"Sunday"}];
 var selectedSpecificDoc = null, selectedFixDoc = null, selectedEpClinic = null;
-window.S = {logs:[], oplogs:[], eplogs:[], leave:{}};
+window.S = {logs:[], oplogs:[], eplogs:[], leave:{}, skipped:{}, blockedDates:{}};
+// Doctors who can be temporarily skipped on the Inpatient (auto) tab when
+// the current patient was not catheterized by them. Keyed by doctor name.
+var SKIP_DOCS = ["Fahd","Arab","Ali","Nazanin"];
 var adm = false;
 window.lf = "all";
 var dataLoaded = false;  // tracks Firebase initial sync to prevent flash of wrong doctor
@@ -203,8 +226,53 @@ function isDuplicate(val) {
   return all.some(e => e.fn && e.fn.toString().includes(str));
 }
 
-function getGlobalMin() { let min = Infinity; for(let i=0;i<27;i++) if(!isDocOff(CL[i].d,'ip')) min = Math.min(min, cCnt(i)); return min===Infinity?-1:min; }
-function getNextSlotIp() { let min = getGlobalMin(); if(min===-1) return -1; for(let i=0;i<27;i++) if(!isDocOff(CL[i].d,'ip') && cCnt(i)===min) return i; return -1; }
+// Effective count for rotation math: actual patients PLUS distribution offset.
+// A +2 offset means the doctor is already busier by 2 slots (picked later),
+// a 0 offset means the doctor starts fresh (picked first).
+function effCnt(i) { return cCnt(i) + (CL[i].dist || 0); }
+function isSkipped(docName) { return (window.S.skipped && window.S.skipped[docName]) === true; }
+
+// Convert a full date string like "Sun, 27 Apr 2026" to ISO "2026-04-27" for blocked-date matching.
+function toIsoDate(fullDateStr){
+  if(!fullDateStr) return "";
+  let d = new Date(fullDateStr);
+  if(isNaN(d)) return "";
+  let y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function isBlocked(fullDateStr, doctorName){
+  if(!doctorName) return false;
+  let iso = toIsoDate(fullDateStr);
+  if(!iso) return false;
+  let bd = window.S.blockedDates || {};
+  let list = bd[doctorName] || [];
+  return list.some(r => {
+    // Supports both new range format {from,to} and legacy string entries.
+    if(typeof r === "string") return r === iso;
+    if(!r || !r.from || !r.to) return false;
+    return iso >= r.from && iso <= r.to;
+  });
+}
+
+function getGlobalMin() {
+  let min = Infinity;
+  for(let i=0;i<CL.length;i++) {
+    if(isDocOff(CL[i].d,'ip')) continue;
+    if(isSkipped(CL[i].d)) continue;
+    min = Math.min(min, effCnt(i));
+  }
+  return min===Infinity ? -1 : min;
+}
+function getNextSlotIp() {
+  let min = getGlobalMin();
+  if(min===-1) return -1;
+  for(let i=0;i<CL.length;i++) {
+    if(isDocOff(CL[i].d,'ip')) continue;
+    if(isSkipped(CL[i].d)) continue;
+    if(effCnt(i)===min) return i;
+  }
+  return -1;
+}
 
 // Returns today's date in the FULL format used by `apt` (e.g. "Sun, 20 Apr 2026")
 function getTodayFullDateStr(){ return new Date().toLocaleDateString("en-GB", {weekday:'short', day:'2-digit', month:'short', year:'numeric'}); }
@@ -212,7 +280,7 @@ function getTodayFullDateStr(){ return new Date().toLocaleDateString("en-GB", {w
 // OP walk-in picker: skip slots that are already at 5/5 capacity for today
 function getNextSlotOp() {
   let today=tn(), todayFull=getTodayFullDateStr(), valid=[];
-  for(let i=0;i<27;i++){
+  for(let i=0;i<CL.length;i++){
     if(!CL[i].days.includes(today)) continue;
     if(isDocOff(CL[i].d,'op')) continue;
     let counts = getBookingCountsForSlot(CL[i].d, CL[i].r, todayFull);
@@ -220,10 +288,10 @@ function getNextSlotOp() {
     valid.push(i);
   }
   if(!valid.length) return -1;
-  let min=Infinity; valid.forEach(i=>min=Math.min(min,cCnt(i)));
-  return valid.find(i=>cCnt(i)===min);
+  let min=Infinity; valid.forEach(i=>min=Math.min(min,effCnt(i)));
+  return valid.find(i=>effCnt(i)===min);
 }
-function getManualSlotIndex(indices) { let min=Infinity, best=-1; indices.forEach(idx=>{ if(!isDocOff(CL[idx].d,'ip')){ let cnt=cCnt(idx); if(cnt<min){min=cnt;best=idx;}} }); return best; }
+function getManualSlotIndex(indices) { let min=Infinity, best=-1; indices.forEach(idx=>{ if(!isDocOff(CL[idx].d,'ip')){ let cnt=effCnt(idx); if(cnt<min){min=cnt;best=idx;}} }); return best; }
 
 // ===== CAPACITY LIMITS =====
 // Per (doctor + room + date): max 3 from IP/Interventional flows, max 5 total
@@ -278,18 +346,46 @@ function updateFutureDates(daysArr, doctor, room) {
   for(let i=0;i<120;i++){
     if(targets.includes(d.getDay())){
       let ds = d.toLocaleDateString("en-GB",{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
-      let counts = (doctor && room) ? getBookingCountsForSlot(doctor, room, ds) : {ip:0,op:0,total:0};
-      let ipFull = counts.ip >= MAX_IP_PER_DATE;
-      let totalFull = counts.total >= MAX_TOTAL_PER_DATE;
-      // IP flow is blocked if either cap is reached
-      let blocked = ipFull || totalFull;
-      let badge = blocked ? (totalFull ? " — FULL (5/5)" : ` — IP FULL (${counts.ip}/${MAX_IP_PER_DATE})`) : ` [${counts.ip} IP / ${counts.total} total]`;
-      opts += `<option value="${ds}"${blocked?" disabled":""}>${ds}${badge}</option>`;
+      // Blocked dates are hidden entirely from the dropdown
+      if(!isBlocked(ds, doctor)){
+        let counts = (doctor && room) ? getBookingCountsForSlot(doctor, room, ds) : {ip:0,op:0,total:0};
+        let ipFull = counts.ip >= MAX_IP_PER_DATE;
+        let totalFull = counts.total >= MAX_TOTAL_PER_DATE;
+        let blocked = ipFull || totalFull;
+        let badge;
+        if(totalFull) badge = " — FULL (5/5)";
+        else if(ipFull) badge = ` — IP FULL (${counts.ip}/${MAX_IP_PER_DATE})`;
+        else badge = ` [${counts.ip} IP / ${counts.total} total]`;
+        opts += `<option value="${ds}"${blocked?" disabled":""}>${ds}${badge}</option>`;
+      }
     }
     d.setDate(d.getDate()+1);
   }
   document.getElementById("fd-sel").innerHTML=opts;
 }
+
+// Temporarily skip a cath-specific doctor (Fahd / Arab / Ali / Nazanin) when
+// the current auto-next patient was NOT catheterized by them. Persisted to
+// Firebase so all registrars see the same skip state. Cleared via Restore
+// button when the doctor's next real cath patient arrives.
+window.skipCurrentDoc = function(){
+  let ipI = getNextSlotIp();
+  if(ipI===-1) return;
+  let name = CL[ipI].d;
+  if(SKIP_DOCS.indexOf(name)===-1) return alert("This doctor is not a cath-specific slot.");
+  if(!confirm(`Skip Dr. ${name}? This patient will go to the next doctor. Dr. ${name} will automatically return to the queue after the next assignment.`)) return;
+  if(!window.S.skipped) window.S.skipped = {};
+  window.S.skipped[name] = true;
+  dbRef.set(window.S);
+  rAll();
+};
+window.unskipDoc = function(name){
+  if(!window.S.skipped) window.S.skipped = {};
+  if(!window.S.skipped[name]) return;
+  delete window.S.skipped[name];
+  dbRef.set(window.S);
+  rAll();
+};
 
 window.doAssign = async function(type, manualSlotIndex=null) {
   if(type==='ip'){
@@ -303,11 +399,15 @@ window.doAssign = async function(type, manualSlotIndex=null) {
     if(i===-1) return alert("No valid clinics scheduled.");
     if(manualSlotIndex!==null && isDocOff(CL[i].d,'ip')) return alert("Doctor is OFF");
     let c=CL[i];
+    if(isBlocked(apt, c.d)) return alert(`Dr. ${c.d} has this date blocked by admin. Please select a different follow-up date.`);
     // Capacity check for the selected follow-up date (IP cap 3, total cap 5)
     let cap = checkCapacity(c.d, c.r, apt, 'ip');
     if(!cap.ok) return alert(cap.reason);
     if(!confirm(manualSlotIndex ? `Manual assign to Dr.${c.d}?` : `Assign IP: ${fn} → Dr.${c.d}`)) return;
     window.S.logs.push({fn, reg, doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt, ts:Date.now()});
+    // Auto-clear all active skips: a patient has been placed, so any cath doc
+    // that was held aside should return to the rotation for the next patient.
+    if(window.S.skipped) window.S.skipped = {};
     dbRef.set(window.S);
     document.getElementById("fi").value=""; document.getElementById("rpin").value="";
     rAll(); return;
@@ -334,7 +434,7 @@ window.doAssign = async function(type, manualSlotIndex=null) {
   } else alert("Duplicate patient ID (or same identifier already used).");
 };
 
-window.doSpecificAssign = async function() { if(!selectedSpecificDoc) return alert("Select doctor."); let fn=document.getElementById("spec-fi").value.trim(), pin=document.getElementById("spec-pin").value.trim(), apt=document.getElementById("spec-date").value; if(!/^\d{6}$/.test(fn)||!apt) return alert("Invalid fields"); let reg=await lookupDocPIN(pin); if(!reg) return alert("Invalid fields"); if(isDuplicate(fn)) return alert("Duplicate"); let idx=getManualSlotIndex(selectedSpecificDoc.indices); if(idx===-1) return alert("Doctor off"); let c=CL[idx]; let cap=checkCapacity(c.d, c.r, apt, 'ip'); if(!cap.ok) return alert(cap.reason); window.S.logs.push({fn, reg, doc:c.d, room:c.r, si:idx, cd:tn(), ad:nd(), time:nt(), apt, ts:Date.now()}); dbRef.set(window.S); document.getElementById("spec-fi").value=""; document.getElementById("spec-pin").value=""; document.getElementById("spec-date").value=""; document.querySelectorAll('.spec-card').forEach(el=>el.classList.remove('selected')); document.getElementById("spec-form").classList.remove("on"); selectedSpecificDoc=null; rAll(); alert("Assigned"); };
+window.doSpecificAssign = async function() { if(!selectedSpecificDoc) return alert("Select doctor."); let fn=document.getElementById("spec-fi").value.trim(), pin=document.getElementById("spec-pin").value.trim(), apt=document.getElementById("spec-date").value; if(!/^\d{6}$/.test(fn)||!apt) return alert("Invalid fields"); if(isBlocked(apt, selectedSpecificDoc.name)) return alert(`Dr. ${selectedSpecificDoc.name} has this date blocked by admin. Please select a different follow-up date.`); let reg=await lookupDocPIN(pin); if(!reg) return alert("Invalid fields"); if(isDuplicate(fn)) return alert("Duplicate"); let idx=getManualSlotIndex(selectedSpecificDoc.indices); if(idx===-1) return alert("Doctor off"); let c=CL[idx]; let cap=checkCapacity(c.d, c.r, apt, 'ip'); if(!cap.ok) return alert(cap.reason); window.S.logs.push({fn, reg, doc:c.d, room:c.r, si:idx, cd:tn(), ad:nd(), time:nt(), apt, ts:Date.now()}); if(window.S.skipped && window.S.skipped[c.d]) delete window.S.skipped[c.d]; dbRef.set(window.S); document.getElementById("spec-fi").value=""; document.getElementById("spec-pin").value=""; document.getElementById("spec-date").value=""; document.querySelectorAll('.spec-card').forEach(el=>el.classList.remove('selected')); document.getElementById("spec-form").classList.remove("on"); selectedSpecificDoc=null; rAll(); alert("Assigned"); };
 
 window.doFixAssign = function() {
   if(!selectedFixDoc) return alert("Select a clinic first.");
@@ -348,6 +448,7 @@ window.doFixAssign = function() {
   else patId = rawFn || rawPh;
   if(isDuplicate(patId)) return alert("Duplicate patient.");
   let c = CL[selectedFixDoc.idx];
+  if(isBlocked(apt, c.d)) return alert(`Dr. ${c.d} has this date blocked by admin. Please select a different date.`);
   // Capacity check for the chosen booking date (OP booking counts against total cap of 5)
   let cap = checkCapacity(c.d, c.r, apt, 'op');
   if(!cap.ok) return alert(cap.reason);
@@ -360,14 +461,14 @@ window.doFixAssign = function() {
   rAll(); alert("Appointment booked!");
 };
 
-function renderFixClinics() { let today=tn(), container=document.getElementById("fix-clinic-grid"); if(!container) return; container.innerHTML=""; document.getElementById("fix-form").style.display="none"; selectedFixDoc=null; let seen={}; for(let i=0;i<27;i++){ if(!CL[i].days.includes(today) && !isDocOff(CL[i].d,'op')){ let key=CL[i].d+"_"+CL[i].r+"_"+CL[i].days.join(""); if(!seen[key]) seen[key]={idx:i, doc:CL[i]}; } } Object.values(seen).forEach(item=>{ let card=document.createElement("div"); card.className="spec-card"; card.innerHTML=`<div class="rl" style="margin-bottom:4px">CLINIC</div><div class="spec-name">Dr. ${item.doc.d}</div><div class="spec-meta">${item.doc.r} • ${item.doc.days.join(", ")}</div>`; card.onclick=()=>{ document.querySelectorAll("#fix-clinic-grid .spec-card").forEach(c=>c.classList.remove("selected")); card.classList.add("selected"); selectedFixDoc=item; let dayMap={"Sun":0,"Mon":1,"Tue":2,"Wed":3,"Thu":4,"Fri":5,"Sat":6}, targets=item.doc.days.map(d=>dayMap[d]), opts='<option value="" disabled selected>Select Date...</option>', d=new Date(), count=0; for(let j=0;j<120;j++){ if(targets.includes(d.getDay())){ let ds=d.toLocaleDateString("en-GB",{weekday:'short',day:'2-digit',month:'short',year:'numeric'}); let counts=getBookingCountsForSlot(item.doc.d,item.doc.r,ds); let totalFull=counts.total>=MAX_TOTAL_PER_DATE; let badge=totalFull?" — FULL (5/5)":` [${counts.total}/${MAX_TOTAL_PER_DATE}]`; opts+=`<option value="${ds}"${totalFull?" disabled":""}>${ds}${badge}</option>`; if(++count>=16) break;} d.setDate(d.getDate()+1); } document.getElementById("fix-date").innerHTML=opts; document.getElementById("fix-hint").innerHTML=`Dr. ${item.doc.d} (${item.doc.r}) — runs on ${item.doc.days.join(", ")}`; document.getElementById("fix-form").style.display="block"; }; container.appendChild(card); }); }
+function renderFixClinics() { let today=tn(), container=document.getElementById("fix-clinic-grid"); if(!container) return; container.innerHTML=""; document.getElementById("fix-form").style.display="none"; selectedFixDoc=null; let seen={}; for(let i=0;i<CL.length;i++){ if(!CL[i].days.includes(today) && !isDocOff(CL[i].d,'op')){ let key=CL[i].d+"_"+CL[i].r+"_"+CL[i].days.join(""); if(!seen[key]) seen[key]={idx:i, doc:CL[i]}; } } Object.values(seen).forEach(item=>{ let card=document.createElement("div"); card.className="spec-card"; card.innerHTML=`<div class="rl" style="margin-bottom:4px">CLINIC</div><div class="spec-name">Dr. ${item.doc.d}</div><div class="spec-meta">${item.doc.r} • ${item.doc.days.join(", ")}</div>`; card.onclick=()=>{ document.querySelectorAll("#fix-clinic-grid .spec-card").forEach(c=>c.classList.remove("selected")); card.classList.add("selected"); selectedFixDoc=item; let dayMap={"Sun":0,"Mon":1,"Tue":2,"Wed":3,"Thu":4,"Fri":5,"Sat":6}, targets=item.doc.days.map(d=>dayMap[d]), opts='<option value="" disabled selected>Select Date...</option>', d=new Date(), count=0; for(let j=0;j<120;j++){ if(targets.includes(d.getDay())){ let ds=d.toLocaleDateString("en-GB",{weekday:'short',day:'2-digit',month:'short',year:'numeric'}); if(!isBlocked(ds, item.doc.d)){ let counts=getBookingCountsForSlot(item.doc.d,item.doc.r,ds); let totalFull=counts.total>=MAX_TOTAL_PER_DATE; let badge=totalFull?" — FULL (5/5)":` [${counts.total}/${MAX_TOTAL_PER_DATE}]`; opts+=`<option value="${ds}"${totalFull?" disabled":""}>${ds}${badge}</option>`; if(++count>=16) break;}} d.setDate(d.getDate()+1); } document.getElementById("fix-date").innerHTML=opts; document.getElementById("fix-hint").innerHTML=`Dr. ${item.doc.d} (${item.doc.r}) — runs on ${item.doc.days.join(", ")}`; document.getElementById("fix-form").style.display="block"; }; container.appendChild(card); }); }
 
 function renderEpTab() { let grid=document.getElementById("ep-clinic-grid"); grid.innerHTML=""; document.getElementById("ep-form").style.display="none"; selectedEpClinic=null; EP_CLINICS.forEach(clinic=>{ let card=document.createElement("div"); card.className="spec-card ep-card"; card.innerHTML=`<div class="rl" style="margin-bottom:4px">EP CLINIC</div><div class="spec-name" style="color:var(--ep)!important;font-size:18px">${clinic.name}</div><div class="spec-meta">${clinic.room} • ${clinic.label}</div>`; card.onclick=()=>{ document.querySelectorAll("#ep-clinic-grid .spec-card").forEach(c=>c.classList.remove("selected")); card.classList.add("selected"); selectedEpClinic=clinic; renderEpDates(clinic); document.getElementById("ep-hint").innerHTML=`EP Clinic — ${clinic.room} every ${clinic.label}. Max ${EP_MAX_PER_DATE} patients per date.`; document.getElementById("ep-form").style.display="block"; }; grid.appendChild(card); }); }
 function getEpCountForDate(clinicId, dateStr) { return (window.S.eplogs||[]).filter(e=>e.epClinicId===clinicId && e.apt===dateStr).length; }
-function renderEpDates(clinic){ let sel=document.getElementById("ep-date"), opts='<option value="" disabled selected>Select '+clinic.label+' Date...</option>', d=new Date(), sixMonths=new Date(); sixMonths.setMonth(sixMonths.getMonth()+6); while(d<=sixMonths){ if(d.getDay()===clinic.dayNum){ let ds=d.toLocaleDateString("en-GB",{weekday:'short',day:'2-digit',month:'short',year:'numeric'}), cnt=getEpCountForDate(clinic.id,ds), full=cnt>=EP_MAX_PER_DATE; opts+=`<option value="${ds}"${full?" disabled":""}>${ds} [${cnt}/${EP_MAX_PER_DATE}]${full?" FULL":""}</option>`; } d.setDate(d.getDate()+1); } sel.innerHTML=opts; }
-window.doEpAssign=async function(){ if(!selectedEpClinic) return alert("Select EP clinic"); let fn=document.getElementById("ep-fi").value.trim(), pin=document.getElementById("ep-pin").value.trim(), apt=document.getElementById("ep-date").value; if(!/^\d{6}$/.test(fn)||!apt) return alert("Invalid data"); let regName=await lookupDocPIN(pin); if(!regName) return alert("Invalid data"); let cnt=getEpCountForDate(selectedEpClinic.id,apt); if(cnt>=EP_MAX_PER_DATE) return alert("Fully booked"); if((window.S.eplogs||[]).some(e=>e.fn===fn)) return alert("Duplicate EP booking"); if(!confirm(`Confirm EP: ${fn} → ${selectedEpClinic.room} (${selectedEpClinic.label}) ${apt}`)) return; window.S.eplogs.push({fn, reg:regName, doc:"EP", room:selectedEpClinic.room, epClinicId:selectedEpClinic.id, epLabel:selectedEpClinic.label, cd:tn(), ad:nd(), time:nt(), apt, ts:Date.now()}); dbRef.set(window.S); document.getElementById("ep-fi").value=""; document.getElementById("ep-pin").value=""; renderEpDates(selectedEpClinic); alert("EP booked"); };
+function renderEpDates(clinic){ let sel=document.getElementById("ep-date"), opts='<option value="" disabled selected>Select '+clinic.label+' Date...</option>', d=new Date(), sixMonths=new Date(); sixMonths.setMonth(sixMonths.getMonth()+6); while(d<=sixMonths){ if(d.getDay()===clinic.dayNum){ let ds=d.toLocaleDateString("en-GB",{weekday:'short',day:'2-digit',month:'short',year:'numeric'}); if(!isBlocked(ds, clinic.id)){ let cnt=getEpCountForDate(clinic.id,ds), full=cnt>=EP_MAX_PER_DATE; opts+=`<option value="${ds}"${full?" disabled":""}>${ds} [${cnt}/${EP_MAX_PER_DATE}]${full?" FULL":""}</option>`; } } d.setDate(d.getDate()+1); } sel.innerHTML=opts; }
+window.doEpAssign=async function(){ if(!selectedEpClinic) return alert("Select EP clinic"); let fn=document.getElementById("ep-fi").value.trim(), pin=document.getElementById("ep-pin").value.trim(), apt=document.getElementById("ep-date").value; if(!/^\d{6}$/.test(fn)||!apt) return alert("Invalid data"); if(isBlocked(apt, selectedEpClinic.id)) return alert(`${selectedEpClinic.name} has this date blocked by admin. Please select a different follow-up date.`); let regName=await lookupDocPIN(pin); if(!regName) return alert("Invalid data"); let cnt=getEpCountForDate(selectedEpClinic.id,apt); if(cnt>=EP_MAX_PER_DATE) return alert("Fully booked"); if((window.S.eplogs||[]).some(e=>e.fn===fn)) return alert("Duplicate EP booking"); if(!confirm(`Confirm EP: ${fn} → ${selectedEpClinic.room} (${selectedEpClinic.label}) ${apt}`)) return; window.S.eplogs.push({fn, reg:regName, doc:"EP", room:selectedEpClinic.room, epClinicId:selectedEpClinic.id, epLabel:selectedEpClinic.label, cd:tn(), ad:nd(), time:nt(), apt, ts:Date.now()}); dbRef.set(window.S); document.getElementById("ep-fi").value=""; document.getElementById("ep-pin").value=""; renderEpDates(selectedEpClinic); alert("EP booked"); };
 
-function rDist(){ let g=document.getElementById("dg"); g.innerHTML=""; let ipNext=getNextSlotIp(); CL.forEach((c,i)=>{ let ipO=isDocOff(c.d,'ip'), opO=isDocOff(c.d,'op'), isN=(i===ipNext), d=document.createElement("div"); d.className="dc"+(isN?" nx":""); d.innerHTML=`<div class="dd">Dr. ${c.d}</div><div style="font-size:10px;color:var(--dim)">${c.r} • ${c.days.join(", ")}</div><div class="dn2">${cCnt(i)}</div><div class="stbox"><div class="stb ${ipO?'stb-off':'stb-ok'}">IP:${ipO?'OFF':'OK'}</div><div class="stb ${opO?'stb-off':'stb-ok'}">OP:${opO?'OFF':'OK'}</div></div>`; d.onclick=()=>openMo(i); g.appendChild(d); }); }
+function rDist(){ let g=document.getElementById("dg"); g.innerHTML=""; let ipNext=getNextSlotIp(); CL.forEach((c,i)=>{ let ipO=isDocOff(c.d,'ip'), opO=isDocOff(c.d,'op'), isN=(i===ipNext), sk=isSkipped(c.d), d=document.createElement("div"); d.className="dc"+(isN?" nx":""); let distTxt = (c.dist>0?`+${c.dist}`:(c.dist<0?`${c.dist}`:"0")); let distColor = c.dist>0?"#34d399":(c.dist<0?"#f87171":"var(--dim)"); let skipBadge = sk ? `<div class="stb" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.5);color:#fbbf24;margin-top:3px">SKIP</div>` : ""; d.innerHTML=`<div class="dd">Dr. ${c.d}</div><div style="font-size:10px;color:var(--dim)">${c.r} • ${c.days.join(", ")}</div><div style="font-size:10px;color:${distColor};font-family:'DM Mono',monospace;margin-top:2px">dist ${distTxt}</div><div class="dn2">${cCnt(i)}</div><div class="stbox"><div class="stb ${ipO?'stb-off':'stb-ok'}">IP:${ipO?'OFF':'OK'}</div><div class="stb ${opO?'stb-off':'stb-ok'}">OP:${opO?'OFF':'OK'}</div></div>${skipBadge}`; d.onclick=()=>openMo(i); g.appendChild(d); }); }
 function openMo(i){ if(!adm) return; let c=CL[i], pts=(window.S.logs||[]).concat(window.S.oplogs||[]).filter(e=>e.si===i); document.getElementById("mt").innerHTML=`Dr. ${c.d} — ${c.r}`; document.getElementById("mc2").innerHTML=pts.length+" patients (this slot)"; let b=document.getElementById("mbody"); b.innerHTML=""; pts.forEach(p=>{let div=document.createElement("div"); div.className="mr"; div.innerHTML=`<div>${p.fn}</div><div style="text-align:right">${p.time}</div>`; b.appendChild(div);}); let pb=document.getElementById("mprint"); pb.innerHTML=""; if(pts.length){ let btn=document.createElement("button"); btn.className="btn"; btn.textContent="Print This Slot"; btn.onclick=()=>exportPDF(`Dr. ${c.d} — ${c.r}`, pts); pb.appendChild(btn); } document.getElementById("mo").classList.add("on"); }
 function exportPDF(title, data){
   if(!data || !data.length){ alert("No data to export."); return; }
@@ -430,13 +531,118 @@ window.deleteLogEntry = function(ts){
 };
 function renderLeaveAdmin(){ let g=document.getElementById("leave-grid"); g.innerHTML=""; [...new Set(CL.map(c=>c.d))].forEach(name=>{ let ipO=window.S.leave[name]?.ip, opO=window.S.leave[name]?.op, d=document.createElement("div"); d.className="dc"; d.style.textAlign="center"; d.innerHTML=`<div class="dd">${name}</div><div class="lv-btn-box"><button class="lv-btn ${ipO?'off':'on'}" onclick="toggleS('${name}','ip')">IP ${ipO?'OFF':'OK'}</button><button class="lv-btn ${opO?'off':'on'}" onclick="toggleS('${name}','op')">OP ${opO?'OFF':'OK'}</button></div>`; g.appendChild(d); }); }
 window.toggleS=(name,type)=>{ if(!window.S.leave[name]) window.S.leave[name]={ip:false,op:false}; window.S.leave[name][type]=!window.S.leave[name][type]; dbRef.set(window.S); rAll(); };
+
+// ===== BLOCKED DATES ADMIN (per-doctor) =====
+function populateBlockedDocDropdown(){
+  let sel = document.getElementById("blocked-doc-input");
+  if(!sel) return;
+  // Preserve current selection if any
+  let current = sel.value;
+  let opts = '<option value="" disabled selected>Select doctor / clinic...</option>';
+  // Unique doctor names from CL, plus EP clinics
+  let docs = [...new Set(CL.map(c=>c.d))].sort();
+  opts += '<optgroup label="Regular Clinics">';
+  docs.forEach(name => { opts += `<option value="${name}">Dr. ${name}</option>`; });
+  opts += '</optgroup>';
+  opts += '<optgroup label="EP Clinics">';
+  EP_CLINICS.forEach(ep => { opts += `<option value="${ep.id}">${ep.name} (${ep.label})</option>`; });
+  opts += '</optgroup>';
+  sel.innerHTML = opts;
+  if(current) sel.value = current;
+}
+function prettyDocLabel(key){
+  // EP clinic ids like "ep-sun" → look up their name; otherwise treat as doctor name
+  let ep = EP_CLINICS.find(e=>e.id===key);
+  if(ep) return `${ep.name} (${ep.label})`;
+  return `Dr. ${key}`;
+}
+window.addBlockedDate = function(){
+  if(!adm) return alert("Admin access required.");
+  let docKey = document.getElementById("blocked-doc-input").value;
+  let fromInput = document.getElementById("blocked-from-input");
+  let toInput = document.getElementById("blocked-to-input");
+  let from = fromInput.value, to = toInput.value;
+  if(!docKey) return alert("Please select a doctor / clinic first.");
+  if(!from) return alert("Please select a From date.");
+  if(!to) return alert("Please select a To date.");
+  if(to < from) return alert("End date cannot be before start date.");
+  if(!window.S.blockedDates) window.S.blockedDates = {};
+  if(!window.S.blockedDates[docKey]) window.S.blockedDates[docKey] = [];
+  // Prevent exact duplicates
+  let dup = window.S.blockedDates[docKey].some(r => typeof r === "object" && r.from===from && r.to===to);
+  if(dup) return alert("That exact range is already blocked for this doctor.");
+  window.S.blockedDates[docKey].push({from, to});
+  // Sort by start date
+  window.S.blockedDates[docKey].sort((a,b)=>{
+    let af = typeof a==="string"?a:a.from, bf = typeof b==="string"?b:b.from;
+    return af.localeCompare(bf);
+  });
+  dbRef.set(window.S);
+  fromInput.value = ""; toInput.value = "";
+  renderBlockedList();
+  rAll();
+};
+window.removeBlockedDate = function(docKey, from, to){
+  if(!adm) return alert("Admin access required.");
+  let bd = window.S.blockedDates || {};
+  if(!bd[docKey]) return;
+  let i = bd[docKey].findIndex(r => {
+    if(typeof r === "string") return r === from && from === to; // legacy single-date
+    return r.from === from && r.to === to;
+  });
+  if(i === -1) return;
+  if(!confirm(`Unblock ${prettyDocLabel(docKey)} for this range?`)) return;
+  bd[docKey].splice(i,1);
+  if(bd[docKey].length === 0) delete bd[docKey];
+  dbRef.set(window.S);
+  renderBlockedList();
+  rAll();
+};
+function prettyIso(iso){
+  if(!iso) return "";
+  let d = new Date(iso + "T00:00:00");
+  return isNaN(d) ? iso : d.toLocaleDateString("en-GB", {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
+}
+function renderBlockedList(){
+  let c = document.getElementById("blocked-list");
+  if(!c) return;
+  populateBlockedDocDropdown();
+  c.innerHTML = "";
+  let bd = window.S.blockedDates || {};
+  // Flatten: [{docKey, from, to, fromTs}, ...]
+  let rows = [];
+  Object.keys(bd).forEach(docKey => {
+    (bd[docKey]||[]).forEach(r => {
+      // Normalise legacy single-date strings
+      let from, to;
+      if(typeof r === "string"){ from = r; to = r; }
+      else if(r && r.from && r.to){ from = r.from; to = r.to; }
+      else return;
+      rows.push({docKey, from, to, fromTs: new Date(from+"T00:00:00").getTime()});
+    });
+  });
+  if(!rows.length){
+    c.innerHTML = '<div style="color:var(--dim);font-size:11px;padding:8px 0">No ranges blocked. All follow-up dates are currently available for all doctors.</div>';
+    return;
+  }
+  rows.sort((a,b)=> a.docKey===b.docKey ? a.fromTs-b.fromTs : a.docKey.localeCompare(b.docKey));
+  rows.forEach(r => {
+    let rangeLabel = r.from === r.to
+      ? prettyIso(r.from)
+      : `${prettyIso(r.from)} → ${prettyIso(r.to)}`;
+    let row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;justify-content:space-between;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);border-radius:7px;padding:10px 12px;gap:10px";
+    row.innerHTML = `<div style="flex:1;min-width:0"><div style="color:#f87171;font-weight:600;font-size:13px">🚫 ${prettyDocLabel(r.docKey)}</div><div style="color:var(--txt);font-size:12px;margin-top:2px">${rangeLabel}</div><div style="color:var(--dim);font-size:10px;font-family:'DM Mono',monospace;margin-top:2px">${r.from}${r.from!==r.to?" → "+r.to:""}</div></div><button class="btn" style="background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.5);color:#f87171;margin:0;padding:6px 12px;font-size:11px;width:auto;flex:0 0 auto" onclick="removeBlockedDate('${r.docKey}','${r.from}','${r.to}')">Remove</button>`;
+    c.appendChild(row);
+  });
+}
+// ===== END BLOCKED DATES =====
 function renderClinicExportGrid(){ let grid=document.getElementById("clinic-export-grid"); if(!grid) return; grid.innerHTML=""; let clinics=[...new Map(CL.map(slot=>[slot.d+"|"+slot.r,slot])).values()]; EP_CLINICS.forEach(ep=>{ let epPts=(window.S.eplogs||[]).filter(e=>e.epClinicId===ep.id); let card=document.createElement("div"); card.className="cex-card"; card.style.borderColor="rgba(167,139,250,0.4)"; card.innerHTML=`<div class="rl" style="color:var(--ep)">EP CLINIC</div><div class="cex-doc" style="color:var(--ep);font-size:14px">${ep.name}</div><div class="cex-meta">${ep.room} • ${ep.label}</div><div class="cex-count" style="color:var(--ep)">${epPts.length}</div>`; card.onclick=()=>{ if(epPts.length) exportPDF(`EP Clinic — ${ep.room} (${ep.label})`, epPts); else alert("No patients"); }; grid.appendChild(card); }); clinics.forEach(c=>{ let pts=(window.S.logs||[]).concat(window.S.oplogs||[]).filter(e=>e.doc===c.d && e.room===c.r); let card=document.createElement("div"); card.className="cex-card"; card.innerHTML=`<div class="rl">${c.days.join(", ")}</div><div class="cex-doc">Dr. ${c.d}</div><div class="cex-meta">${c.r}</div><div class="cex-count">${pts.length}</div>`; card.onclick=()=>{ if(pts.length) exportPDF(`Dr. ${c.d} — ${c.r}`, pts); else alert("No patients"); }; grid.appendChild(card); }); }
 function rAll(){
   document.getElementById("dayName").innerText=tn();
   document.getElementById("dateStr").innerText=nd();
   // Don't compute next-clinic from empty data before Firebase sync — this prevents the
-  // initial flash of "Dr. Hisham" that would happen because index 0 always has 0 count
-  // before real data loads.
+  // initial flash of the wrong doctor before real data loads.
   if(!dataLoaded){
     document.getElementById("nd").innerText="Loading...";
     document.getElementById("nr").innerText="Syncing with server";
@@ -447,13 +653,35 @@ function rAll(){
   }
   let ipI=getNextSlotIp();
   if(ipI!==-1){ let c=CL[ipI]; document.getElementById("nd").innerText="Dr. "+c.d; document.getElementById("nr").innerText=c.r+" • "+c.days.join(", "); updateFutureDates(c.days, c.d, c.r); } else { document.getElementById("nd").innerText="All Offline"; document.getElementById("nr").innerText="—"; }
+  // Skip panel: show only when the current auto-next is one of the cath-specific docs.
+  let skipPanel=document.getElementById("skip-panel");
+  if(skipPanel){
+    if(ipI!==-1 && SKIP_DOCS.indexOf(CL[ipI].d)!==-1){
+      document.getElementById("skip-doc-name").innerText="Dr. "+CL[ipI].d;
+      skipPanel.style.display="block";
+    } else {
+      skipPanel.style.display="none";
+    }
+  }
+  // Active-skips banner at top of card.
+  let banner=document.getElementById("skip-banner");
+  if(banner){
+    let active=SKIP_DOCS.filter(n=>isSkipped(n));
+    if(active.length){
+      banner.innerHTML = `⏭ <strong>Skipped:</strong> ${active.map(n=>"Dr. "+n).join(", ")} &nbsp; ` +
+        active.map(n=>`<button onclick="unskipDoc('${n}')" style="background:none;border:1px solid rgba(251,191,36,0.5);color:#fbbf24;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;margin-left:4px;font-family:inherit">Restore ${n}</button>`).join(" ");
+      banner.style.display="block";
+    } else {
+      banner.style.display="none";
+    }
+  }
   let opI=getNextSlotOp();
   if(opI!==-1){ document.getElementById("opd").innerText="Dr. "+CL[opI].d; document.getElementById("opr").innerText=CL[opI].r; } else { document.getElementById("opd").innerText="No Match Today"; document.getElementById("opr").innerText="—"; }
   let rb=document.getElementById("rb"); rb.innerHTML="";
-  let minCount=getGlobalMin();
-  CL.forEach((_,idx)=>{ let cnt=cCnt(idx); let d=document.createElement("div"); d.className="dot"+(cnt>minCount?" used":"")+(idx===ipI?" on":""); rb.appendChild(d); });
+  let minEff=getGlobalMin();
+  CL.forEach((_,idx)=>{ let e=effCnt(idx); let off=isDocOff(CL[idx].d,'ip')||isSkipped(CL[idx].d); let d=document.createElement("div"); d.className="dot"+((!off && e>minEff)?" used":"")+(idx===ipI?" on":""); rb.appendChild(d); });
   renderSpecificTab(); rLog(); rDist();
-  if(adm) { renderLeaveAdmin(); if(document.getElementById("adm-export")?.classList.contains("on")) renderClinicExportGrid(); }
+  if(adm) { renderLeaveAdmin(); if(document.getElementById("adm-blocked")?.classList.contains("on")) renderBlockedList(); if(document.getElementById("adm-export")?.classList.contains("on")) renderClinicExportGrid(); }
 }
 
 // Extended 6-month date generation for interventional clinics (no early break)
@@ -481,12 +709,17 @@ function renderSpecificTab(){
         while(current <= sixMonthsLater) { 
           if(current.getDay() === targetDay) { 
             let formatted = current.toLocaleDateString("en-GB", {weekday:'short', day:'2-digit', month:'short', year:'numeric'}); 
-            let counts = getBookingCountsForSlot(doc.name, doc.room, formatted);
-            let ipFull = counts.ip >= MAX_IP_PER_DATE;
-            let totalFull = counts.total >= MAX_TOTAL_PER_DATE;
-            let blocked = ipFull || totalFull;
-            let badge = blocked ? (totalFull ? " — FULL (5/5)" : ` — IP FULL (${counts.ip}/${MAX_IP_PER_DATE})`) : ` [${counts.ip} IP / ${counts.total} total]`;
-            opts += `<option value="${formatted}"${blocked?" disabled":""}>${formatted}${badge}</option>`;
+            if(!isBlocked(formatted, doc.name)){
+              let counts = getBookingCountsForSlot(doc.name, doc.room, formatted);
+              let ipFull = counts.ip >= MAX_IP_PER_DATE;
+              let totalFull = counts.total >= MAX_TOTAL_PER_DATE;
+              let blocked = ipFull || totalFull;
+              let badge;
+              if(totalFull) badge = " — FULL (5/5)";
+              else if(ipFull) badge = ` — IP FULL (${counts.ip}/${MAX_IP_PER_DATE})`;
+              else badge = ` [${counts.ip} IP / ${counts.total} total]`;
+              opts += `<option value="${formatted}"${blocked?" disabled":""}>${formatted}${badge}</option>`;
+            }
           } 
           current.setDate(current.getDate() + 1); 
         } 
@@ -517,16 +750,16 @@ window.deleteAnonymousOpd = function() {
 };
 
 window.goTab=(id,btn)=>{ document.querySelectorAll(".pg").forEach(p=>p.classList.remove("on")); document.querySelectorAll(".tabs>.tab").forEach(t=>t.classList.remove("on")); document.getElementById("pg-"+id).classList.add("on"); btn.classList.add("on"); if(id==="ep") renderEpTab(); rAll(); };
-window.goAdmTab=(id,btn)=>{ document.querySelectorAll(".adm-tab").forEach(t=>t.classList.remove("on")); document.querySelectorAll(".adm-sec").forEach(s=>s.classList.remove("on")); btn.classList.add("on"); document.getElementById("adm-"+id).classList.add("on"); if(id==="export") renderClinicExportGrid(); };
+window.goAdmTab=(id,btn)=>{ document.querySelectorAll(".adm-tab").forEach(t=>t.classList.remove("on")); document.querySelectorAll(".adm-sec").forEach(s=>s.classList.remove("on")); btn.classList.add("on"); document.getElementById("adm-"+id).classList.add("on"); if(id==="export") renderClinicExportGrid(); if(id==="blocked") renderBlockedList(); };
 window.filterLog=(f,b)=>{ document.querySelectorAll(".fb").forEach(x=>x.classList.remove("on")); b.classList.add("on"); window.lf=f; rLog(); };
 window.clerkLogin=async ()=>{ let v=document.getElementById("opi").value; if(!v) return; let h=await sha256(v); if(h===CLERK_HASH){ document.getElementById("opgate").style.display="none"; document.getElementById("opc").style.display="block"; } else { alert("Incorrect PIN"); document.getElementById("opi").value=""; } };
 window.adminLogin=async (id)=>{ let v=document.getElementById(id).value; if(!v) return; let h=await sha256(v); if(h===ADMIN_HASH){ adm=true; document.querySelectorAll(".apgate").forEach(e=>e.style.display="none"); document.querySelectorAll(".ac-content").forEach(e=>e.style.display="block"); rAll(); } else { alert("Incorrect PIN"); document.getElementById(id).value=""; } };
 window.goOpTab=(tab,btn)=>{ document.querySelectorAll("#opc .tab").forEach(t=>t.classList.remove("on")); btn.classList.add("on"); document.getElementById("op-walkin").style.display=tab==="walkin"?"block":"none"; document.getElementById("op-fix").style.display=tab==="fix"?"block":"none"; if(tab==="fix") renderFixClinics(); };
 window.closeMo=()=>document.getElementById("mo").classList.remove("on");
 window.delEntry=()=>{ let s=document.getElementById("dfi").value.trim(); if(!s) return; let idxL=window.S.logs.findIndex(e=>e.fn.toString().includes(s)), idxO=window.S.oplogs.findIndex(e=>e.fn.toString().includes(s)), idxE=(window.S.eplogs||[]).findIndex(e=>e.fn.toString().includes(s)); if(idxL===-1 && idxO===-1 && idxE===-1) return alert("Not found"); if(confirm("Delete?")){ if(idxL!==-1) window.S.logs.splice(idxL,1); else if(idxO!==-1) window.S.oplogs.splice(idxO,1); else window.S.eplogs.splice(idxE,1); dbRef.set(window.S); rAll(); } };
-window.resetAll=()=>{ if(confirm("WIPE EVERYTHING?")){ window.S={logs:[], oplogs:[], eplogs:[], leave:{}}; dbRef.set(window.S); rAll(); } };
+window.resetAll=()=>{ if(confirm("WIPE EVERYTHING?")){ window.S={logs:[], oplogs:[], eplogs:[], leave:{}, skipped:{}, blockedDates:{}}; dbRef.set(window.S); rAll(); } };
 window.exportWeekly=()=>{ let all=(window.S.logs||[]).concat(window.S.oplogs||[]).concat(window.S.eplogs||[]).sort((a,b)=>b.ts-a.ts); if(!all.length) return alert("No data"); exportPDF("Master Log — All Entries", all); };
-dbRef.on('value',(snap)=>{ let d=snap.val(); if(d){ window.S.logs=d.logs||[]; window.S.oplogs=d.oplogs||[]; window.S.eplogs=d.eplogs||[]; window.S.leave=d.leave||{}; } dataLoaded=true; document.getElementById("syncDot").style.background="var(--ok)"; document.getElementById("syncText").innerText="Live — Synced"; rAll(); });
+dbRef.on('value',(snap)=>{ let d=snap.val(); if(d){ window.S.logs=d.logs||[]; window.S.oplogs=d.oplogs||[]; window.S.eplogs=d.eplogs||[]; window.S.leave=d.leave||{}; window.S.skipped=d.skipped||{}; window.S.blockedDates=d.blockedDates||{}; } dataLoaded=true; document.getElementById("syncDot").style.background="var(--ok)"; document.getElementById("syncText").innerText="Live — Synced"; rAll(); });
 rAll();
 </script>
 </body>
