@@ -6,11 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Cardio OPD Allocator · Mubarak Al-Kabeer</title>
+<title>MKH Cardiology Command · Department Operations Platform</title>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-title" content="OPD Allocator">
+<meta name="apple-mobile-web-app-title" content="MKH Command">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f172a">
@@ -129,26 +129,650 @@ input{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radiu
 .adm-section-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);margin-bottom:14px}
 hr.adm-hr{border:0;border-top:1px solid var(--bor);margin:20px 0}
 .opt-hint{font-size:9px;color:var(--dim);margin-top:-8px;margin-bottom:8px;font-family:'DM Mono',monospace}
+
+/* ============= PREMIUM UPGRADES ============= */
+body{background:radial-gradient(ellipse at top,#1e293b 0%,#0f172a 55%,#020617 100%);background-attachment:fixed}
+header{background:linear-gradient(180deg,rgba(30,41,59,.98) 0%,rgba(15,23,42,.96) 100%);backdrop-filter:blur(12px);border-bottom:1px solid rgba(96,165,250,.18);box-shadow:0 2px 24px rgba(0,0,0,.35)}
+.hi{background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 50%,#0e7490 100%);box-shadow:0 4px 14px rgba(8,145,178,.35),inset 0 1px 0 rgba(255,255,255,.15);border-radius:10px;width:42px;height:42px}
+header h1{font-family:'DM Serif Display',serif;font-size:17px;background:linear-gradient(135deg,#f8fafc 0%,#93c5fd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.3px}
+header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spacing:1.5px;margin-top:2px}
+.tab{transition:color .2s,border-bottom-color .2s,background .2s}
+.tab:hover:not(.on){color:var(--mid);background:rgba(96,165,250,.04)}
+.card{box-shadow:0 4px 20px rgba(0,0,0,.18);transition:border-color .2s}
+
+/* ============= ROLE GATE ============= */
+.role-gate{position:fixed;inset:0;background:radial-gradient(ellipse at center,#1e293b 0%,#0f172a 70%,#020617 100%);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.role-gate.hidden{display:none}
+.role-box{width:100%;max-width:420px;text-align:center}
+.role-logo{width:72px;height:72px;background:linear-gradient(135deg,#1d4ed8 0%,#0891b2 50%,#0e7490 100%);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 22px;box-shadow:0 12px 40px rgba(8,145,178,.45),inset 0 1px 0 rgba(255,255,255,.15)}
+.role-title{font-family:'DM Serif Display',serif;font-size:30px;background:linear-gradient(135deg,#f8fafc 0%,#93c5fd 50%,#38bdf8 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;letter-spacing:.5px}
+.role-sub{font-family:'DM Mono',monospace;font-size:10px;color:#64748b;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:36px}
+.role-btns{display:flex;flex-direction:column;gap:10px}
+.role-btn{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:16px 18px;color:var(--txt);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:14px;text-align:left;font-family:inherit;font-size:14px;font-weight:500}
+.role-btn:hover{border-color:var(--acc);background:rgba(96,165,250,.06);transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.role-btn-icon{width:40px;height:40px;background:var(--sur2);border:1px solid var(--bor);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.role-btn-clerk:hover .role-btn-icon{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35)}
+.role-btn-reg:hover .role-btn-icon{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.35)}
+.role-btn-adm:hover .role-btn-icon{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35)}
+.role-btn-text{flex:1}
+.role-btn-label{font-size:14px;font-weight:600;margin-bottom:2px}
+.role-btn-desc{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:.5px}
+.role-back{margin-top:18px;background:transparent;border:none;color:var(--dim);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;padding:8px;text-transform:uppercase}
+.role-back:hover{color:var(--acc)}
+.role-pin-box{background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:24px;margin-top:8px}
+.role-pin-box label{font-size:10px;color:var(--dim);letter-spacing:1.5px;margin-bottom:10px}
+.role-chip{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:4px 9px;border-radius:5px;background:rgba(96,165,250,.12);color:var(--acc);border:1px solid rgba(96,165,250,.25);margin-left:auto}
+.logout-btn{background:transparent;border:1px solid var(--bor);color:var(--dim);border-radius:6px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;margin-left:8px;transition:all .15s}
+.logout-btn:hover{border-color:var(--err);color:var(--err)}
+
+/* ============= ENDORSEMENT ============= */
+.endo-toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.endo-search{flex:1;min-width:160px;background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:9px 11px;color:var(--txt);font-family:'DM Mono',monospace;font-size:12px;outline:none}
+.endo-search:focus{border-color:var(--acc)}
+.endo-add-btn{background:linear-gradient(135deg,#2563eb,#0891b2);border:none;border-radius:8px;padding:9px 16px;color:#fff;font-weight:600;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.endo-grid{display:grid;gap:12px}
+.endo-card{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:14px;transition:border-color .2s}
+.endo-card:hover{border-color:rgba(96,165,250,.35)}
+.endo-card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--bor)}
+.endo-bed{background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;font-family:'DM Serif Display',serif;font-size:18px;padding:8px 14px;border-radius:8px;min-width:54px;text-align:center;box-shadow:0 2px 8px rgba(8,145,178,.3)}
+.endo-name{font-family:'DM Serif Display',serif;font-size:19px;color:var(--txt);flex:1;line-height:1.1}
+.endo-mrn{font-family:'DM Mono',monospace;font-size:11px;color:var(--acc2);margin-top:2px}
+.endo-meta-row{display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px dashed var(--bor);flex-wrap:wrap;gap:6px}
+.endo-field{margin-bottom:10px}
+.endo-field-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;color:var(--dim);letter-spacing:1.2px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.endo-field-text{font-size:13px;line-height:1.55;color:var(--mid);white-space:pre-wrap;word-wrap:break-word}
+.endo-field-text.empty{color:#475569;font-style:italic}
+.endo-actions{display:flex;gap:6px;margin-top:8px}
+.endo-act-btn{flex:1;background:var(--sur2);border:1px solid var(--bor);color:var(--mid);border-radius:7px;padding:7px 0;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.8px;text-transform:uppercase;transition:all .15s}
+.endo-act-btn:hover{border-color:var(--acc);color:var(--acc)}
+.endo-act-btn.danger:hover{border-color:var(--err);color:var(--err)}
+.endo-images{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.endo-img-thumb{width:70px;height:70px;border-radius:6px;border:1px solid var(--bor);object-fit:cover;cursor:pointer;transition:all .15s}
+.endo-img-thumb:hover{border-color:var(--acc);transform:scale(1.05)}
+.endo-edit-form textarea{width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:10px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-bottom:9px;resize:vertical;min-height:54px;line-height:1.5}
+.endo-edit-form textarea:focus{border-color:var(--acc)}
+.endo-edit-form input[type=text]{width:100%}
+.endo-edit-two{display:grid;grid-template-columns:100px 1fr;gap:8px;margin-bottom:9px}
+.endo-img-upload{background:var(--sur2);border:1px dashed var(--bor);border-radius:7px;padding:12px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:9px}
+.endo-img-upload:hover{border-color:var(--acc);background:rgba(96,165,250,.04)}
+.endo-img-upload-text{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim)}
+.endo-img-preview{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+.endo-img-prev-wrap{position:relative}
+.endo-img-prev{width:60px;height:60px;border-radius:5px;object-fit:cover;border:1px solid var(--bor)}
+.endo-img-remove{position:absolute;top:-6px;right:-6px;background:var(--err);border:none;border-radius:50%;width:18px;height:18px;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700}
+.endo-empty{text-align:center;padding:40px 20px;color:var(--dim);font-family:'DM Mono',monospace;font-size:11px}
+.endo-history-line{font-size:9px;font-family:'DM Mono',monospace;color:#64748b;letter-spacing:.5px;margin-top:4px}
+.endo-edit-controls{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+
+/* Image viewer modal */
+.img-viewer{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:999;align-items:center;justify-content:center;padding:20px;cursor:pointer}
+.img-viewer.on{display:flex}
+.img-viewer img{max-width:95%;max-height:95%;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.img-viewer-close{position:absolute;top:16px;right:16px;background:var(--sur);border:1px solid var(--bor);border-radius:50%;width:40px;height:40px;color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* ============= CATHLAB ============= */
+.cath-subtabs{display:flex;gap:6px;margin-bottom:14px;background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:4px}
+.cath-subtab{flex:1;background:transparent;border:none;color:var(--dim);padding:9px 6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.8px;text-transform:uppercase;border-radius:7px;transition:all .15s;font-weight:600}
+.cath-subtab.on{background:linear-gradient(135deg,rgba(96,165,250,.15),rgba(56,189,248,.12));color:var(--acc);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.cath-sub{display:none}
+.cath-sub.on{display:block}
+.cath-card{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:14px;margin-bottom:10px}
+.cath-card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--bor);flex-wrap:wrap}
+.cath-name{font-family:'DM Serif Display',serif;font-size:18px;color:var(--txt);flex:1;min-width:140px;line-height:1.15}
+.cath-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--ok);background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);border-radius:5px;padding:3px 9px;font-weight:600}
+.cath-row{display:grid;grid-template-columns:90px 1fr;gap:10px;font-size:12px;padding:5px 0;align-items:start}
+.cath-row-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;padding-top:2px}
+.cath-row-val{color:var(--mid);line-height:1.5;word-break:break-word}
+.cath-form label{margin-top:4px}
+.cath-pending-card{border-left:3px solid var(--warn);background:linear-gradient(90deg,rgba(251,191,36,.04) 0%,var(--sur) 50%)}
+.cath-pending-badge{font-family:'DM Mono',monospace;font-size:9px;color:var(--warn);background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:4px;padding:3px 7px;letter-spacing:1px;font-weight:600}
+.cath-schedule-btn{background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:7px;padding:7px 14px;color:#fff;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cath-schedule-btn:hover{filter:brightness(1.1)}
+.cath-del-btn{background:transparent;border:1px solid var(--bor);color:var(--dim);border-radius:6px;padding:6px 11px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;transition:all .15s}
+.cath-del-btn:hover{border-color:var(--err);color:var(--err)}
+.cath-btn-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.cath-empty{text-align:center;padding:36px 20px;color:var(--dim);font-family:'DM Mono',monospace;font-size:11px}
+
+/* Small mobile tweaks */
+@media (max-width: 480px){
+  .endo-edit-two{grid-template-columns:1fr}
+  .cath-row{grid-template-columns:1fr;gap:2px}
+  .cath-row-label{padding-top:0}
+}
+
+/* ============= WARD CHIPS + COUNT BAR ============= */
+.endo-ward-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.endo-ward-chip{background:var(--sur);border:1px solid var(--bor);color:var(--mid);border-radius:20px;padding:5px 12px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.cath-demo{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);font-weight:normal}
+.today-header{background:linear-gradient(135deg,rgba(96,165,250,.08),rgba(56,189,248,.05));border:1px solid rgba(96,165,250,.25);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.today-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--txt);margin-bottom:10px;letter-spacing:.3px}
+.today-strip{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.today-stat{background:var(--sur);border:1px solid var(--bor);border-radius:9px;padding:10px 12px;text-align:center}
+.today-stat-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px}
+.today-stat-val{font-family:'DM Serif Display',serif;font-size:26px;line-height:1}
+
+/* ============= CALENDAR ============= */
+.cal-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:8px 10px}
+.cal-month-label{flex:1;text-align:center;font-family:'DM Serif Display',serif;font-size:17px;color:var(--txt);letter-spacing:.3px}
+.cal-nav-btn{background:var(--sur2);border:1px solid var(--bor);border-radius:7px;color:var(--mid);width:36px;height:32px;cursor:pointer;font-size:12px;font-family:'DM Mono',monospace;transition:all .15s}
+.cal-nav-btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(96,165,250,.06)}
+.cal-today-btn{background:linear-gradient(135deg,#2563eb,#0891b2);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.5px;cursor:pointer;text-transform:uppercase}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-weekdays div{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);text-align:center;letter-spacing:1px;padding:4px 0;text-transform:uppercase}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px}
+.cal-cell{background:var(--sur);border:1px solid var(--bor);border-radius:7px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:5px 2px;cursor:pointer;transition:all .15s;position:relative;min-height:50px}
+.cal-cell.outside{opacity:.25;cursor:default}
+.cal-cell:not(.outside):hover{border-color:var(--acc);transform:translateY(-1px)}
+.cal-cell.today{border-color:var(--acc2);box-shadow:0 0 0 1px var(--acc2)}
+.cal-cell.past{opacity:.65}
+.cal-cell.selected{background:linear-gradient(135deg,rgba(96,165,250,.12),rgba(56,189,248,.08));border-color:var(--acc);box-shadow:0 4px 14px rgba(96,165,250,.2)}
+.cal-date{font-family:'DM Mono',monospace;font-size:12px;color:var(--mid);font-weight:500;margin-top:1px}
+.cal-cell.today .cal-date{color:var(--acc2);font-weight:700}
+.cal-cell.selected .cal-date{color:var(--acc);font-weight:700}
+.cal-count{margin-top:auto;margin-bottom:2px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:var(--acc);color:#fff;border-radius:10px;padding:1px 7px;min-width:20px;text-align:center}
+.cal-count.warn{background:var(--warn);color:#000}
+.cal-count.err{background:var(--err);color:#fff}
+.cal-count.hidden{visibility:hidden}
+.cal-day-detail{background:var(--sur);border:1px solid var(--bor);border-radius:11px;padding:14px;margin-bottom:8px}
+.cal-day-detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--bor);flex-wrap:wrap;gap:8px}
+.cal-day-detail-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--txt)}
+.cal-day-detail-stats{display:flex;gap:8px;flex-wrap:wrap}
+.cal-day-chip{background:var(--sur2);border:1px solid var(--bor);border-radius:5px;padding:3px 9px;font-family:'DM Mono',monospace;font-size:10px;color:var(--mid)}
+.cal-day-chip b{color:var(--acc2)}
+.endo-ward-chip:hover{border-color:var(--acc);color:var(--acc)}
+.endo-ward-chip.on{background:linear-gradient(135deg,rgba(96,165,250,.18),rgba(56,189,248,.12));border-color:var(--acc);color:var(--acc);box-shadow:0 2px 8px rgba(96,165,250,.15)}
+.endo-ward-chip-badge{background:rgba(0,0,0,.25);border-radius:10px;padding:1px 7px;font-size:9px}
+.endo-count-bar{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);margin-bottom:8px;letter-spacing:.5px;padding-left:3px}
+
+/* Accordion */
+.endo-card{transition:border-color .2s,box-shadow .2s}
+.endo-card.open{border-color:rgba(96,165,250,.4);box-shadow:0 6px 24px rgba(0,0,0,.22)}
+.endo-card-toggle{cursor:pointer;user-select:none;margin-bottom:0;padding-bottom:10px;border-bottom:0;transition:background .15s}
+.endo-card.open .endo-card-toggle{border-bottom:1px dashed var(--bor);margin-bottom:10px}
+.endo-card-toggle:hover{background:rgba(96,165,250,.03)}
+.endo-chevron{color:var(--dim);font-size:18px;line-height:1;flex-shrink:0;transition:transform .25s,color .15s;padding-left:8px}
+.endo-card.open .endo-chevron{transform:rotate(180deg);color:var(--acc)}
+.endo-card-toggle:hover .endo-chevron{color:var(--acc)}
+.endo-card-body{display:none}
+.endo-card.open .endo-card-body{display:block;animation:fadeIn .18s}
+.endo-mini-btn{background:var(--sur);border:1px solid var(--bor);color:var(--dim);border-radius:6px;padding:5px 11px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.4px;cursor:pointer;transition:all .15s}
+.endo-mini-btn:hover{border-color:var(--acc);color:var(--acc)}
+.endo-card-head{min-width:0}
+.endo-mrn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ============= CENSUS ============= */
+.census-card{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+.census-card.stale{border-color:rgba(251,191,36,.4);background:linear-gradient(180deg,rgba(251,191,36,.03) 0%,var(--sur) 40%)}
+.census-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0891b2,#60a5fa)}
+.census-card.ward4::before{background:linear-gradient(90deg,#a78bfa,#c4b5fd)}
+.census-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.census-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--txt)}
+.census-cap{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1px}
+.census-update-btn{background:linear-gradient(135deg,#2563eb,#0891b2);border:none;border-radius:7px;padding:7px 14px;color:#fff;font-weight:600;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;text-transform:uppercase}
+.census-numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.census-stat{background:var(--sur2);border:1px solid var(--bor);border-radius:9px;padding:11px;text-align:center}
+.census-stat-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.census-stat-val{font-family:'DM Serif Display',serif;font-size:26px;line-height:1}
+.census-stat.occ .census-stat-val{color:var(--acc)}
+.census-stat.avail .census-stat-val{color:var(--ok)}
+.census-stat.capacity .census-stat-val{color:var(--mid)}
+.census-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-family:'DM Mono',monospace;font-size:11px}
+.census-split-item{background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center}
+.census-split-label{color:var(--dim);font-size:10px;letter-spacing:.5px}
+.census-split-val{font-weight:600;color:var(--mid);font-size:14px}
+.census-risk{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.census-risk-tile{border-radius:9px;padding:10px 8px;text-align:center;border:1px solid}
+.census-risk-tile.red{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.35)}
+.census-risk-tile.yel{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
+.census-risk-tile.grn{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
+.census-risk-num{font-family:'DM Serif Display',serif;font-size:22px;line-height:1;margin-bottom:3px}
+.census-risk-tile.red .census-risk-num{color:var(--err)}
+.census-risk-tile.yel .census-risk-num{color:var(--warn)}
+.census-risk-tile.grn .census-risk-num{color:var(--ok)}
+.census-risk-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.8px}
+.census-risk-beds{font-family:'DM Mono',monospace;font-size:9px;color:var(--mid);margin-top:5px;padding-top:5px;border-top:1px dashed rgba(255,255,255,.08);line-height:1.3;word-break:break-word;text-align:left}
+.census-risk-input-group{margin-bottom:10px}
+.census-risk-input-group label{margin-bottom:5px}
+.census-updated{font-family:'DM Mono',monospace;font-size:9px;color:#64748b;margin-top:10px;text-align:right;letter-spacing:.5px}
+.census-empty{text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--dim);padding:14px 0}
+.census-alert{background:linear-gradient(135deg,rgba(248,113,113,.12),rgba(251,191,36,.08));border:1px solid rgba(248,113,113,.4);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;gap:11px;align-items:flex-start}
+.census-alert-icon{font-size:22px;flex-shrink:0}
+.census-alert-body{flex:1;font-family:'DM Mono',monospace;font-size:11px;color:#fca5a5;line-height:1.6}
+.census-alert-body strong{color:#fff;font-size:12px;display:block;margin-bottom:3px}
 </style>
 </head>
 <body>
-<header><div class="hi">🫀</div><div><h1>Cardio OPD Allocator</h1><p>MUBARAK AL-KABEER HOSPITAL</p></div><div class="db"><strong id="dayName">—</strong><span id="dateStr">—</span></div></header>
-<div class="sb"><div class="sd" id="syncDot"></div><span id="syncText">Connecting...</span><span style="margin-left:auto;color:var(--dim);font-size:10px">v2.2</span></div>
-<div class="tabs"><button class="tab on" onclick="goTab('ip',this)">Inpatient</button><button class="tab" onclick="goTab('spec',this)">Interventional</button><button class="tab" onclick="goTab('op',this)">Outpatient</button><button class="tab ep-tab" onclick="goTab('ep',this)">EP Clinics</button><button class="tab" onclick="goTab('adm',this)">Admin</button></div>
+
+<!-- ============= ROLE GATE (shown on app load) ============= -->
+<div class="role-gate" id="roleGate">
+  <div class="role-box">
+    <div class="role-logo">🫀</div>
+    <div class="role-title">MKH Cardiology Command</div>
+    <div class="role-sub">Department Operations Platform</div>
+    <div id="roleStage1" class="role-btns">
+      <button class="role-btn role-btn-clerk" onclick="pickRole('clerk')">
+        <div class="role-btn-icon">📋</div>
+        <div class="role-btn-text">
+          <div class="role-btn-label">OPD Clerk</div>
+          <div class="role-btn-desc">Outpatient appointments only</div>
+        </div>
+      </button>
+      <button class="role-btn role-btn-reg" onclick="pickRole('registrar')">
+        <div class="role-btn-icon">👨‍⚕️</div>
+        <div class="role-btn-text">
+          <div class="role-btn-label">Doctor</div>
+          <div class="role-btn-desc">Endorsement · Census · Cathlab · IP</div>
+        </div>
+      </button>
+      <button class="role-btn role-btn-adm" onclick="pickRole('admin')">
+        <div class="role-btn-icon">🔐</div>
+        <div class="role-btn-text">
+          <div class="role-btn-label">Admin</div>
+          <div class="role-btn-desc">Full platform access</div>
+        </div>
+      </button>
+    </div>
+    <div id="roleStage2" class="role-pin-box" style="display:none">
+      <label id="roleStage2Label">PIN</label>
+      <input class="pi" type="password" id="roleStage2Pin" maxlength="4" inputmode="numeric" autocomplete="off">
+      <button class="btn" onclick="submitRolePin()" id="roleStage2Btn">Unlock</button>
+      <button class="role-back" onclick="backToRoleSelect()">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- Image fullscreen viewer -->
+<div class="img-viewer" id="imgViewer" onclick="closeImgViewer()">
+  <button class="img-viewer-close" onclick="event.stopPropagation();closeImgViewer()">✕</button>
+  <img id="imgViewerSrc" src="" alt="">
+</div>
+
+<header><div class="hi">🫀</div><div><h1>MKH Cardiology Command</h1><p>MUBARAK AL-KABEER HOSPITAL</p></div><div class="db"><strong id="dayName">—</strong><span id="dateStr">—</span></div><span class="role-chip" id="roleChip" style="display:none">—</span><button class="logout-btn" id="logoutBtn" onclick="logoutRole()" style="display:none">Logout</button></header>
+<div class="sb"><div class="sd" id="syncDot"></div><span id="syncText">Connecting...</span><span style="margin-left:auto;color:var(--dim);font-size:10px">v3.0</span></div>
+<div class="tabs" id="mainTabs">
+  <button class="tab" data-role="registrar admin" onclick="goTab('ip',this)">IP Allocator</button>
+  <button class="tab" data-role="registrar admin" onclick="goTab('spec',this)">Interventional</button>
+  <button class="tab" data-role="clerk admin" onclick="goTab('op',this)">OPD Appointments</button>
+  <button class="tab ep-tab" data-role="registrar admin" onclick="goTab('ep',this)">EP Clinics</button>
+  <button class="tab" data-role="registrar admin" onclick="goTab('endo',this)">IP Endorsement</button>
+  <button class="tab" data-role="registrar admin" onclick="goTab('census',this)">Census</button>
+  <button class="tab" data-role="registrar admin" onclick="goTab('cath',this)">Cathlab</button>
+  <button class="tab" data-role="admin" onclick="goTab('adm',this)">Admin</button>
+</div>
 
 <!-- INPATIENT -->
-<div class="pg on" id="pg-ip"><div class="card"><div id="skip-banner" style="display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.45);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#fbbf24;line-height:1.5"></div><div class="cbox"><div class="rl">NEXT AVAILABLE CLINIC (AUTO)</div><div class="rd" id="nd">—</div><div class="rr" id="nr">—</div><div id="skip-panel" style="display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--bor)"><div style="font-size:10px;color:var(--dim);margin-bottom:6px;text-align:left">⚠ Cath-specific doctor. If this patient was NOT catheterized by <span id="skip-doc-name" style="color:#fbbf24;font-weight:600"></span>, skip to pass this patient to the next doctor. Skipped doctor auto-returns to queue after the next assignment.</div><button class="btn" id="skip-btn" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.5);color:#fbbf24;margin-top:0" onclick="skipCurrentDoc()">⏭ Skip — Not Cathed by This Doctor</button></div><div style="margin-top:15px;border-top:1px dashed var(--bor);padding-top:12px;"><label style="color:var(--dim);font-size:9px;">AVAILABLE FOLLOW-UP DATES (NEXT 4 MONTHS)</label><select id="fd-sel" class="fd-sel"></select></div></div><div class="rb" id="rb"></div><label>File Number (6 Digits)</label><input type="text" id="fi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456"><label>Registrar PIN</label><input type="password" id="rpin" maxlength="4" inputmode="numeric"><button class="btn" onclick="doAssign('ip')">Assign IP Discharge (Auto) →</button></div></div>
+<div class="pg" id="pg-ip"><div class="card"><div id="skip-banner" style="display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.45);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#fbbf24;line-height:1.5"></div><div class="cbox"><div class="rl">NEXT AVAILABLE CLINIC (AUTO)</div><div class="rd" id="nd">—</div><div class="rr" id="nr">—</div><div id="skip-panel" style="display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--bor)"><div style="font-size:10px;color:var(--dim);margin-bottom:6px;text-align:left">⚠ Cath-specific doctor. If this patient was NOT catheterized by <span id="skip-doc-name" style="color:#fbbf24;font-weight:600"></span>, skip to pass this patient to the next doctor. Skipped doctor auto-returns to queue after the next assignment.</div><button class="btn" id="skip-btn" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.5);color:#fbbf24;margin-top:0" onclick="skipCurrentDoc()">⏭ Skip — Not Cathed by This Doctor</button></div><div style="margin-top:15px;border-top:1px dashed var(--bor);padding-top:12px;"><label style="color:var(--dim);font-size:9px;">AVAILABLE FOLLOW-UP DATES (NEXT 4 MONTHS)</label><select id="fd-sel" class="fd-sel"></select></div></div><div class="rb" id="rb"></div><label>File Number (6 Digits)</label><input type="text" id="fi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456"><label>Registrar PIN</label><input type="password" id="rpin" maxlength="4" inputmode="numeric"><button class="btn" onclick="doAssign('ip')">Assign IP Discharge (Auto) →</button></div></div>
 
 <!-- INTERVENTIONAL -->
 <div class="pg" id="pg-spec"><div class="card"><div class="spec-grid" id="spec-grid"></div><div class="spec-form" id="spec-form"><div class="spec-hint" id="spec-hint">Loading dates...</div><label>Follow-up Date</label><select id="spec-date" class="fd-sel" style="margin-bottom:15px;"></select><label>File Number (6 Digits)</label><input type="text" id="spec-fi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456" style="margin-bottom:11px;"><label>Registrar PIN</label><input type="password" id="spec-pin" maxlength="4" inputmode="numeric" style="margin-bottom:15px;"><button class="btn" onclick="doSpecificAssign()">Assign to Selected Clinic →</button></div></div></div>
 
 <!-- OUTPATIENT (mandatory fields removed) -->
-<div class="pg" id="pg-op"><div id="opgate" class="card" style="text-align:center"><label>CLERK ACCESS PIN</label><input class="pi" type="password" id="opi" maxlength="4"><button class="btn" onclick="clerkLogin()">Unlock</button></div><div id="opc" style="display:none"><div class="tabs" style="margin-bottom:14px;border-radius:10px;overflow:hidden;"><button class="tab on" id="optab-walkin" onclick="goOpTab('walkin',this)">Walk-in Today</button><button class="tab" id="optab-fix" onclick="goOpTab('fix',this)">Book Appointment</button></div><div id="op-walkin"><div class="card"><div class="cbox"><div class="rl">AUTO — Next Available Today</div><div class="rd" id="opd">—</div><div class="rr" id="opr">—</div></div><label>Patient File Number <span style="font-weight:normal;">(optional)</span></label><input type="text" id="opfi" maxlength="20" placeholder="e.g. 123456 or leave empty"><div class="opt-hint">Not required — you can leave blank</div><label>Patient Phone Number <span style="font-weight:normal;">(optional)</span></label><input type="text" id="opphone" maxlength="20" placeholder="e.g. 99887766 or leave empty"><div class="opt-hint">Not required — you can leave blank</div><button class="btn" onclick="doAssign('op')">Assign OP Walk-in →</button></div></div><div id="op-fix" style="display:none"><div class="card"><div class="rl" style="margin-bottom:12px;">CLINICS NOT RUNNING TODAY — SELECT TO BOOK</div><div id="fix-clinic-grid" class="spec-grid" style="margin-bottom:16px;"></div><div id="fix-form" style="display:none"><div class="spec-hint" id="fix-hint"></div><label>Follow-up Date</label><select id="fix-date" class="fd-sel" style="margin-bottom:14px;"></select><label>Patient File Number <span style="font-weight:normal;">(optional)</span></label><input type="text" id="fix-fi" maxlength="20" placeholder="e.g. 123456 or leave empty"><div class="opt-hint">Not required — you can leave blank</div><label>Patient Phone Number <span style="font-weight:normal;">(optional)</span></label><input type="text" id="fix-phone" maxlength="20" placeholder="e.g. 99887766 or leave empty"><div class="opt-hint">Not required — you can leave blank</div><button class="btn" onclick="doFixAssign()">Book Appointment →</button></div></div></div></div></div>
+<div class="pg" id="pg-op"><div id="opc"><div class="tabs" style="margin-bottom:14px;border-radius:10px;overflow:hidden;"><button class="tab on" id="optab-walkin" onclick="goOpTab('walkin',this)">Walk-in Today</button><button class="tab" id="optab-fix" onclick="goOpTab('fix',this)">Book Appointment</button></div><div id="op-walkin"><div class="card"><div class="cbox"><div class="rl">AUTO — Next Available Today</div><div class="rd" id="opd">—</div><div class="rr" id="opr">—</div></div><label>Patient File Number <span style="font-weight:normal;">(optional)</span></label><input type="text" id="opfi" maxlength="20" placeholder="e.g. 123456 or leave empty"><div class="opt-hint">Not required — you can leave blank</div><label>Patient Phone Number <span style="font-weight:normal;">(optional)</span></label><input type="text" id="opphone" maxlength="20" placeholder="e.g. 99887766 or leave empty"><div class="opt-hint">Not required — you can leave blank</div><button class="btn" onclick="doAssign('op')">Assign OP Walk-in →</button></div></div><div id="op-fix" style="display:none"><div class="card"><div class="rl" style="margin-bottom:12px;">CLINICS NOT RUNNING TODAY — SELECT TO BOOK</div><div id="fix-clinic-grid" class="spec-grid" style="margin-bottom:16px;"></div><div id="fix-form" style="display:none"><div class="spec-hint" id="fix-hint"></div><label>Follow-up Date</label><select id="fix-date" class="fd-sel" style="margin-bottom:14px;"></select><label>Patient File Number <span style="font-weight:normal;">(optional)</span></label><input type="text" id="fix-fi" maxlength="20" placeholder="e.g. 123456 or leave empty"><div class="opt-hint">Not required — you can leave blank</div><label>Patient Phone Number <span style="font-weight:normal;">(optional)</span></label><input type="text" id="fix-phone" maxlength="20" placeholder="e.g. 99887766 or leave empty"><div class="opt-hint">Not required — you can leave blank</div><button class="btn" onclick="doFixAssign()">Book Appointment →</button></div></div></div></div></div>
 
 <!-- EP CLINICS TAB -->
 <div class="pg" id="pg-ep"><div class="ep-notice"><div class="ep-notice-icon">⚠️</div><div class="ep-notice-text"><strong>Before booking an EP Clinic appointment</strong><br>You must contact <strong>Dr. Mahmoud Rehan</strong> for approval before registering any patient in this clinic.</div></div><div class="card"><div class="rl" style="margin-bottom:12px;">SELECT EP CLINIC</div><div class="spec-grid" id="ep-clinic-grid" style="margin-bottom:16px;"></div><div id="ep-form" style="display:none"><div class="spec-hint" id="ep-hint" style="border-left-color:var(--ep);background:rgba(167,139,250,0.05);color:var(--ep2);"></div><label>Follow-up Date <span id="ep-date-count-label" style="color:var(--dim);font-style:normal;text-transform:none;font-size:10px;"></span></label><select id="ep-date" class="ep-sel" style="margin-bottom:15px;"></select><label>File Number (6 Digits)</label><input type="text" id="ep-fi" maxlength="6" inputmode="numeric" placeholder="e.g. 123456" style="margin-bottom:11px;"><label>Registrar PIN</label><input type="password" id="ep-pin" maxlength="4" inputmode="numeric" style="margin-bottom:15px;"><button class="btn btn-ep" onclick="doEpAssign()">Book EP Clinic Appointment →</button></div></div></div>
 
-<!-- ADMIN -->
+<!-- IP ENDORSEMENT -->
+<div class="pg" id="pg-endo">
+  <div class="endo-toolbar">
+    <input type="text" class="endo-search" id="endoSearch" placeholder="🔍 Search by ward, bed, name, MRN..." oninput="renderEndoList()">
+    <button class="endo-add-btn" onclick="openEndoForm(null)">＋ New Patient</button>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+    <button class="endo-mini-btn" onclick="expandAllEndo()">⌄ Expand all</button>
+    <button class="endo-mini-btn" onclick="collapseAllEndo()">⌃ Collapse all</button>
+  </div>
+  <div class="endo-ward-chips" id="endoWardChips"></div>
+  <div id="endoCount" class="endo-count-bar"></div>
+  <div id="endoList" class="endo-grid"></div>
+
+  <!-- Endorsement form modal -->
+  <div class="mo" id="endoMo">
+    <div class="mb" style="max-width:520px;max-height:92vh">
+      <div class="mh">
+        <h2 id="endoMoTitle" style="font-family:'DM Serif Display',serif;font-size:18px">New Patient Endorsement</h2>
+        <button onclick="closeEndoMo()" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <div class="mbody">
+        <form id="endoForm" class="endo-edit-form" onsubmit="return saveEndo(event)">
+          <input type="hidden" id="endo-id">
+          <div class="endo-edit-two">
+            <div>
+              <label>Ward</label>
+              <select id="endo-ward" required style="width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:11px;color:var(--txt);font-family:'DM Mono',monospace;font-size:13px;outline:none;margin-bottom:11px" onchange="toggleWardOther()">
+                <option value="">Select...</option>
+                <option value="Ward 4">Ward 4</option>
+                <option value="CCU">CCU</option>
+                <option value="ICU">ICU</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+            <div>
+              <label>Bed No.</label>
+              <input type="text" id="endo-bed" maxlength="10" required placeholder="e.g. 3">
+            </div>
+          </div>
+          <div id="endo-ward-other-wrap" style="display:none;margin-bottom:4px">
+            <label>Specify Ward Name / Number</label>
+            <input type="text" id="endo-ward-other" maxlength="30" placeholder="e.g. Ward 7, Surgical ICU...">
+          </div>
+          <label>Patient Name</label>
+          <input type="text" id="endo-name" required placeholder="Full name">
+          <label>MRN (File Number)</label>
+          <input type="text" id="endo-mrn" maxlength="12" required placeholder="6-digit MRN">
+
+          <label>Past History</label>
+          <textarea id="endo-hx" rows="3" placeholder="HTN, DM, CAD s/p PCI LAD 2022, CKD stage 3..."></textarea>
+
+          <label>Reason of Admission</label>
+          <textarea id="endo-reason" rows="2" placeholder="e.g. NSTEMI, acute decompensated HF Class III..."></textarea>
+
+          <label>Investigations</label>
+          <textarea id="endo-ix" rows="3" placeholder="Labs, ECG, echo, cath findings..."></textarea>
+          <div class="endo-img-upload" onclick="document.getElementById('endo-img-input').click()">
+            <div class="endo-img-upload-text">📎 Add investigation images (auto-compressed)</div>
+          </div>
+          <input type="file" id="endo-img-input" accept="image/*" multiple style="display:none" onchange="handleImgUpload(event,'endo')">
+          <div class="endo-img-preview" id="endo-img-preview"></div>
+
+          <label>Active Issues</label>
+          <textarea id="endo-active" rows="3" placeholder="e.g. 1) Ongoing chest pain 2) Low Mg/K 3) Fluid overload"></textarea>
+
+          <label>Plan</label>
+          <textarea id="endo-plan" rows="3" placeholder="e.g. 1) Continue ACS protocol 2) Diuresis, daily weights 3) For cath workup"></textarea>
+
+          <label>Doctor PIN (to save)</label>
+          <input type="password" id="endo-pin" maxlength="4" inputmode="numeric" required>
+
+          <button type="submit" class="btn" style="margin-top:10px">💾 Save Endorsement</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CATHLAB -->
+<div class="pg" id="pg-cath">
+  <div class="cath-subtabs">
+    <button class="cath-subtab on" onclick="goCathTab('today',this)">Today</button>
+    <button class="cath-subtab" onclick="goCathTab('calendar',this)">Calendar</button>
+    <button class="cath-subtab" onclick="goCathTab('scheduled',this)">All Scheduled</button>
+    <button class="cath-subtab" onclick="goCathTab('pending',this)">Elective Waiting</button>
+    <button class="cath-subtab" onclick="goCathTab('addSch',this)">＋ Schedule</button>
+  </div>
+
+  <!-- TODAY -->
+  <div class="cath-sub on" id="cath-today">
+    <div id="cathTodayStats"></div>
+    <div id="cathTodayList"></div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="cath-sub" id="cath-calendar">
+    <div class="cal-toolbar">
+      <button class="cal-nav-btn" onclick="shiftCalMonth(-1)">◀</button>
+      <div class="cal-month-label" id="calMonthLabel">—</div>
+      <button class="cal-nav-btn" onclick="shiftCalMonth(1)">▶</button>
+      <button class="cal-today-btn" onclick="jumpCalToday()">Today</button>
+    </div>
+    <div class="cal-weekdays">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div id="calDayDetail"></div>
+  </div>
+
+  <!-- SCHEDULED -->
+  <div class="cath-sub" id="cath-scheduled">
+    <input type="text" class="endo-search" id="cathSearch" placeholder="🔍 Search by date, operator, procedure, civil ID, file..." oninput="renderCathScheduled()" style="margin-bottom:12px;width:100%">
+    <div id="cathSchedAlert"></div>
+    <div id="cathSchedList"></div>
+  </div>
+
+  <!-- WAITING LIST -->
+  <div class="cath-sub" id="cath-pending">
+    <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--warn);line-height:1.6">
+      Patients added here by OPD doctors &amp; cardiologists are waiting for an elective cath slot. Once scheduled, they are auto-removed from this list.
+    </div>
+    <button class="endo-add-btn" style="width:100%;justify-content:center;margin-bottom:12px" onclick="openCathAddPending()">＋ Add Patient to Waiting List</button>
+    <div id="cathPendingList"></div>
+  </div>
+
+  <!-- ADD / SCHEDULE FORM -->
+  <div class="cath-sub" id="cath-addSch">
+    <div class="card">
+      <div class="rl" style="margin-bottom:10px" id="cathSchFormTitle">SCHEDULE A CATH APPOINTMENT</div>
+      <div id="cathSchFromPending" style="display:none;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--ok);line-height:1.6">
+        Scheduling from waiting list — this pending entry will be removed on save.
+      </div>
+      <div id="cathSchEditing" style="display:none;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.3);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--acc);line-height:1.6">
+        Editing existing appointment.
+      </div>
+      <form class="cath-form" onsubmit="return saveCathSched(event)">
+        <input type="hidden" id="cath-sch-pending-id">
+        <input type="hidden" id="cath-sch-edit-id">
+        <label>Patient Name</label>
+        <input type="text" id="cath-sch-name" required>
+        <div class="endo-edit-two">
+          <div>
+            <label>Age</label>
+            <input type="text" id="cath-sch-age" inputmode="numeric" maxlength="3" placeholder="e.g. 58">
+          </div>
+          <div>
+            <label>Nationality</label>
+            <input type="text" id="cath-sch-nat" placeholder="e.g. Kuwaiti">
+          </div>
+        </div>
+        <label>Civil ID</label>
+        <input type="text" id="cath-sch-cid" required placeholder="12 digits">
+        <label>Phone Number</label>
+        <input type="text" id="cath-sch-phone" inputmode="tel">
+        <label>File Number <span style="font-weight:normal">(optional)</span></label>
+        <input type="text" id="cath-sch-file" inputmode="numeric" maxlength="10" placeholder="6-digit file">
+        <label>Brief History</label>
+        <textarea id="cath-sch-hx" rows="3" style="width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:10px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-bottom:11px;resize:vertical;line-height:1.5" placeholder="e.g. 58M, HTN, DM, positive stress test..."></textarea>
+
+        <label>Investigation Images <span style="font-weight:normal">(optional)</span></label>
+        <div class="endo-img-upload" onclick="document.getElementById('cath-sch-img-input').click()">
+          <div class="endo-img-upload-text">📎 Add images (auto-compressed)</div>
+        </div>
+        <input type="file" id="cath-sch-img-input" accept="image/*" multiple style="display:none" onchange="handleImgUpload(event,'cath-sch')">
+        <div class="endo-img-preview" id="cath-sch-img-preview"></div>
+
+        <label>Type of Procedure</label>
+        <select id="cath-sch-proc" class="fd-sel" style="margin-bottom:11px" required>
+          <option value="" disabled selected>Select procedure...</option>
+          <option>Diagnostic CA</option>
+          <option>PCI — Elective</option>
+          <option>PCI — Primary</option>
+          <option>PCI — CTO</option>
+          <option>RHC</option>
+          <option>RHC + CA</option>
+          <option>IVUS / OCT</option>
+          <option>FFR / iFR</option>
+          <option>Valvuloplasty</option>
+          <option>TAVI</option>
+          <option>Mitral TEER (MitraClip)</option>
+          <option>ASD / PFO Closure</option>
+          <option>LAA Occlusion</option>
+          <option>Pericardiocentesis</option>
+          <option>EP Study</option>
+          <option>EP Ablation</option>
+          <option>Temporary Pacemaker (TPM)</option>
+          <option>Permanent Pacemaker (PPM)</option>
+          <option>ICD Implant</option>
+          <option>CRT-P / CRT-D</option>
+          <option>Device Generator Change</option>
+          <option>Lead Extraction</option>
+          <option>Renal Denervation (RDN)</option>
+          <option>Alcohol Septal Ablation</option>
+          <option>Other</option>
+        </select>
+        <label>Operator <span style="font-weight:normal">(optional)</span></label>
+        <select id="cath-sch-op" class="fd-sel" style="margin-bottom:11px">
+          <option value="">— To be assigned —</option>
+          <option>Prof. Zubaid</option>
+          <option>Dr. Abdullah</option>
+          <option>Dr. Fahad</option>
+          <option>Dr. Ali</option>
+          <option>Dr. Farouk</option>
+          <option>Dr. Arab</option>
+          <option>Dr. Nazanin</option>
+          <option>Dr. Velibore</option>
+          <option>Dr. Ali Alsaygh</option>
+        </select>
+        <label>Appointment Date</label>
+        <input type="date" id="cath-sch-date" class="pi" required style="margin-bottom:6px">
+        <div id="cathSchDateBadge"></div>
+        <label>Doctor PIN</label>
+        <input type="password" id="cath-sch-pin" maxlength="4" inputmode="numeric" required>
+        <button type="submit" class="btn" style="margin-top:6px" id="cathSchSaveBtn">💾 Save Appointment</button>
+        <button type="button" class="btn" style="margin-top:6px;background:var(--sur2);border:1px solid var(--bor)" onclick="resetCathSchForm()">Cancel</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add-to-waiting-list modal -->
+  <div class="mo" id="cathPendMo">
+    <div class="mb" style="max-width:460px;max-height:92vh">
+      <div class="mh">
+        <h2 style="font-family:'DM Serif Display',serif;font-size:18px">Add to Elective Waiting List</h2>
+        <button onclick="closeCathPendMo()" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <div class="mbody">
+        <form onsubmit="return saveCathPending(event)">
+          <label>Patient Name</label>
+          <input type="text" id="cath-p-name" required>
+          <div class="endo-edit-two">
+            <div>
+              <label>Age</label>
+              <input type="text" id="cath-p-age" inputmode="numeric" maxlength="3" placeholder="e.g. 58">
+            </div>
+            <div>
+              <label>Nationality</label>
+              <input type="text" id="cath-p-nat" placeholder="e.g. Kuwaiti">
+            </div>
+          </div>
+          <label>Civil ID</label>
+          <input type="text" id="cath-p-cid" required placeholder="12 digits">
+          <label>Phone Number</label>
+          <input type="text" id="cath-p-phone" inputmode="tel">
+          <label>File Number <span style="font-weight:normal">(optional)</span></label>
+          <input type="text" id="cath-p-file" inputmode="numeric" maxlength="10" placeholder="6-digit file">
+          <label>Brief History</label>
+          <textarea id="cath-p-hx" rows="3" style="width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:10px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-bottom:11px;resize:vertical;line-height:1.5"></textarea>
+
+          <label>Investigation Images <span style="font-weight:normal">(optional)</span></label>
+          <div class="endo-img-upload" onclick="document.getElementById('cath-p-img-input').click()">
+            <div class="endo-img-upload-text">📎 Add images (auto-compressed)</div>
+          </div>
+          <input type="file" id="cath-p-img-input" accept="image/*" multiple style="display:none" onchange="handleImgUpload(event,'cath-p')">
+          <div class="endo-img-preview" id="cath-p-img-preview"></div>
+
+          <label>Suggested Procedure</label>
+          <select id="cath-p-proc" class="fd-sel" style="margin-bottom:11px" required>
+            <option value="" disabled selected>Select...</option>
+            <option>Diagnostic CA</option>
+            <option>PCI — Elective</option>
+            <option>PCI — CTO</option>
+            <option>RHC</option>
+            <option>RHC + CA</option>
+            <option>IVUS / OCT</option>
+            <option>FFR / iFR</option>
+            <option>Valvuloplasty</option>
+            <option>TAVI</option>
+            <option>Mitral TEER (MitraClip)</option>
+            <option>ASD / PFO Closure</option>
+            <option>LAA Occlusion</option>
+            <option>EP Study</option>
+            <option>EP Ablation</option>
+            <option>Permanent Pacemaker (PPM)</option>
+            <option>ICD Implant</option>
+            <option>CRT-P / CRT-D</option>
+            <option>Device Generator Change</option>
+            <option>Renal Denervation (RDN)</option>
+            <option>Alcohol Septal Ablation</option>
+            <option>Other</option>
+          </select>
+          <label>Added By (Doctor / OPD Dr. PIN)</label>
+          <input type="password" id="cath-p-pin" maxlength="4" inputmode="numeric" required>
+          <button type="submit" class="btn" style="margin-top:6px">＋ Add to Waiting List</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WARD CENSUS -->
+<div class="pg" id="pg-census">
+  <div class="card">
+    <div class="rl" style="margin-bottom:10px">WARD &amp; CCU CENSUS</div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:14px">
+      Updated <strong style="color:var(--warn)">twice daily</strong> by the assigned cardiologist. Ward 4 = 20 beds. CCU = 15 beds. Low availability against scheduled cath patients will trigger an alert.
+    </div>
+    <div id="censusAlertBox"></div>
+    <div id="censusCards"></div>
+    <div class="endo-history-line" id="censusLastUpdate" style="text-align:center;margin-top:14px"></div>
+  </div>
+
+  <!-- Census update modal -->
+  <div class="mo" id="censusMo">
+    <div class="mb" style="max-width:440px;max-height:92vh">
+      <div class="mh">
+        <h2 id="censusMoTitle" style="font-family:'DM Serif Display',serif;font-size:18px">Update Census</h2>
+        <button onclick="closeCensusMo()" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <div class="mbody">
+        <form onsubmit="return saveCensus(event)">
+          <input type="hidden" id="cens-unit">
+          <div class="endo-field-label" id="cens-beds-info" style="margin-bottom:10px"></div>
+
+          <label>Occupied Beds</label>
+          <input type="text" id="cens-occ" inputmode="numeric" maxlength="2" required>
+
+          <div class="endo-edit-two">
+            <div>
+              <label>Under Cardiology</label>
+              <input type="text" id="cens-card" inputmode="numeric" maxlength="2">
+            </div>
+            <div>
+              <label>Under Medical / Other</label>
+              <input type="text" id="cens-other" inputmode="numeric" maxlength="2">
+            </div>
+          </div>
+
+          <label>Available Beds (auto)</label>
+          <input type="text" id="cens-avail" readonly style="background:rgba(52,211,153,.08);color:var(--ok);font-weight:600">
+
+          <div class="rl" style="margin:12px 0 8px">PATIENT RISK BREAKDOWN</div>
+          <div class="census-risk-input-group">
+            <label style="color:var(--err)">🔴 Critical (count + bed numbers)</label>
+            <div class="endo-edit-two">
+              <input type="text" id="cens-red" inputmode="numeric" maxlength="2" placeholder="count" style="border-color:rgba(248,113,113,.35)">
+              <input type="text" id="cens-red-beds" maxlength="80" placeholder="e.g. Room 1, 2, 7" style="border-color:rgba(248,113,113,.2)">
+            </div>
+          </div>
+          <div class="census-risk-input-group">
+            <label style="color:var(--warn)">🟡 Moderate (count + bed numbers)</label>
+            <div class="endo-edit-two">
+              <input type="text" id="cens-yel" inputmode="numeric" maxlength="2" placeholder="count" style="border-color:rgba(251,191,36,.35)">
+              <input type="text" id="cens-yel-beds" maxlength="80" placeholder="e.g. Room 3, 5, 9" style="border-color:rgba(251,191,36,.2)">
+            </div>
+          </div>
+          <div class="census-risk-input-group">
+            <label style="color:var(--ok)">🟢 Rest of patients (count only)</label>
+            <input type="text" id="cens-grn" inputmode="numeric" maxlength="2" placeholder="count" style="border-color:rgba(52,211,153,.35);margin-bottom:11px">
+          </div>
+
+          <label>Doctor PIN</label>
+          <input type="password" id="cens-pin" maxlength="4" inputmode="numeric" required>
+          <button type="submit" class="btn" style="margin-top:6px">💾 Save Census Update</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <div class="pg" id="pg-adm"><div class="card apgate" style="text-align:center"><label>ADMIN PIN</label><input class="pi" type="password" id="api-adm" maxlength="4"><button class="btn" onclick="adminLogin('api-adm')">Unlock</button></div><div class="ac-content"><div class="adm-tabs"><button class="adm-tab on" onclick="goAdmTab('leave',this)">Doctor Leave</button><button class="adm-tab" onclick="goAdmTab('blocked',this)">Blocked Dates</button><button class="adm-tab" onclick="goAdmTab('dist',this)">Distribution</button><button class="adm-tab" onclick="goAdmTab('log',this)">Log</button><button class="adm-tab" onclick="goAdmTab('export',this)">Export / Print</button><button class="adm-tab" onclick="goAdmTab('danger',this)">⚠ Danger Zone</button></div><div class="adm-sec on" id="adm-leave"><div class="adm-section-title">Doctor Leave / Status</div><div class="adm-section-sub">Toggle IP and OP availability for each doctor. Changes are saved live.</div><div id="leave-grid" class="dg"></div></div><div class="adm-sec" id="adm-blocked"><div class="adm-section-title">Blocked Date Ranges (Per Doctor)</div><div class="adm-section-sub">Block a date range for a specific doctor. All of that doctor's clinic dates within the range will be hidden from follow-up dropdowns (Inpatient, Interventional, Outpatient, EP). Use for travel, leave, conferences, etc. For a single day, set From and To to the same date.</div><div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px"><div><label>Doctor / Clinic</label><select id="blocked-doc-input" class="fd-sel" style="margin-top:5px"></select></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>From</label><input type="date" id="blocked-from-input" class="pi" style="margin-bottom:0"></div><div><label>To</label><input type="date" id="blocked-to-input" class="pi" style="margin-bottom:0"></div></div><button class="btn" style="margin:0" onclick="addBlockedDate()">🚫 Block Range</button></div><div class="rl" style="margin-bottom:8px">CURRENTLY BLOCKED RANGES</div><div id="blocked-list" style="display:flex;flex-direction:column;gap:6px"></div></div><div class="adm-sec" id="adm-dist"><div class="adm-section-title">Slot Distribution</div><div class="adm-section-sub">Click any slot card to view its patient list and print.</div><div class="dg" id="dg"></div></div><div class="adm-sec" id="adm-log"><div class="adm-section-title">Assignment Log</div><div class="adm-section-sub">Last 50 entries across all assignment types.</div><div class="lf"><button class="fb on" onclick="filterLog('all',this)">All</button><button class="fb" onclick="filterLog('Sun',this)">Sun</button><button class="fb" onclick="filterLog('Mon',this)">Mon</button><button class="fb" onclick="filterLog('Tue',this)">Tue</button><button class="fb" onclick="filterLog('Wed',this)">Wed</button><button class="fb" onclick="filterLog('Thu',this)">Thu</button></div><div class="lt"><div class="lh"><div>Date</div><div>File / Phone</div><div>Doctor / Room</div><div>Follow-up</div><div>By</div><div></div></div><div id="lb"></div></div></div><div class="adm-sec" id="adm-export"><div class="adm-section-title">Export &amp; Print</div><div class="adm-section-sub">Select a clinic card to export all its patients as PDF. Patients are grouped by doctor + room + day.</div><button class="btn" style="margin-bottom:18px" onclick="exportWeekly()">📊 Export Master Log (All Entries)</button><div class="rl" style="margin-bottom:10px;">CLINIC PATIENT LISTS</div><div class="clinic-export-grid" id="clinic-export-grid"></div></div><div class="adm-sec" id="adm-danger"><div class="adm-section-title">Danger Zone</div><div class="adm-section-sub">Irreversible actions. Use with caution.</div><label>Remove Patient Row</label><input type="text" id="dfi" placeholder="Enter File or Phone Number" inputmode="numeric"><button class="btn" style="background:#fbbf24;color:#000;margin-bottom:10px" onclick="delEntry()">🗑 Remove Entry</button><button class="btn btn-warn" style="margin-top:0;margin-bottom:10px" onclick="deleteAnonymousOpd()">🧹 Remove All Anonymous OPD Entries</button><button class="btn btn-warn" onclick="resetAll()">⚠ Wipe All Database Data</button></div></div></div></div>
 
 <div class="mo" id="mo"><div class="mb"><div class="mh"><h2 id="mt">—</h2><button onclick="closeMo()">Close</button></div><div class="mbody"><div id="mc2" style="font-size:12px;color:var(--acc2);margin-bottom:10px"></div><div id="mbody"></div><div id="mprint"></div></div></div></div>
@@ -162,7 +786,7 @@ const firebaseConfig = { apiKey: "AIzaSyAT7Y3jWM4ix7I5cM4vKsHIJRaZZ6AZ9yI", auth
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const dbRef = db.ref('mkh_clinic_data');
-var docPINsHashed = {"fe675fe7aaee830b6fed09b64e034f84dcbdaeb429d9cccd4ebb90e15af8dd71":"Dr. Rehan","b281bc2c616cb3c3a097215fdc9397ae87e6e06b156cc34e656be7a1a9ce8839":"Dr. Ramy","8c9a013ab70c0434313e3e881c310b9ff24aff1075255ceede3f2c239c231623":"Dr. Badawy","75992a5ac67ff644d3063976c2effd10bdd93fcc109798e3d5c1acf2e530d01a":"Dr. Sharkawy","7f861bcee185de001377d79e08af62e94b1e7718e2470e08520c917f8d953602":"Dr. Mostafa","478c4ffb1cbcea37956a748e6c19d8eadd0a47e86f5e308d26cad39453b5d1ab":"Dr. Ibrahim","2c8b871e52d4e5f5db5ff84a82a45327e20df77edef961c4b6fa0e9c3d97ce5b":"Dr. Hadad","9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d":"Dr. Emara","6ad4a6b1e5ea5569795e516d71909e0ce4809d9dc983d2c219144f684f816e12":"Dr. Rahim","7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":"Dr. Mamdouh","3dd9c0995d54c0abd51a90f1d57b1ce77bc885fc8a7cea52dcad3c2540dda5ee":"Dr. Slam","165940940a02a187e4463ff467090930038c5af8fc26107bf301e714f599a1da":"Dr. Ezz","2ec42bc1f3e672fc1cf7fdcfc23246415dcf20f03c0d4a5bbbd92a185708f5b7":"Dr. R Gamal","df4865fca1f159162557359ef967f9502087f57527b0e030e139933e54f3061e":"Dr. Moghl","9553627933b214db60798fe40d2b4f8497781d024f53d62dc1b12469b7d53784":"Dr. Darwish","ef32cc5c2b7c62093d3ec4844b36a02b08bb83eee2efa6b6b5e85ad605790192":"Dr. Omar","b0ab628c9e14621846c58b4eb35060ef3885253a457d2d76136716d4850bad45":"Dr. Sajid","9989a37538faecc495bbe774b30fb447a1582b8f1bc14ac88dfd84996a7b799a":"Dr. Ali","61ab550f4c85a975cd46f8606ede483d8ee720a76f627773de1bc1dd8ce5fb35":"Dr. Eyad","f296867839c8befafed32b55a7c11ab4ad14387d2434b970a55237d537bc9353":"Dr. Mongy","cdad86ca9450d1c143675a8436131cabaf55905c114fa4524bf6a9ec5662cad7":"Dr. Bahlol","888df25ae35772424a560c7152a1de794440e0ea5cfee62828333a456a506e05":"Admin"};
+var docPINsHashed = {"fe675fe7aaee830b6fed09b64e034f84dcbdaeb429d9cccd4ebb90e15af8dd71":"Dr. Rehan","b281bc2c616cb3c3a097215fdc9397ae87e6e06b156cc34e656be7a1a9ce8839":"Dr. Ramy","8c9a013ab70c0434313e3e881c310b9ff24aff1075255ceede3f2c239c231623":"Dr. Badawy","75992a5ac67ff644d3063976c2effd10bdd93fcc109798e3d5c1acf2e530d01a":"Dr. Sharkawy","7f861bcee185de001377d79e08af62e94b1e7718e2470e08520c917f8d953602":"Dr. Mostafa","478c4ffb1cbcea37956a748e6c19d8eadd0a47e86f5e308d26cad39453b5d1ab":"Dr. Ibrahim","2c8b871e52d4e5f5db5ff84a82a45327e20df77edef961c4b6fa0e9c3d97ce5b":"Dr. Hadad","9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d":"Dr. Emara","6ad4a6b1e5ea5569795e516d71909e0ce4809d9dc983d2c219144f684f816e12":"Dr. Rahim","7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":"Dr. Mamdouh","3dd9c0995d54c0abd51a90f1d57b1ce77bc885fc8a7cea52dcad3c2540dda5ee":"Dr. Slam","165940940a02a187e4463ff467090930038c5af8fc26107bf301e714f599a1da":"Dr. Ezz","2ec42bc1f3e672fc1cf7fdcfc23246415dcf20f03c0d4a5bbbd92a185708f5b7":"Dr. R Gamal","df4865fca1f159162557359ef967f9502087f57527b0e030e139933e54f3061e":"Dr. Moghl","9553627933b214db60798fe40d2b4f8497781d024f53d62dc1b12469b7d53784":"Dr. Darwish","ef32cc5c2b7c62093d3ec4844b36a02b08bb83eee2efa6b6b5e85ad605790192":"Dr. Omar","b0ab628c9e14621846c58b4eb35060ef3885253a457d2d76136716d4850bad45":"Dr. Sajid","9989a37538faecc495bbe774b30fb447a1582b8f1bc14ac88dfd84996a7b799a":"Dr. Ali","61ab550f4c85a975cd46f8606ede483d8ee720a76f627773de1bc1dd8ce5fb35":"Dr. Eyad","f296867839c8befafed32b55a7c11ab4ad14387d2434b970a55237d537bc9353":"Dr. Mongy","cdad86ca9450d1c143675a8436131cabaf55905c114fa4524bf6a9ec5662cad7":"Dr. Bahlol","85d6385b945c0d602103db39b0b654b2af93b5127938e26a959c123f0789b948":"Prof. Zubaid","6c94e35ccc352d4e9ef0b99562cff995a5741ce8de8ad11b568892934daee366":"Dr. Abdullah","77459b9b941bcb4714d0c121313c900ecf30541d158eb2b9b178cdb8eca6457e":"Dr. Fahad","483029d526219f816e8e8f6a9de07b422633dba180ffc26faac22862a017519f":"Dr. Farouk","a20a2b7bb0842d5cf8a0c06c626421fd51ec103925c1819a51271f2779afa730":"Dr. Arab","6f6a4e56098cfd9af29e3ae549503b370211a4e94421457fe4cfd39a38a1fa08":"Dr. Nazanin","f1cfa5ebb149e8099d561aae57beed6c68f990f45a910ea9d7b460dbcc5350be":"Dr. Velibore","e5e53c784d5d49de1cabb6e904bf3380026aadcb9769775a268dd304dd9aa2df":"Dr. Ali Alsaygh","f37f3f2b0dc57a86dee4ba6ff855283bb4d2f0dea1c5bd1b708853444c2ffcec":"Dr. Ali Alsulaimi","38206b956d53155a677deb4b506f24e025fd66c62ccb3af33cd7f1319685ea73":"Dr. Hamza","b33ed571eded536f0f0bc2be4e4384055acd592fe6652a555320fdca4dbeb175":"Dr. Ibrahim Hassan","a20c25627ed7bbb6d2b999c589b698e6ecd84384e2e0e510d8869d79a5ad244c":"Dr. Hisham","3ba982075eba89702c1637b9ce03d8a3d8b6dce9434dd07a4c30b5525ab27850":"Dr. Farag","7a24738c1004bcc250f2e527aeab5e3b1891d00a5146a54b2e8c20df84a8c09d":"Dr. Hany","ad25fc1532c8454fdda1d5e5258dd5771e919eaf4db2ca59842043804ccb6fb5":"Dr. Ehab","56f2f6918fec1d2d8eaa4f1b900ee2241576ba4e24f6c601b1ca4f05173fdb5a":"Dr. Samir","59012b44adb8c2f5e94b7a197e260fa945cc23ddd4d8737195d9391396d0ec5c":"Dr. Maged","7e66b5dd3d158d14ba3300cad5702ee6d72befaec37890eed25c91687bb649df":"Dr. Ashraf","e276f59bc5a81f2968dfb34b6324f7d59fea2723fd733bc9e70d65e848ef8f42":"Dr. Fawzy","41214f55c1e8d6170239eb93d7cc105abbee1dc0fbe8f7a258962da285dfe9cd":"Dr. Akmal","ff4b467b7a593047c46682ecdbf6da36b3f3bb4b50d35f08f17f751ef5f15531":"Dr. Zaher","41c8fa7d060badc5618a28326dc00cf07e1ce22a79a94a1fed94f271d3127447":"Dr. Shafie","888df25ae35772424a560c7152a1de794440e0ea5cfee62828333a456a506e05":"Admin"};
 var ADMIN_HASH = "b2b2f104d32c638903e151a9b20d6e27b41d8c0c84cf8458738f83ca2f1dd744";
 var CLERK_HASH = "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab";
 
@@ -749,17 +1373,1254 @@ window.deleteAnonymousOpd = function() {
   }
 };
 
-window.goTab=(id,btn)=>{ document.querySelectorAll(".pg").forEach(p=>p.classList.remove("on")); document.querySelectorAll(".tabs>.tab").forEach(t=>t.classList.remove("on")); document.getElementById("pg-"+id).classList.add("on"); btn.classList.add("on"); if(id==="ep") renderEpTab(); rAll(); };
+// ============================================================
+// ROLE GATE — top-level access control
+// ============================================================
+window.currentRole = null; // 'clerk' | 'registrar' | 'admin' | null
+var pendingRole = null;
+
+window.pickRole = function(role){
+  pendingRole = role;
+  if(role === 'registrar'){
+    // Registrar: no PIN here — use their assignment-time PIN (unchanged).
+    // We just grant tab access.
+    enterApp('registrar');
+    return;
+  }
+  // clerk + admin require PIN
+  document.getElementById('roleStage1').style.display = 'none';
+  let stage2 = document.getElementById('roleStage2');
+  stage2.style.display = 'block';
+  document.getElementById('roleStage2Label').innerText = (role === 'clerk' ? 'CLERK ACCESS PIN' : 'ADMIN PIN');
+  document.getElementById('roleStage2Pin').value = '';
+  setTimeout(()=>document.getElementById('roleStage2Pin').focus(), 50);
+};
+
+window.backToRoleSelect = function(){
+  pendingRole = null;
+  document.getElementById('roleStage1').style.display = 'flex';
+  document.getElementById('roleStage2').style.display = 'none';
+};
+
+window.submitRolePin = async function(){
+  let v = document.getElementById('roleStage2Pin').value.trim();
+  if(!v) return;
+  let h = await sha256(v);
+  if(pendingRole === 'clerk'){
+    if(h === CLERK_HASH){ enterApp('clerk'); }
+    else { alert('Incorrect PIN'); document.getElementById('roleStage2Pin').value=''; }
+  } else if(pendingRole === 'admin'){
+    if(h === ADMIN_HASH){ adm = true; enterApp('admin'); }
+    else { alert('Incorrect PIN'); document.getElementById('roleStage2Pin').value=''; }
+  }
+};
+
+// Allow Enter key to submit PIN
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Enter' && document.getElementById('roleStage2').style.display === 'block'){
+    submitRolePin();
+  }
+});
+
+function enterApp(role){
+  window.currentRole = role;
+  document.getElementById('roleGate').classList.add('hidden');
+  // Update header chip + logout button
+  let chip = document.getElementById('roleChip');
+  chip.style.display = 'inline-block';
+  chip.innerText = role === 'clerk' ? 'CLERK' : (role === 'registrar' ? 'DOCTOR' : 'ADMIN');
+  chip.style.background = role === 'clerk' ? 'rgba(52,211,153,.12)' : (role === 'registrar' ? 'rgba(96,165,250,.12)' : 'rgba(251,191,36,.12)');
+  chip.style.color = role === 'clerk' ? 'var(--ok)' : (role === 'registrar' ? 'var(--acc)' : 'var(--warn)');
+  chip.style.borderColor = role === 'clerk' ? 'rgba(52,211,153,.3)' : (role === 'registrar' ? 'rgba(96,165,250,.3)' : 'rgba(251,191,36,.3)');
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+  applyRoleUI(role);
+  // Admin: auto-unlock any legacy admin gates inside pg-adm
+  if(role === 'admin'){
+    document.querySelectorAll(".apgate").forEach(e=>e.style.display="none");
+    document.querySelectorAll(".ac-content").forEach(e=>e.style.display="block");
+  }
+}
+
+function applyRoleUI(role){
+  // Show/hide tabs by data-role
+  let allowed;
+  if(role === 'clerk') allowed = ['clerk'];
+  else if(role === 'registrar') allowed = ['registrar'];
+  else if(role === 'admin') allowed = ['admin'];
+  else allowed = [];
+
+  document.querySelectorAll('#mainTabs .tab').forEach(t=>{
+    let roles = (t.getAttribute('data-role')||'').split(' ');
+    let ok = roles.some(r => allowed.includes(r));
+    t.style.display = ok ? '' : 'none';
+    t.classList.remove('on');
+  });
+  // Pick default tab per role
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  let defaultId;
+  if(role === 'clerk') defaultId = 'op';
+  else if(role === 'registrar') defaultId = 'endo';
+  else defaultId = 'ip';
+  let defaultTab = document.querySelector(`#mainTabs .tab[onclick*="'${defaultId}'"]`);
+  if(defaultTab){
+    defaultTab.classList.add('on');
+    document.getElementById('pg-'+defaultId).classList.add('on');
+    if(defaultId === 'endo') renderEndoList();
+    if(defaultId === 'cath') renderCathAll();
+    if(defaultId === 'census'){ renderCensus(); renderCensusAlert(); }
+    if(defaultId === 'ep') renderEpTab();
+  }
+  rAll();
+}
+
+window.logoutRole = function(){
+  if(!confirm('Logout and return to role selection?')) return;
+  window.currentRole = null;
+  adm = false;
+  document.getElementById('roleGate').classList.remove('hidden');
+  backToRoleSelect();
+  document.getElementById('roleChip').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'none';
+  // Re-lock admin sections
+  document.querySelectorAll(".apgate").forEach(e=>e.style.display="block");
+  document.querySelectorAll(".ac-content").forEach(e=>e.style.display="none");
+};
+
+// ============================================================
+// ENDORSEMENT (Inpatient Handover)
+// ============================================================
+// Per-form image buffers keyed by context ('endo', 'cath-sch', 'cath-p')
+var imgBuffers = { endo: [], 'cath-sch': [], 'cath-p': [] };
+var editingEndoId = null;
+var currentWardFilter = 'all';
+
+// Initialize new state containers if missing
+function ensureExtState(){
+  if(!window.S.endorsements) window.S.endorsements = {};
+  if(!window.S.cathScheduled) window.S.cathScheduled = {};
+  if(!window.S.cathPending) window.S.cathPending = {};
+  if(!window.S.census) window.S.census = { ward4: null, ccu: null };
+}
+
+// Compress image to ~80KB max, return base64 data URL
+function compressImage(file, maxKB){
+  return new Promise((resolve, reject)=>{
+    let reader = new FileReader();
+    reader.onload = function(e){
+      let img = new Image();
+      img.onload = function(){
+        // Max dimension 900px
+        let maxDim = 900;
+        let w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        let canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        let ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        // Iteratively reduce quality until under maxKB
+        let quality = 0.8;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        let sizeKB = Math.round(dataUrl.length * 0.75 / 1024);
+        while(sizeKB > maxKB && quality > 0.2){
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+          sizeKB = Math.round(dataUrl.length * 0.75 / 1024);
+        }
+        resolve({data: dataUrl, sizeKB: sizeKB});
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+window.handleImgUpload = async function(ev, ctx){
+  ctx = ctx || 'endo';
+  if(!imgBuffers[ctx]) imgBuffers[ctx] = [];
+  let files = Array.from(ev.target.files||[]);
+  if(!files.length) return;
+  for(let f of files){
+    if(!f.type.startsWith('image/')) continue;
+    try {
+      let {data} = await compressImage(f, 80);
+      imgBuffers[ctx].push(data);
+    } catch(err){ console.error(err); }
+  }
+  renderImgPreview(ctx);
+  ev.target.value = ''; // reset
+};
+
+function renderImgPreview(ctx){
+  ctx = ctx || 'endo';
+  let c = document.getElementById(ctx + '-img-preview');
+  if(!c) return;
+  c.innerHTML = '';
+  (imgBuffers[ctx]||[]).forEach((src, i)=>{
+    let wrap = document.createElement('div');
+    wrap.className = 'endo-img-prev-wrap';
+    wrap.innerHTML = `<img class="endo-img-prev" src="${src}"><button type="button" class="endo-img-remove" onclick="removeImg('${ctx}',${i})">×</button>`;
+    c.appendChild(wrap);
+  });
+}
+
+window.removeImg = function(ctx, i){
+  if(!imgBuffers[ctx]) return;
+  imgBuffers[ctx].splice(i,1);
+  renderImgPreview(ctx);
+};
+
+window.toggleWardOther = function(){
+  let sel = document.getElementById('endo-ward');
+  let wrap = document.getElementById('endo-ward-other-wrap');
+  if(!sel || !wrap) return;
+  wrap.style.display = (sel.value === 'Others') ? 'block' : 'none';
+};
+
+window.openEndoForm = function(id){
+  ensureExtState();
+  editingEndoId = id;
+  imgBuffers.endo = [];
+  document.getElementById('endoForm').reset();
+  document.getElementById('endo-id').value = id || '';
+  if(id && window.S.endorsements[id]){
+    let e = window.S.endorsements[id];
+    let wardDisplay = e.ward || '';
+    let fixed = ['Ward 4','CCU','ICU'];
+    let isOther = wardDisplay && !fixed.includes(wardDisplay);
+    document.getElementById('endoMoTitle').innerText = `Edit · ${wardDisplay||''} Bed ${e.bed}`;
+    document.getElementById('endo-ward').value = isOther ? 'Others' : wardDisplay;
+    document.getElementById('endo-ward-other').value = isOther ? wardDisplay : '';
+    document.getElementById('endo-bed').value = e.bed || '';
+    document.getElementById('endo-name').value = e.name || '';
+    document.getElementById('endo-mrn').value = e.mrn || '';
+    document.getElementById('endo-hx').value = e.hx || '';
+    document.getElementById('endo-reason').value = e.reason || '';
+    document.getElementById('endo-ix').value = e.ix || '';
+    document.getElementById('endo-active').value = e.active || '';
+    document.getElementById('endo-plan').value = e.plan || '';
+    imgBuffers.endo = (e.images || []).slice();
+  } else {
+    document.getElementById('endoMoTitle').innerText = 'New Patient Endorsement';
+    document.getElementById('endo-ward-other').value = '';
+  }
+  toggleWardOther();
+  renderImgPreview('endo');
+  document.getElementById('endoMo').classList.add('on');
+};
+
+window.closeEndoMo = function(){
+  document.getElementById('endoMo').classList.remove('on');
+  editingEndoId = null;
+  imgBuffers.endo = [];
+};
+
+window.saveEndo = async function(ev){
+  ev.preventDefault();
+  ensureExtState();
+  let pin = document.getElementById('endo-pin').value.trim();
+  if(!/^\d{4}$/.test(pin)){ alert('Enter your 4-digit Doctor PIN'); return false; }
+  let reg = await lookupDocPIN(pin);
+  if(!reg){ alert('Incorrect PIN'); return false; }
+
+  // Resolve ward — if "Others" chosen, use the custom text
+  let wardSel = document.getElementById('endo-ward').value.trim();
+  let wardFinal = wardSel;
+  if(wardSel === 'Others'){
+    let other = document.getElementById('endo-ward-other').value.trim();
+    if(!other){ alert('Please specify the ward name/number.'); return false; }
+    wardFinal = other;
+  }
+
+  let id = document.getElementById('endo-id').value || ('endo_' + Date.now() + '_' + Math.floor(Math.random()*1000));
+  let now = Date.now();
+  let existing = window.S.endorsements[id];
+  let entry = {
+    id: id,
+    ward: wardFinal,
+    bed: document.getElementById('endo-bed').value.trim(),
+    name: document.getElementById('endo-name').value.trim(),
+    mrn: document.getElementById('endo-mrn').value.trim(),
+    hx: document.getElementById('endo-hx').value.trim(),
+    reason: document.getElementById('endo-reason').value.trim(),
+    ix: document.getElementById('endo-ix').value.trim(),
+    active: document.getElementById('endo-active').value.trim(),
+    plan: document.getElementById('endo-plan').value.trim(),
+    images: (imgBuffers.endo||[]).slice(),
+    createdAt: existing?.createdAt || now,
+    createdBy: existing?.createdBy || reg,
+    updatedAt: now,
+    updatedBy: reg
+  };
+  window.S.endorsements[id] = entry;
+  dbRef.set(window.S);
+  closeEndoMo();
+  renderEndoList();
+  return false;
+};
+
+window.deleteEndo = function(id){
+  ensureExtState();
+  let e = window.S.endorsements[id];
+  if(!e) return;
+  if(!confirm(`Discharge / remove endorsement for ${e.name} (${e.ward||''} Bed ${e.bed})? This is permanent.`)) return;
+  delete window.S.endorsements[id];
+  dbRef.set(window.S);
+  renderEndoList();
+};
+
+function fmtDateTime(ts){
+  if(!ts) return '—';
+  let d = new Date(ts);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+
+window.filterByWard = function(ward){
+  currentWardFilter = ward;
+  renderEndoList();
+};
+
+function renderEndoList(){
+  ensureExtState();
+  let c = document.getElementById('endoList');
+  if(!c) return;
+  let q = (document.getElementById('endoSearch')?.value || '').trim().toLowerCase();
+  let all = Object.values(window.S.endorsements || {});
+
+  // Build ward chips from unique wards in data + fixed set
+  let fixedWards = ['Ward 4','CCU','ICU'];
+  let wardCounts = {};
+  let othersCount = 0;
+  all.forEach(e => {
+    let w = e.ward || 'Others';
+    if(fixedWards.includes(w)){
+      wardCounts[w] = (wardCounts[w]||0)+1;
+    } else {
+      othersCount++;
+    }
+  });
+
+  let chipsEl = document.getElementById('endoWardChips');
+  if(chipsEl){
+    let chipsHtml = `<button class="endo-ward-chip${currentWardFilter==='all'?' on':''}" onclick="filterByWard('all')">All <span class="endo-ward-chip-badge">${all.length}</span></button>`;
+    fixedWards.forEach(w => {
+      let ct = wardCounts[w]||0;
+      chipsHtml += `<button class="endo-ward-chip${currentWardFilter===w?' on':''}" onclick="filterByWard('${w.replace(/'/g,"\\'")}')">${w} <span class="endo-ward-chip-badge">${ct}</span></button>`;
+    });
+    chipsHtml += `<button class="endo-ward-chip${currentWardFilter==='Others'?' on':''}" onclick="filterByWard('Others')">Others <span class="endo-ward-chip-badge">${othersCount}</span></button>`;
+    chipsEl.innerHTML = chipsHtml;
+  }
+
+  // Apply ward filter
+  if(currentWardFilter === 'Others'){
+    all = all.filter(e => !fixedWards.includes(e.ward||'Others'));
+  } else if(currentWardFilter !== 'all'){
+    all = all.filter(e => (e.ward||'') === currentWardFilter);
+  }
+
+  if(q){
+    all = all.filter(e =>
+      (e.ward||'').toLowerCase().includes(q) ||
+      (e.bed||'').toLowerCase().includes(q) ||
+      (e.name||'').toLowerCase().includes(q) ||
+      (e.mrn||'').toLowerCase().includes(q)
+    );
+  }
+  // Sort: ward (Ward 4 first, then CCU, then ICU, then others alphabetic), then bed numeric
+  let wardOrder = {'Ward 4':0,'CCU':1,'ICU':2};
+  all.sort((a,b)=>{
+    let wa = wardOrder[a.ward] ?? 3;
+    let wb = wardOrder[b.ward] ?? 3;
+    if(wa !== wb) return wa - wb;
+    // Within "Others" group, sort by ward name alphabetically
+    if(wa === 3 && (a.ward||'') !== (b.ward||'')){
+      return (a.ward||'').localeCompare(b.ward||'');
+    }
+    let ab = (a.bed||'').toString(), bb = (b.bed||'').toString();
+    return ab.localeCompare(bb, undefined, {numeric:true});
+  });
+
+  let countEl = document.getElementById('endoCount');
+  if(countEl) countEl.innerText = all.length ? `Showing ${all.length} patient${all.length>1?'s':''}${q?' matching search':''}${currentWardFilter!=='all'?' in '+currentWardFilter:''}` : '';
+
+  if(!all.length){
+    c.innerHTML = '<div class="endo-empty">' + (q||currentWardFilter!=='all' ? 'No patients match this filter.' : 'No endorsements yet. Click <b>＋ New Patient</b> to add the first handover entry.') + '</div>';
+    return;
+  }
+  c.innerHTML = all.map(e => {
+    let isOpen = expandedEndoIds.has(e.id);
+    let reasonSummary = (e.reason||'').trim();
+    let summary = reasonSummary ? (reasonSummary.length > 60 ? reasonSummary.slice(0,60).trim()+'…' : reasonSummary) : '';
+    return `
+    <div class="endo-card${isOpen?' open':''}">
+      <div class="endo-card-head endo-card-toggle" onclick="toggleEndoCard('${e.id}')">
+        <div class="endo-bed">${escapeHtml((e.ward ? (e.ward + ' · '): '') + (e.bed||'—'))}</div>
+        <div style="flex:1;min-width:0">
+          <div class="endo-name">${escapeHtml(e.name||'—')}</div>
+          <div class="endo-mrn">MRN · ${escapeHtml(e.mrn||'—')}${summary?' · <span style="color:var(--dim)">'+escapeHtml(summary)+'</span>':''}</div>
+        </div>
+        <div class="endo-chevron">▾</div>
+      </div>
+      <div class="endo-card-body">
+        ${field('Past History', e.hx)}
+        ${field('Reason of Admission', e.reason)}
+        ${field('Investigations', e.ix)}
+        ${imagesBlock(e.images)}
+        ${field('Active Issues', e.active)}
+        ${field('Plan', e.plan)}
+        <div class="endo-meta-row">
+          <div>Created: ${fmtDateTime(e.createdAt)} · ${escapeHtml(e.createdBy||'—')}</div>
+          <div>Updated: ${fmtDateTime(e.updatedAt)} · ${escapeHtml(e.updatedBy||'—')}</div>
+        </div>
+        <div class="endo-actions">
+          <button class="endo-act-btn" onclick="event.stopPropagation();openEndoForm('${e.id}')">✎ Edit</button>
+          <button class="endo-act-btn danger" onclick="event.stopPropagation();deleteEndo('${e.id}')">✕ Discharge</button>
+        </div>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+// Accordion state — set of expanded endorsement IDs (persists across re-renders within session)
+var expandedEndoIds = new Set();
+
+window.toggleEndoCard = function(id){
+  if(expandedEndoIds.has(id)) expandedEndoIds.delete(id);
+  else expandedEndoIds.add(id);
+  renderEndoList();
+};
+
+window.expandAllEndo = function(){
+  ensureExtState();
+  Object.keys(window.S.endorsements||{}).forEach(id => expandedEndoIds.add(id));
+  renderEndoList();
+};
+window.collapseAllEndo = function(){
+  expandedEndoIds.clear();
+  renderEndoList();
+};
+
+function field(label, val){
+  let empty = !val || !val.trim();
+  return `<div class="endo-field">
+    <div class="endo-field-label">${label}</div>
+    <div class="endo-field-text${empty?' empty':''}">${empty?'— not documented —':escapeHtml(val)}</div>
+  </div>`;
+}
+
+function imagesBlock(imgs){
+  if(!imgs || !imgs.length) return '';
+  return `<div class="endo-images">${imgs.map(src=>`<img class="endo-img-thumb" src="${src}" onclick="openImgViewer('${encodeURIComponent(src)}')">`).join('')}</div>`;
+}
+
+window.openImgViewer = function(src){
+  document.getElementById('imgViewerSrc').src = decodeURIComponent(src);
+  document.getElementById('imgViewer').classList.add('on');
+};
+window.closeImgViewer = function(){ document.getElementById('imgViewer').classList.remove('on'); };
+
+function escapeHtml(s){
+  if(s===null || s===undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============================================================
+// CATHLAB
+// ============================================================
+window.goCathTab = function(tab, btn){
+  document.querySelectorAll('.cath-subtab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.cath-sub').forEach(s=>s.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('cath-'+tab).classList.add('on');
+  if(tab === 'addSch'){
+    // Reset form when entering via tab (not via pending-schedule or edit)
+    if(!document.getElementById('cath-sch-pending-id').value && !document.getElementById('cath-sch-edit-id').value){
+      resetCathSchForm(true);
+    }
+  }
+  renderCathAll();
+};
+
+// Today (local) as YYYY-MM-DD
+function todayIso(){
+  let d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// Update the date-count badge on the schedule form whenever the date changes
+function updateSchDateBadge(){
+  let dateEl = document.getElementById('cath-sch-date');
+  let badgeEl = document.getElementById('cathSchDateBadge');
+  if(!dateEl || !badgeEl) return;
+  let selected = dateEl.value;
+  if(!selected){ badgeEl.innerHTML = ''; return; }
+  ensureExtState();
+  // Count existing scheduled cases on this date, excluding the one being edited (if any)
+  let editId = document.getElementById('cath-sch-edit-id')?.value;
+  let count = Object.values(window.S.cathScheduled||{}).filter(s => s.date === selected && s.id !== editId).length;
+  // Ward 4 available beds (if census updated)
+  let avail = window.S.census?.ward4?.available;
+  let shortage = (typeof avail === 'number' && count >= avail);
+  let color = count === 0 ? 'var(--ok)' : (count < 4 ? 'var(--acc2)' : 'var(--warn)');
+  if(shortage) color = 'var(--err)';
+  let availMsg = (typeof avail === 'number') ? ` · Ward 4 available: <span style="color:${avail>count?'var(--ok)':'var(--err)'};font-weight:600">${avail}</span>` : '';
+  let plural = count === 1 ? 'case' : 'cases';
+  badgeEl.innerHTML = `<div style="background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:8px 11px;margin-bottom:11px;font-family:'DM Mono',monospace;font-size:11px;color:var(--mid);line-height:1.5">
+    <span style="color:${color};font-weight:600">${count}</span> existing ${plural} on ${fmtDate(selected)}${availMsg}
+    ${shortage ? '<br><span style="color:var(--err);font-weight:600">⚠ Scheduling this case will exceed Ward 4 availability.</span>' : ''}
+  </div>`;
+}
+
+// Wire up date input listener once DOM is ready
+document.addEventListener('change', function(ev){
+  if(ev.target && ev.target.id === 'cath-sch-date') updateSchDateBadge();
+});
+
+// Helper: click a specific cath subtab by name (today/scheduled/pending/addSch)
+function clickCathSubtab(name){
+  let btns = document.querySelectorAll('.cath-subtab');
+  for(let b of btns){
+    if(b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+name+"'")){
+      b.click();
+      return;
+    }
+  }
+}
+
+window.resetCathSchForm = function(quiet){
+  document.getElementById('cath-sch-pending-id').value = '';
+  document.getElementById('cath-sch-edit-id').value = '';
+  ['cath-sch-name','cath-sch-age','cath-sch-nat','cath-sch-cid','cath-sch-phone','cath-sch-file','cath-sch-hx','cath-sch-pin','cath-sch-date'].forEach(id=>{
+    let el = document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('cath-sch-proc').selectedIndex = 0;
+  document.getElementById('cath-sch-op').selectedIndex = 0;
+  imgBuffers['cath-sch'] = [];
+  renderImgPreview('cath-sch');
+  document.getElementById('cathSchFromPending').style.display = 'none';
+  document.getElementById('cathSchEditing').style.display = 'none';
+  document.getElementById('cathSchFormTitle').innerText = 'SCHEDULE A CATH APPOINTMENT';
+  document.getElementById('cathSchSaveBtn').innerText = '💾 Save Appointment';
+  let badge = document.getElementById('cathSchDateBadge');
+  if(badge) badge.innerHTML = '';
+  if(!quiet){
+    // Switch back to Today sub-tab
+    clickCathSubtab('today');
+  }
+};
+
+window.openCathAddPending = function(){
+  document.getElementById('cathPendMo').classList.add('on');
+  ['cath-p-name','cath-p-age','cath-p-nat','cath-p-cid','cath-p-phone','cath-p-file','cath-p-hx','cath-p-pin'].forEach(id=>{
+    let el = document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('cath-p-proc').selectedIndex = 0;
+  imgBuffers['cath-p'] = [];
+  renderImgPreview('cath-p');
+};
+window.closeCathPendMo = function(){ document.getElementById('cathPendMo').classList.remove('on'); };
+
+window.saveCathPending = async function(ev){
+  ev.preventDefault();
+  ensureExtState();
+  let pin = document.getElementById('cath-p-pin').value.trim();
+  if(!/^\d{4}$/.test(pin)){ alert('Enter 4-digit PIN'); return false; }
+  let reg = await lookupDocPIN(pin);
+  if(!reg){ alert('Incorrect PIN'); return false; }
+  let id = 'pend_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+  window.S.cathPending[id] = {
+    id: id,
+    name: document.getElementById('cath-p-name').value.trim(),
+    age: document.getElementById('cath-p-age').value.trim(),
+    nationality: document.getElementById('cath-p-nat').value.trim(),
+    cid: document.getElementById('cath-p-cid').value.trim(),
+    phone: document.getElementById('cath-p-phone').value.trim(),
+    file: document.getElementById('cath-p-file').value.trim(),
+    hx: document.getElementById('cath-p-hx').value.trim(),
+    images: (imgBuffers['cath-p']||[]).slice(),
+    proc: document.getElementById('cath-p-proc').value,
+    addedAt: Date.now(),
+    addedBy: reg
+  };
+  dbRef.set(window.S);
+  closeCathPendMo();
+  renderCathAll();
+  // Jump to pending tab so user sees their entry
+  clickCathSubtab('pending');
+  return false;
+};
+
+window.schedulePending = function(pid){
+  ensureExtState();
+  let p = window.S.cathPending[pid];
+  if(!p) return;
+  // Jump to Add tab with form prefilled
+  clickCathSubtab('addSch');
+  resetCathSchForm(true);
+  document.getElementById('cath-sch-pending-id').value = pid;
+  document.getElementById('cath-sch-name').value = p.name || '';
+  document.getElementById('cath-sch-age').value = p.age || '';
+  document.getElementById('cath-sch-nat').value = p.nationality || '';
+  document.getElementById('cath-sch-cid').value = p.cid || '';
+  document.getElementById('cath-sch-phone').value = p.phone || '';
+  document.getElementById('cath-sch-file').value = p.file || '';
+  document.getElementById('cath-sch-hx').value = p.hx || '';
+  imgBuffers['cath-sch'] = (p.images||[]).slice();
+  renderImgPreview('cath-sch');
+  // Try to match procedure
+  let proc = document.getElementById('cath-sch-proc');
+  for(let i=0; i<proc.options.length; i++){
+    if(proc.options[i].value === p.proc){ proc.selectedIndex = i; break; }
+  }
+  document.getElementById('cathSchFromPending').style.display = 'block';
+  document.getElementById('cathSchFormTitle').innerText = `SCHEDULING: ${p.name}`;
+  updateSchDateBadge();
+  setTimeout(()=>document.getElementById('cath-sch-date').focus(), 100);
+};
+
+window.editScheduled = function(sid){
+  ensureExtState();
+  let s = window.S.cathScheduled[sid];
+  if(!s) return;
+  clickCathSubtab('addSch');
+  resetCathSchForm(true);
+  document.getElementById('cath-sch-edit-id').value = sid;
+  document.getElementById('cath-sch-name').value = s.name || '';
+  document.getElementById('cath-sch-age').value = s.age || '';
+  document.getElementById('cath-sch-nat').value = s.nationality || '';
+  document.getElementById('cath-sch-cid').value = s.cid || '';
+  document.getElementById('cath-sch-phone').value = s.phone || '';
+  document.getElementById('cath-sch-file').value = s.file || '';
+  document.getElementById('cath-sch-hx').value = s.hx || '';
+  document.getElementById('cath-sch-date').value = s.date || '';
+  imgBuffers['cath-sch'] = (s.images||[]).slice();
+  renderImgPreview('cath-sch');
+  let proc = document.getElementById('cath-sch-proc');
+  for(let i=0; i<proc.options.length; i++){
+    if(proc.options[i].value === s.proc){ proc.selectedIndex = i; break; }
+  }
+  let op = document.getElementById('cath-sch-op');
+  for(let i=0; i<op.options.length; i++){
+    if(op.options[i].value === s.operator){ op.selectedIndex = i; break; }
+  }
+  document.getElementById('cathSchEditing').style.display = 'block';
+  document.getElementById('cathSchFormTitle').innerText = `EDITING: ${s.name}`;
+  document.getElementById('cathSchSaveBtn').innerText = '💾 Update Appointment';
+  updateSchDateBadge();
+};
+
+window.deletePending = function(pid){
+  ensureExtState();
+  let p = window.S.cathPending[pid];
+  if(!p) return;
+  if(!confirm(`Remove ${p.name} from waiting list?`)) return;
+  delete window.S.cathPending[pid];
+  dbRef.set(window.S);
+  renderCathAll();
+};
+
+window.saveCathSched = async function(ev){
+  ev.preventDefault();
+  ensureExtState();
+  let pin = document.getElementById('cath-sch-pin').value.trim();
+  if(!/^\d{4}$/.test(pin)){ alert('Enter 4-digit PIN'); return false; }
+  let reg = await lookupDocPIN(pin);
+  if(!reg){ alert('Incorrect PIN'); return false; }
+  let pendingId = document.getElementById('cath-sch-pending-id').value;
+  let editId = document.getElementById('cath-sch-edit-id').value;
+  let id = editId || ('sch_' + Date.now() + '_' + Math.floor(Math.random()*1000));
+  let existing = editId ? window.S.cathScheduled[editId] : null;
+  window.S.cathScheduled[id] = {
+    id: id,
+    name: document.getElementById('cath-sch-name').value.trim(),
+    age: document.getElementById('cath-sch-age').value.trim(),
+    nationality: document.getElementById('cath-sch-nat').value.trim(),
+    cid: document.getElementById('cath-sch-cid').value.trim(),
+    phone: document.getElementById('cath-sch-phone').value.trim(),
+    file: document.getElementById('cath-sch-file').value.trim(),
+    hx: document.getElementById('cath-sch-hx').value.trim(),
+    images: (imgBuffers['cath-sch']||[]).slice(),
+    proc: document.getElementById('cath-sch-proc').value,
+    operator: document.getElementById('cath-sch-op').value,
+    date: document.getElementById('cath-sch-date').value,
+    createdAt: existing?.createdAt || Date.now(),
+    createdBy: existing?.createdBy || reg,
+    updatedAt: Date.now(),
+    updatedBy: reg
+  };
+  // If scheduling from pending, auto-remove the pending entry
+  if(pendingId && window.S.cathPending[pendingId]){
+    delete window.S.cathPending[pendingId];
+  }
+  dbRef.set(window.S);
+  resetCathSchForm();
+  renderCathAll();
+  return false;
+};
+
+window.deleteScheduled = function(sid){
+  ensureExtState();
+  let s = window.S.cathScheduled[sid];
+  if(!s) return;
+  if(!confirm(`Delete scheduled appointment for ${s.name} on ${s.date}?`)) return;
+  delete window.S.cathScheduled[sid];
+  dbRef.set(window.S);
+  renderCathAll();
+};
+
+function fmtDate(d){
+  if(!d) return '—';
+  let dt = new Date(d + 'T00:00:00');
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+}
+
+function renderCathAll(){
+  ensureExtState();
+  renderCathToday();
+  renderCathCalendar();
+  renderCathScheduled();
+  renderCathPending();
+  renderCensusAlert();
+  updateSchDateBadge();
+}
+
+function renderCathToday(){
+  let statsEl = document.getElementById('cathTodayStats');
+  let listEl = document.getElementById('cathTodayList');
+  if(!listEl) return;
+  let iso = todayIso();
+  let all = Object.values(window.S.cathScheduled||{}).filter(s => s.date === iso);
+  // Sort by operator, then procedure for consistency
+  all.sort((a,b) => (a.operator||'zzzz').localeCompare(b.operator||'zzzz') || (a.proc||'').localeCompare(b.proc||''));
+
+  // Stats strip
+  let avail = window.S.census?.ward4?.available;
+  let availBlock = (typeof avail === 'number')
+    ? `<div class="today-stat"><div class="today-stat-lbl">WARD 4 AVAIL</div><div class="today-stat-val" style="color:${avail>=all.length?'var(--ok)':'var(--err)'}">${avail}</div></div>`
+    : '<div class="today-stat"><div class="today-stat-lbl">WARD 4 AVAIL</div><div class="today-stat-val" style="color:var(--dim);font-size:13px">census not updated</div></div>';
+
+  // Operator breakdown
+  let opCounts = {};
+  all.forEach(s => { let op = s.operator || 'Unassigned'; opCounts[op] = (opCounts[op]||0)+1; });
+  let opBreakdown = Object.keys(opCounts).length
+    ? Object.entries(opCounts).map(([op,n]) => `<span style="background:var(--sur2);border:1px solid var(--bor);border-radius:5px;padding:3px 8px;font-size:10px;color:${op==='Unassigned'?'var(--dim)':'var(--acc)'}">${escapeHtml(op)} <b style="color:var(--mid)">${n}</b></span>`).join(' ')
+    : '';
+
+  statsEl.innerHTML = `<div class="today-header">
+    <div class="today-title">Today · ${fmtDate(iso)}</div>
+    <div class="today-strip">
+      <div class="today-stat"><div class="today-stat-lbl">TOTAL CASES</div><div class="today-stat-val" style="color:var(--acc)">${all.length}</div></div>
+      ${availBlock}
+    </div>
+    ${opBreakdown ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${opBreakdown}</div>` : ''}
+  </div>`;
+
+  if(!all.length){
+    listEl.innerHTML = '<div class="cath-empty">No cath cases scheduled for today.</div>';
+    return;
+  }
+  listEl.innerHTML = all.map((s, idx) => {
+    let demo = [];
+    if(s.age) demo.push(s.age + 'y');
+    if(s.nationality) demo.push(s.nationality);
+    let demoStr = demo.join(' · ');
+    return `
+    <div class="cath-card">
+      <div class="cath-card-head">
+        <div style="background:var(--acc);color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;padding:4px 9px;border-radius:5px;letter-spacing:.5px">#${idx+1}</div>
+        <div class="cath-name" style="flex:1">${escapeHtml(s.name||'—')}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
+      </div>
+      <div class="cath-row"><div class="cath-row-label">Civil ID</div><div class="cath-row-val">${escapeHtml(s.cid||'—')}</div></div>
+      ${s.file?`<div class="cath-row"><div class="cath-row-label">File</div><div class="cath-row-val">${escapeHtml(s.file)}</div></div>`:''}
+      <div class="cath-row"><div class="cath-row-label">Phone</div><div class="cath-row-val">${escapeHtml(s.phone||'—')}</div></div>
+      <div class="cath-row"><div class="cath-row-label">History</div><div class="cath-row-val">${escapeHtml(s.hx||'—')}</div></div>
+      <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--acc2);font-weight:600">${escapeHtml(s.proc||'—')}</div></div>
+      <div class="cath-row"><div class="cath-row-label">Operator</div><div class="cath-row-val">${s.operator ? escapeHtml(s.operator) : '<span style="color:var(--dim);font-style:italic">To be assigned</span>'}</div></div>
+      ${imagesBlock(s.images)}
+      <div class="cath-btn-row">
+        <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
+        <button class="cath-del-btn" onclick="deleteScheduled('${s.id}')">✕ Remove</button>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+// ============================================================
+// CATHLAB CALENDAR — month grid with case-count badges
+// ============================================================
+var calState = {
+  year: new Date().getFullYear(),
+  month: new Date().getMonth(),  // 0-indexed
+  selected: null  // YYYY-MM-DD
+};
+
+window.shiftCalMonth = function(delta){
+  let m = calState.month + delta;
+  let y = calState.year;
+  while(m < 0){ m += 12; y--; }
+  while(m > 11){ m -= 12; y++; }
+  calState.month = m;
+  calState.year = y;
+  renderCathCalendar();
+};
+
+window.jumpCalToday = function(){
+  let d = new Date();
+  calState.year = d.getFullYear();
+  calState.month = d.getMonth();
+  calState.selected = todayIso();
+  renderCathCalendar();
+};
+
+window.selectCalDay = function(iso){
+  calState.selected = (calState.selected === iso) ? null : iso;
+  renderCathCalendar();
+};
+
+function isoFromYMD(y, m, d){
+  return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+}
+
+function renderCathCalendar(){
+  let labelEl = document.getElementById('calMonthLabel');
+  let gridEl = document.getElementById('calGrid');
+  let detailEl = document.getElementById('calDayDetail');
+  if(!gridEl) return;
+  ensureExtState();
+
+  let monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  labelEl.innerText = monthNames[calState.month] + ' ' + calState.year;
+
+  // Build a map of isoDate → count of scheduled cath cases
+  let counts = {};
+  Object.values(window.S.cathScheduled||{}).forEach(s => {
+    if(s.date) counts[s.date] = (counts[s.date]||0) + 1;
+  });
+
+  let firstDay = new Date(calState.year, calState.month, 1);
+  let firstWeekday = firstDay.getDay();  // 0=Sun
+  let daysInMonth = new Date(calState.year, calState.month+1, 0).getDate();
+  let daysInPrevMonth = new Date(calState.year, calState.month, 0).getDate();
+  let today = todayIso();
+  let ward4Avail = window.S.census?.ward4?.available;
+
+  let cells = [];
+  // Leading days from previous month
+  for(let i = firstWeekday - 1; i >= 0; i--){
+    let d = daysInPrevMonth - i;
+    let m = calState.month - 1;
+    let y = calState.year;
+    if(m < 0){ m = 11; y--; }
+    cells.push({ iso: isoFromYMD(y, m, d), day: d, outside: true });
+  }
+  // This month
+  for(let d = 1; d <= daysInMonth; d++){
+    cells.push({ iso: isoFromYMD(calState.year, calState.month, d), day: d, outside: false });
+  }
+  // Trailing to complete 6 rows (42 cells) or at least full weeks
+  let targetLen = cells.length <= 35 ? 35 : 42;
+  let nextDay = 1;
+  while(cells.length < targetLen){
+    let m = calState.month + 1;
+    let y = calState.year;
+    if(m > 11){ m = 0; y++; }
+    cells.push({ iso: isoFromYMD(y, m, nextDay), day: nextDay, outside: true });
+    nextDay++;
+  }
+
+  gridEl.innerHTML = cells.map(cell => {
+    let count = counts[cell.iso] || 0;
+    let isToday = cell.iso === today;
+    let isPast = cell.iso < today;
+    let isSelected = cell.iso === calState.selected;
+    let classes = ['cal-cell'];
+    if(cell.outside) classes.push('outside');
+    if(isToday) classes.push('today');
+    if(isPast && !isToday) classes.push('past');
+    if(isSelected) classes.push('selected');
+    let countClass = 'cal-count';
+    if(count === 0) countClass += ' hidden';
+    else if(typeof ward4Avail === 'number' && count > ward4Avail) countClass += ' err';
+    else if(count >= 4) countClass += ' warn';
+    let onclick = cell.outside ? '' : `onclick="selectCalDay('${cell.iso}')"`;
+    return `<div class="${classes.join(' ')}" ${onclick}>
+      <div class="cal-date">${cell.day}</div>
+      <div class="${countClass}">${count || ''}</div>
+    </div>`;
+  }).join('');
+
+  // Day detail pane
+  if(calState.selected){
+    let selCases = Object.values(window.S.cathScheduled||{}).filter(s => s.date === calState.selected);
+    selCases.sort((a,b)=> (a.operator||'zzzz').localeCompare(b.operator||'zzzz') || (a.proc||'').localeCompare(b.proc||''));
+    let opCounts = {};
+    selCases.forEach(s => { let op = s.operator || 'Unassigned'; opCounts[op] = (opCounts[op]||0)+1; });
+    let opChips = Object.entries(opCounts).map(([op,n]) => `<span class="cal-day-chip">${escapeHtml(op)}: <b>${n}</b></span>`).join('');
+
+    let detail = `<div class="cal-day-detail">
+      <div class="cal-day-detail-head">
+        <div class="cal-day-detail-title">${fmtDate(calState.selected)}</div>
+        <div class="cal-day-detail-stats">
+          <span class="cal-day-chip">Total: <b>${selCases.length}</b></span>
+          ${typeof ward4Avail==='number' ? `<span class="cal-day-chip">Ward 4 avail: <b style="color:${ward4Avail>=selCases.length?'var(--ok)':'var(--err)'}">${ward4Avail}</b></span>` : ''}
+        </div>
+      </div>
+      ${opChips ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${opChips}</div>` : ''}
+      ${selCases.length === 0
+        ? '<div class="cath-empty" style="padding:20px 10px">No cases scheduled on this day.</div>'
+        : selCases.map((s, idx) => {
+            let demo = [];
+            if(s.age) demo.push(s.age + 'y');
+            if(s.nationality) demo.push(s.nationality);
+            let demoStr = demo.join(' · ');
+            return `<div class="cath-card" style="margin-bottom:8px">
+              <div class="cath-card-head">
+                <div style="background:var(--acc);color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;padding:4px 9px;border-radius:5px;letter-spacing:.5px">#${idx+1}</div>
+                <div class="cath-name" style="flex:1">${escapeHtml(s.name||'—')}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
+              </div>
+              <div class="cath-row"><div class="cath-row-label">Civil ID</div><div class="cath-row-val">${escapeHtml(s.cid||'—')}</div></div>
+              ${s.file?`<div class="cath-row"><div class="cath-row-label">File</div><div class="cath-row-val">${escapeHtml(s.file)}</div></div>`:''}
+              <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--acc2);font-weight:600">${escapeHtml(s.proc||'—')}</div></div>
+              <div class="cath-row"><div class="cath-row-label">Operator</div><div class="cath-row-val">${s.operator ? escapeHtml(s.operator) : '<span style="color:var(--dim);font-style:italic">To be assigned</span>'}</div></div>
+              <div class="cath-btn-row">
+                <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
+                <button class="cath-del-btn" onclick="deleteScheduled('${s.id}')">✕ Remove</button>
+              </div>
+            </div>`;
+          }).join('')
+      }
+    </div>`;
+    detailEl.innerHTML = detail;
+  } else {
+    detailEl.innerHTML = '<div style="text-align:center;color:var(--dim);font-family:\'DM Mono\',monospace;font-size:10px;padding:12px 0;letter-spacing:.5px">TAP A DATE TO SEE THE CASES</div>';
+  }
+}
+
+function renderCathScheduled(){
+  let c = document.getElementById('cathSchedList');
+  if(!c) return;
+  let q = (document.getElementById('cathSearch')?.value || '').trim().toLowerCase();
+  let all = Object.values(window.S.cathScheduled || {});
+  if(q){
+    all = all.filter(s => {
+      let dateFmt = (s.date||'') + ' ' + fmtDate(s.date).toLowerCase();
+      return dateFmt.toLowerCase().includes(q) ||
+        (s.operator||'').toLowerCase().includes(q) ||
+        (s.proc||'').toLowerCase().includes(q) ||
+        (s.cid||'').toLowerCase().includes(q) ||
+        (s.file||'').toLowerCase().includes(q) ||
+        (s.name||'').toLowerCase().includes(q);
+    });
+  }
+  all.sort((a,b)=>{
+    if(!a.date) return 1;
+    if(!b.date) return -1;
+    return a.date.localeCompare(b.date);
+  });
+  if(!all.length){
+    c.innerHTML = '<div class="cath-empty">' + (q ? 'No appointments match this search.' : 'No scheduled cath appointments.<br>Use the <b>＋ Schedule</b> tab to schedule one.') + '</div>';
+    return;
+  }
+  c.innerHTML = all.map(s => {
+    let demo = [];
+    if(s.age) demo.push(s.age + 'y');
+    if(s.nationality) demo.push(s.nationality);
+    let demoStr = demo.join(' · ');
+    return `
+    <div class="cath-card">
+      <div class="cath-card-head">
+        <div class="cath-name">${escapeHtml(s.name||'—')}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
+        <div class="cath-date">${fmtDate(s.date)}</div>
+      </div>
+      <div class="cath-row"><div class="cath-row-label">Civil ID</div><div class="cath-row-val">${escapeHtml(s.cid||'—')}</div></div>
+      ${s.file?`<div class="cath-row"><div class="cath-row-label">File</div><div class="cath-row-val">${escapeHtml(s.file)}</div></div>`:''}
+      <div class="cath-row"><div class="cath-row-label">Phone</div><div class="cath-row-val">${escapeHtml(s.phone||'—')}</div></div>
+      <div class="cath-row"><div class="cath-row-label">History</div><div class="cath-row-val">${escapeHtml(s.hx||'—')}</div></div>
+      <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--acc2);font-weight:600">${escapeHtml(s.proc||'—')}</div></div>
+      <div class="cath-row"><div class="cath-row-label">Operator</div><div class="cath-row-val">${s.operator ? escapeHtml(s.operator) : '<span style="color:var(--dim);font-style:italic">To be assigned</span>'}</div></div>
+      ${imagesBlock(s.images)}
+      <div class="cath-btn-row">
+        <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
+        <button class="cath-del-btn" onclick="deleteScheduled('${s.id}')">✕ Remove</button>
+        <span style="flex:1;text-align:right;font-family:'DM Mono',monospace;font-size:9px;color:#64748b">${s.updatedAt&&s.updatedAt!==s.createdAt ? 'Updated '+fmtDateTime(s.updatedAt)+' · '+escapeHtml(s.updatedBy||'—') : 'Added '+fmtDateTime(s.createdAt)+' · '+escapeHtml(s.createdBy||'—')}</span>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+function renderCathPending(){
+  let c = document.getElementById('cathPendingList');
+  if(!c) return;
+  let all = Object.values(window.S.cathPending || {});
+  all.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
+  if(!all.length){ c.innerHTML = '<div class="cath-empty">Waiting list is empty.<br>OPD doctors or cardiologists can add elective patients here pending a cath slot.</div>'; return; }
+  c.innerHTML = all.map(p => {
+    let demo = [];
+    if(p.age) demo.push(p.age + 'y');
+    if(p.nationality) demo.push(p.nationality);
+    let demoStr = demo.join(' · ');
+    return `
+    <div class="cath-card cath-pending-card">
+      <div class="cath-card-head">
+        <div class="cath-name">${escapeHtml(p.name||'—')}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
+        <span class="cath-pending-badge">WAITING</span>
+      </div>
+      <div class="cath-row"><div class="cath-row-label">Civil ID</div><div class="cath-row-val">${escapeHtml(p.cid||'—')}</div></div>
+      ${p.file?`<div class="cath-row"><div class="cath-row-label">File</div><div class="cath-row-val">${escapeHtml(p.file)}</div></div>`:''}
+      <div class="cath-row"><div class="cath-row-label">Phone</div><div class="cath-row-val">${escapeHtml(p.phone||'—')}</div></div>
+      <div class="cath-row"><div class="cath-row-label">History</div><div class="cath-row-val">${escapeHtml(p.hx||'—')}</div></div>
+      <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--warn);font-weight:600">${escapeHtml(p.proc||'—')}</div></div>
+      ${imagesBlock(p.images)}
+      <div class="cath-btn-row">
+        <button class="cath-schedule-btn" onclick="schedulePending('${p.id}')">📅 Schedule</button>
+        <button class="cath-del-btn" onclick="deletePending('${p.id}')">✕ Remove</button>
+        <span style="flex:1;text-align:right;font-family:'DM Mono',monospace;font-size:9px;color:#64748b">Added ${fmtDateTime(p.addedAt)} · ${escapeHtml(p.addedBy||'—')}</span>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+// ============================================================
+// CENSUS (Ward 4 + CCU) — updated twice daily
+// ============================================================
+const WARD_CAPACITIES = { ward4: 20, ccu: 15 };
+const WARD_LABELS = { ward4: 'Ward 4', ccu: 'CCU' };
+
+window.openCensusMo = function(unit){
+  ensureExtState();
+  document.getElementById('cens-unit').value = unit;
+  document.getElementById('censusMoTitle').innerText = `Update ${WARD_LABELS[unit]} Census`;
+  document.getElementById('cens-beds-info').innerText = `${WARD_LABELS[unit]} total capacity: ${WARD_CAPACITIES[unit]} beds`;
+  let existing = window.S.census?.[unit];
+  document.getElementById('cens-occ').value = existing?.occupied || '';
+  document.getElementById('cens-card').value = existing?.cardio || '';
+  document.getElementById('cens-other').value = existing?.other || '';
+  document.getElementById('cens-red').value = existing?.critical || '';
+  document.getElementById('cens-red-beds').value = existing?.criticalBeds || '';
+  document.getElementById('cens-yel').value = existing?.moderate || '';
+  document.getElementById('cens-yel-beds').value = existing?.moderateBeds || '';
+  document.getElementById('cens-grn').value = existing?.stable || '';
+  document.getElementById('cens-pin').value = '';
+  updateCensAvail();
+  document.getElementById('censusMo').classList.add('on');
+};
+window.closeCensusMo = function(){ document.getElementById('censusMo').classList.remove('on'); };
+
+function updateCensAvail(){
+  let unit = document.getElementById('cens-unit').value;
+  let cap = WARD_CAPACITIES[unit] || 0;
+  let occ = parseInt(document.getElementById('cens-occ').value) || 0;
+  let avail = Math.max(0, cap - occ);
+  document.getElementById('cens-avail').value = avail + ' / ' + cap;
+}
+
+// Attach live recalculation
+document.addEventListener('input', function(ev){
+  if(ev.target && ev.target.id === 'cens-occ') updateCensAvail();
+});
+
+window.saveCensus = async function(ev){
+  ev.preventDefault();
+  ensureExtState();
+  let pin = document.getElementById('cens-pin').value.trim();
+  if(!/^\d{4}$/.test(pin)){ alert('Enter 4-digit Doctor PIN'); return false; }
+  let reg = await lookupDocPIN(pin);
+  if(!reg){ alert('Incorrect PIN'); return false; }
+  let unit = document.getElementById('cens-unit').value;
+  let cap = WARD_CAPACITIES[unit] || 0;
+  let occupied = parseInt(document.getElementById('cens-occ').value) || 0;
+  if(occupied > cap){ alert(`Occupied beds (${occupied}) cannot exceed capacity (${cap}).`); return false; }
+  let cardio = parseInt(document.getElementById('cens-card').value) || 0;
+  let other = parseInt(document.getElementById('cens-other').value) || 0;
+  let red = parseInt(document.getElementById('cens-red').value) || 0;
+  let redBeds = document.getElementById('cens-red-beds').value.trim();
+  let yel = parseInt(document.getElementById('cens-yel').value) || 0;
+  let yelBeds = document.getElementById('cens-yel-beds').value.trim();
+  let grn = parseInt(document.getElementById('cens-grn').value) || 0;
+
+  if(!window.S.census) window.S.census = {};
+  window.S.census[unit] = {
+    occupied: occupied,
+    available: Math.max(0, cap - occupied),
+    capacity: cap,
+    cardio: cardio,
+    other: other,
+    critical: red,
+    criticalBeds: redBeds,
+    moderate: yel,
+    moderateBeds: yelBeds,
+    stable: grn,
+    updatedAt: Date.now(),
+    updatedBy: reg
+  };
+  dbRef.set(window.S);
+  closeCensusMo();
+  renderCensus();
+  renderCensusAlert();
+  return false;
+};
+
+function isStale(ts){
+  // Considered stale if last update > 12 hours ago
+  if(!ts) return true;
+  return (Date.now() - ts) > (12 * 60 * 60 * 1000);
+}
+
+function renderCensus(){
+  ensureExtState();
+  let c = document.getElementById('censusCards');
+  if(!c) return;
+  let units = ['ward4','ccu'];
+  c.innerHTML = units.map(u => {
+    let cap = WARD_CAPACITIES[u];
+    let data = window.S.census?.[u];
+    let stale = !data || isStale(data.updatedAt);
+    let extraClass = u === 'ward4' ? 'ward4' : '';
+    if(!data){
+      return `<div class="census-card ${extraClass}">
+        <div class="census-head">
+          <div><div class="census-title">${WARD_LABELS[u]}</div><div class="census-cap">${cap} BEDS TOTAL</div></div>
+          <button class="census-update-btn" onclick="openCensusMo('${u}')">＋ First Update</button>
+        </div>
+        <div class="census-empty">Not updated yet. Click to enter the first census snapshot.</div>
+      </div>`;
+    }
+    return `<div class="census-card ${extraClass}${stale?' stale':''}">
+      <div class="census-head">
+        <div><div class="census-title">${WARD_LABELS[u]}</div><div class="census-cap">${cap} BEDS TOTAL${stale?' · ⚠ STALE (>12h)':''}</div></div>
+        <button class="census-update-btn" onclick="openCensusMo('${u}')">Update</button>
+      </div>
+      <div class="census-numbers">
+        <div class="census-stat occ"><div class="census-stat-label">Occupied</div><div class="census-stat-val">${data.occupied}</div></div>
+        <div class="census-stat avail"><div class="census-stat-label">Available</div><div class="census-stat-val">${data.available}</div></div>
+        <div class="census-stat capacity"><div class="census-stat-label">Capacity</div><div class="census-stat-val">${data.capacity}</div></div>
+      </div>
+      <div class="census-split">
+        <div class="census-split-item"><span class="census-split-label">Cardiology</span><span class="census-split-val">${data.cardio}</span></div>
+        <div class="census-split-item"><span class="census-split-label">Medical / Other</span><span class="census-split-val">${data.other}</span></div>
+      </div>
+      <div class="census-risk">
+        <div class="census-risk-tile red"><div class="census-risk-num">${data.critical||0}</div><div class="census-risk-lbl">🔴 CRITICAL</div>${data.criticalBeds?`<div class="census-risk-beds">${escapeHtml(data.criticalBeds)}</div>`:''}</div>
+        <div class="census-risk-tile yel"><div class="census-risk-num">${data.moderate||0}</div><div class="census-risk-lbl">🟡 MODERATE</div>${data.moderateBeds?`<div class="census-risk-beds">${escapeHtml(data.moderateBeds)}</div>`:''}</div>
+        <div class="census-risk-tile grn"><div class="census-risk-num">${data.stable||0}</div><div class="census-risk-lbl">🟢 REST</div></div>
+      </div>
+      <div class="census-updated">Last updated ${fmtDateTime(data.updatedAt)} · ${escapeHtml(data.updatedBy||'—')}</div>
+    </div>`;
+  }).join('');
+  let lastStr = '';
+  let allStamps = units.map(u => window.S.census?.[u]?.updatedAt).filter(Boolean);
+  if(allStamps.length){
+    let mostRecent = Math.max(...allStamps);
+    lastStr = 'Most recent census update: ' + fmtDateTime(mostRecent);
+  }
+  document.getElementById('censusLastUpdate').innerText = lastStr;
+}
+
+// Calculate scheduled count for a given date (YYYY-MM-DD). Only today & future matter.
+function cathScheduledOnDate(isoDate){
+  return Object.values(window.S.cathScheduled||{}).filter(s => s.date === isoDate).length;
+}
+
+// Check upcoming cath days against Ward 4 availability; return array of alerts.
+function computeBedAlerts(){
+  ensureExtState();
+  let alerts = [];
+  let ward4 = window.S.census?.ward4;
+  if(!ward4 || typeof ward4.available !== 'number') return alerts;
+  // Group scheduled cath by date, today + 7 days ahead
+  let today = new Date(todayIso()+'T00:00:00');
+  let horizon = new Date(today); horizon.setDate(horizon.getDate() + 7);
+  let byDate = {};
+  Object.values(window.S.cathScheduled||{}).forEach(s => {
+    if(!s.date) return;
+    let d = new Date(s.date+'T00:00:00');
+    if(isNaN(d)) return;
+    if(d >= today && d <= horizon){
+      byDate[s.date] = (byDate[s.date]||0) + 1;
+    }
+  });
+  Object.keys(byDate).sort().forEach(d => {
+    let needed = byDate[d];
+    if(needed > ward4.available){
+      alerts.push({date: d, scheduled: needed, available: ward4.available, shortage: needed - ward4.available});
+    }
+  });
+  return alerts;
+}
+
+function renderCensusAlert(){
+  let cathBox = document.getElementById('cathSchedAlert');
+  let censBox = document.getElementById('censusAlertBox');
+  let alerts = computeBedAlerts();
+  let html = '';
+  if(alerts.length){
+    html = `<div class="census-alert"><div class="census-alert-icon">🚨</div><div class="census-alert-body">
+      <strong>Ward 4 bed shortage — contact elective patients for reappointment</strong>
+      ${alerts.map(a => `• ${fmtDate(a.date)}: ${a.scheduled} scheduled, only ${a.available} Ward 4 beds available <span style="color:#fbbf24">(short by ${a.shortage})</span>`).join('<br>')}
+    </div></div>`;
+  }
+  if(cathBox) cathBox.innerHTML = html;
+  if(censBox) censBox.innerHTML = html;
+}
+
+// ============================================================
+// UPDATED goTab — role-aware, renders new tabs
+// ============================================================
+window.goTab=(id,btn)=>{
+  // Role check
+  let allowed = (btn.getAttribute('data-role')||'').split(' ');
+  if(window.currentRole && !allowed.includes(window.currentRole)) { alert('Access denied for your role.'); return; }
+  document.querySelectorAll(".pg").forEach(p=>p.classList.remove("on"));
+  document.querySelectorAll("#mainTabs>.tab").forEach(t=>t.classList.remove("on"));
+  document.getElementById("pg-"+id).classList.add("on");
+  btn.classList.add("on");
+  if(id==="ep") renderEpTab();
+  if(id==="endo") renderEndoList();
+  if(id==="cath") renderCathAll();
+  if(id==="census"){ renderCensus(); renderCensusAlert(); }
+  rAll();
+};
 window.goAdmTab=(id,btn)=>{ document.querySelectorAll(".adm-tab").forEach(t=>t.classList.remove("on")); document.querySelectorAll(".adm-sec").forEach(s=>s.classList.remove("on")); btn.classList.add("on"); document.getElementById("adm-"+id).classList.add("on"); if(id==="export") renderClinicExportGrid(); if(id==="blocked") renderBlockedList(); };
 window.filterLog=(f,b)=>{ document.querySelectorAll(".fb").forEach(x=>x.classList.remove("on")); b.classList.add("on"); window.lf=f; rLog(); };
-window.clerkLogin=async ()=>{ let v=document.getElementById("opi").value; if(!v) return; let h=await sha256(v); if(h===CLERK_HASH){ document.getElementById("opgate").style.display="none"; document.getElementById("opc").style.display="block"; } else { alert("Incorrect PIN"); document.getElementById("opi").value=""; } };
 window.adminLogin=async (id)=>{ let v=document.getElementById(id).value; if(!v) return; let h=await sha256(v); if(h===ADMIN_HASH){ adm=true; document.querySelectorAll(".apgate").forEach(e=>e.style.display="none"); document.querySelectorAll(".ac-content").forEach(e=>e.style.display="block"); rAll(); } else { alert("Incorrect PIN"); document.getElementById(id).value=""; } };
 window.goOpTab=(tab,btn)=>{ document.querySelectorAll("#opc .tab").forEach(t=>t.classList.remove("on")); btn.classList.add("on"); document.getElementById("op-walkin").style.display=tab==="walkin"?"block":"none"; document.getElementById("op-fix").style.display=tab==="fix"?"block":"none"; if(tab==="fix") renderFixClinics(); };
 window.closeMo=()=>document.getElementById("mo").classList.remove("on");
 window.delEntry=()=>{ let s=document.getElementById("dfi").value.trim(); if(!s) return; let idxL=window.S.logs.findIndex(e=>e.fn.toString().includes(s)), idxO=window.S.oplogs.findIndex(e=>e.fn.toString().includes(s)), idxE=(window.S.eplogs||[]).findIndex(e=>e.fn.toString().includes(s)); if(idxL===-1 && idxO===-1 && idxE===-1) return alert("Not found"); if(confirm("Delete?")){ if(idxL!==-1) window.S.logs.splice(idxL,1); else if(idxO!==-1) window.S.oplogs.splice(idxO,1); else window.S.eplogs.splice(idxE,1); dbRef.set(window.S); rAll(); } };
-window.resetAll=()=>{ if(confirm("WIPE EVERYTHING?")){ window.S={logs:[], oplogs:[], eplogs:[], leave:{}, skipped:{}, blockedDates:{}}; dbRef.set(window.S); rAll(); } };
+window.resetAll=()=>{ if(confirm("WIPE EVERYTHING?")){ window.S={logs:[], oplogs:[], eplogs:[], leave:{}, skipped:{}, blockedDates:{}, endorsements:{}, cathScheduled:{}, cathPending:{}, census:{ward4:null,ccu:null}}; dbRef.set(window.S); rAll(); } };
 window.exportWeekly=()=>{ let all=(window.S.logs||[]).concat(window.S.oplogs||[]).concat(window.S.eplogs||[]).sort((a,b)=>b.ts-a.ts); if(!all.length) return alert("No data"); exportPDF("Master Log — All Entries", all); };
-dbRef.on('value',(snap)=>{ let d=snap.val(); if(d){ window.S.logs=d.logs||[]; window.S.oplogs=d.oplogs||[]; window.S.eplogs=d.eplogs||[]; window.S.leave=d.leave||{}; window.S.skipped=d.skipped||{}; window.S.blockedDates=d.blockedDates||{}; } dataLoaded=true; document.getElementById("syncDot").style.background="var(--ok)"; document.getElementById("syncText").innerText="Live — Synced"; rAll(); });
+
+dbRef.on('value',(snap)=>{
+  let d=snap.val();
+  if(d){
+    window.S.logs=d.logs||[];
+    window.S.oplogs=d.oplogs||[];
+    window.S.eplogs=d.eplogs||[];
+    window.S.leave=d.leave||{};
+    window.S.skipped=d.skipped||{};
+    window.S.blockedDates=d.blockedDates||{};
+    window.S.endorsements=d.endorsements||{};
+    window.S.cathScheduled=d.cathScheduled||{};
+    window.S.cathPending=d.cathPending||{};
+    window.S.census=d.census||{ward4:null,ccu:null};
+  }
+  ensureExtState();
+  dataLoaded=true;
+  document.getElementById("syncDot").style.background="var(--ok)";
+  document.getElementById("syncText").innerText="Live — Synced";
+  rAll();
+  // Re-render new sections if on them
+  if(document.getElementById('pg-endo')?.classList.contains('on')) renderEndoList();
+  if(document.getElementById('pg-cath')?.classList.contains('on')) renderCathAll();
+  if(document.getElementById('pg-census')?.classList.contains('on')){ renderCensus(); renderCensusAlert(); }
+});
+
+// Initialize
+ensureExtState();
 rAll();
 </script>
 </body>
