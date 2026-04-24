@@ -569,6 +569,25 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
           <label>MRN (File Number)</label>
           <input type="text" id="endo-mrn" maxlength="12" required placeholder="6-digit MRN">
 
+          <div class="endo-edit-two" style="grid-template-columns:90px 1fr 1fr">
+            <div>
+              <label>Age</label>
+              <input type="text" id="endo-age" maxlength="3" inputmode="numeric" placeholder="e.g. 58">
+            </div>
+            <div>
+              <label>Sex</label>
+              <select id="endo-sex" style="width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:11px;color:var(--txt);font-family:'DM Mono',monospace;font-size:13px;outline:none;margin-bottom:11px">
+                <option value="">—</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+            <div>
+              <label>Nationality</label>
+              <input type="text" id="endo-nat" maxlength="30" placeholder="e.g. Kuwaiti">
+            </div>
+          </div>
+
           <label>Past History</label>
           <textarea id="endo-hx" rows="3" placeholder="HTN, DM, CAD s/p PCI LAD 2022, CKD stage 3..."></textarea>
 
@@ -651,9 +670,14 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
       <div id="cathSchEditing" style="display:none;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.3);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--acc);line-height:1.6">
         Editing existing appointment.
       </div>
+      <div id="cathSchFromEndo" style="display:none;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.4);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--ok);line-height:1.6">
+        🏥 <strong>IP CASE</strong> — Scheduling inpatient from the IP list. The patient will be marked as IP case and linked to their IP entry.
+      </div>
       <form class="cath-form" onsubmit="return saveCathSched(event)">
         <input type="hidden" id="cath-sch-pending-id">
         <input type="hidden" id="cath-sch-edit-id">
+        <input type="hidden" id="cath-sch-endo-id">
+        <input type="hidden" id="cath-sch-case-type">
         <div id="cathSchDictHint" style="display:none;margin-bottom:10px">
           <button type="button" class="dict-hint-btn" onclick="toggleCheatSheet('cathSchCheatSheet',this)">
             <span class="dict-hint-icon">🎙</span>
@@ -1097,23 +1121,33 @@ async function sha256(str){
   return Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
 // Synchronous lookup helper: returns registrar name if hash matches, else undefined.
-// Checks the live docPins override (new 6-digit PINs) FIRST. If a doctor has an
-// entry there (either as their new hash OR as a tombstone marking the original
-// 4-digit PIN as invalidated), that mapping wins. Falls back to the original
-// docPINsHashed table for any doctor who hasn't changed their PIN yet.
+// Resolution order:
+//   1) Live overrides (new PINs set via self-change or admin reset) — highest priority
+//   2) Seed table (original hardcoded PINs) — but only if no live override has
+//      replaced this doctor's PIN. If a live PIN exists for this doctor, the old
+//      seed PIN is disabled (so the doctor can't log in with two PINs simultaneously).
+//   3) A stray tombstone without a replacement is IGNORED (treated as no-op) so
+//      dangling retirement markers can never lock out a doctor.
 async function lookupDocPIN(pin){
   if(!pin) return undefined;
   const h = await sha256(String(pin));
-  // 1) Live overrides take priority. Shape: { "<hash>": "Dr. Name" }
   const live = (window.S && window.S.docPins) || {};
-  if(live[h]) return live[h];
-  // 2) Check tombstones — if the original hash maps to a doctor whose PIN has
-  // been changed, invalidate the old PIN so the doctor CAN'T log in with it.
-  // Tombstones are stored under the key `retired:<oldHash>` = "<docName>".
-  const retiredKey = "retired:" + h;
-  if(live[retiredKey]) return undefined; // old PIN disabled
-  // 3) Fall back to the hardcoded seed table.
-  return docPINsHashed[h];
+  // 1) Active live override takes priority
+  if(live[h] && !String(h).startsWith('retired:')) return live[h];
+  // 2) Seed table fallback — allow unless THIS doctor has a live replacement
+  const seedName = docPINsHashed[h];
+  if(seedName){
+    // Does this doctor already have a live replacement PIN? If yes, the old
+    // seed PIN is retired for them (regardless of tombstone presence).
+    let hasLiveReplacement = false;
+    for(let k in live){
+      if(k.startsWith('retired:')) continue;
+      if(live[k] === seedName){ hasLiveReplacement = true; break; }
+    }
+    if(!hasLiveReplacement) return seedName;
+    return undefined;
+  }
+  return undefined;
 }
 var CL = [
   {d:"Fahad",    r:"Room 24", days:["Mon"], dist: 0},   // 1
@@ -1783,8 +1817,9 @@ window.submitRolePin = async function(){
     if(h === ADMIN_HASH){ adm = true; enterApp('admin'); }
     else { alert('Incorrect PIN'); document.getElementById('roleStage2Pin').value=''; }
   } else if(pendingRole === 'registrar'){
-    // Doctor login — check against docPINsHashed table
-    let docName = docPINsHashed[h];
+    // Doctor login — route through lookupDocPIN so live PIN overrides, tombstones,
+    // and any future rules apply consistently across login and subsequent actions.
+    let docName = await lookupDocPIN(v);
     if(docName){
       window.currentDoctor = docName;
       enterApp('registrar');
@@ -2006,6 +2041,9 @@ window.openEndoForm = function(id){
     document.getElementById('endo-bed').value = e.bed || '';
     document.getElementById('endo-name').value = e.name || '';
     document.getElementById('endo-mrn').value = e.mrn || '';
+    document.getElementById('endo-age').value = e.age || '';
+    document.getElementById('endo-sex').value = e.sex || '';
+    document.getElementById('endo-nat').value = e.nationality || '';
     document.getElementById('endo-hx').value = e.hx || '';
     document.getElementById('endo-reason').value = e.reason || '';
     document.getElementById('endo-ix').value = e.ix || '';
@@ -2052,6 +2090,9 @@ window.saveEndo = async function(ev){
     bed: document.getElementById('endo-bed').value.trim(),
     name: document.getElementById('endo-name').value.trim(),
     mrn: document.getElementById('endo-mrn').value.trim(),
+    age: document.getElementById('endo-age').value.trim(),
+    sex: document.getElementById('endo-sex').value.trim(),
+    nationality: document.getElementById('endo-nat').value.trim(),
     hx: document.getElementById('endo-hx').value.trim(),
     reason: document.getElementById('endo-reason').value.trim(),
     ix: document.getElementById('endo-ix').value.trim(),
@@ -2177,6 +2218,15 @@ function renderEndoList(){
     let isOpen = expandedEndoIds.has(e.id);
     let reasonSummary = (e.reason||'').trim();
     let summary = reasonSummary ? (reasonSummary.length > 60 ? reasonSummary.slice(0,60).trim()+'…' : reasonSummary) : '';
+    // Build demographics line from age/sex/nationality
+    let demoParts = [];
+    if(e.age) demoParts.push(escapeHtml(e.age) + 'y');
+    if(e.sex) demoParts.push(escapeHtml(e.sex));
+    if(e.nationality) demoParts.push(escapeHtml(e.nationality));
+    let demoLine = demoParts.length ? `<div class="endo-mrn" style="color:var(--mid)">${demoParts.join(' · ')}</div>` : '';
+    // Is this patient already in the cath scheduled list as an IP case?
+    let inCath = Object.values(window.S.cathScheduled||{}).find(s => s.sourceEndoId === e.id);
+    let cathBadge = inCath ? `<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.5px;background:rgba(52,211,153,.15);color:var(--ok);border:1px solid rgba(52,211,153,.35);border-radius:4px;padding:2px 7px;margin-top:4px;display:inline-block">🏥 CATH SCHEDULED · ${escapeHtml(inCath.date||'—')}</div>` : '';
     return `
     <div class="endo-card${isOpen?' open':''}">
       <div class="endo-card-head endo-card-toggle" onclick="toggleEndoCard('${e.id}')">
@@ -2184,6 +2234,8 @@ function renderEndoList(){
         <div style="flex:1;min-width:0">
           <div class="endo-name">${escapeHtml(e.name||'—')}</div>
           <div class="endo-mrn">MRN · ${escapeHtml(e.mrn||'—')}${summary?' · <span style="color:var(--dim)">'+escapeHtml(summary)+'</span>':''}</div>
+          ${demoLine}
+          ${cathBadge}
         </div>
         <div class="endo-chevron">▾</div>
       </div>
@@ -2200,6 +2252,7 @@ function renderEndoList(){
         </div>
         <div class="endo-actions">
           <button class="endo-act-btn" onclick="event.stopPropagation();openEndoForm('${e.id}')">✎ Edit</button>
+          <button class="endo-act-btn" style="border-color:rgba(52,211,153,.4);color:var(--ok)" onclick="event.stopPropagation();sendEndoToCath('${e.id}')" title="Schedule this patient as an IP cath case">🏥 ${inCath?'Re-schedule Cath':'Send to Cathlab'}</button>
           <button class="endo-act-btn danger" onclick="event.stopPropagation();deleteEndo('${e.id}')">✕ Discharge</button>
         </div>
       </div>
@@ -3162,6 +3215,8 @@ function clickCathSubtab(name){
 window.resetCathSchForm = function(quiet){
   document.getElementById('cath-sch-pending-id').value = '';
   document.getElementById('cath-sch-edit-id').value = '';
+  let endoIdEl = document.getElementById('cath-sch-endo-id'); if(endoIdEl) endoIdEl.value = '';
+  let caseTypeEl = document.getElementById('cath-sch-case-type'); if(caseTypeEl) caseTypeEl.value = '';
   ['cath-sch-name','cath-sch-age','cath-sch-nat','cath-sch-cid','cath-sch-phone','cath-sch-file','cath-sch-hx','cath-sch-pin','cath-sch-date'].forEach(id=>{
     let el = document.getElementById(id); if(el) el.value='';
   });
@@ -3171,6 +3226,7 @@ window.resetCathSchForm = function(quiet){
   renderImgPreview('cath-sch');
   document.getElementById('cathSchFromPending').style.display = 'none';
   document.getElementById('cathSchEditing').style.display = 'none';
+  let fromEndoEl = document.getElementById('cathSchFromEndo'); if(fromEndoEl) fromEndoEl.style.display = 'none';
   document.getElementById('cathSchFormTitle').innerText = 'SCHEDULE A CATH APPOINTMENT';
   document.getElementById('cathSchSaveBtn').innerText = '💾 Save Appointment';
   let badge = document.getElementById('cathSchDateBadge');
@@ -3264,6 +3320,11 @@ window.editScheduled = function(sid){
   document.getElementById('cath-sch-file').value = s.file || '';
   document.getElementById('cath-sch-hx').value = s.hx || '';
   document.getElementById('cath-sch-date').value = s.date || '';
+  // Preserve IP linkage through edits
+  let endoEl = document.getElementById('cath-sch-endo-id');
+  let ctEl = document.getElementById('cath-sch-case-type');
+  if(endoEl) endoEl.value = s.sourceEndoId || '';
+  if(ctEl) ctEl.value = s.caseType || '';
   imgBuffers['cath-sch'] = (s.images||[]).slice();
   renderImgPreview('cath-sch');
   let proc = document.getElementById('cath-sch-proc');
@@ -3275,7 +3336,12 @@ window.editScheduled = function(sid){
     if(op.options[i].value === s.operator){ op.selectedIndex = i; break; }
   }
   document.getElementById('cathSchEditing').style.display = 'block';
-  document.getElementById('cathSchFormTitle').innerText = `EDITING: ${s.name}`;
+  // Also show IP banner if this is an IP case
+  if(s.caseType === 'IP'){
+    let ipBanner = document.getElementById('cathSchFromEndo');
+    if(ipBanner) ipBanner.style.display = 'block';
+  }
+  document.getElementById('cathSchFormTitle').innerText = `EDITING: ${s.name}${s.caseType==='IP'?' (IP Case)':''}`;
   document.getElementById('cathSchSaveBtn').innerText = '💾 Update Appointment';
   updateSchDateBadge();
 };
@@ -3310,8 +3376,15 @@ window.saveCathSched = async function(ev){
   if(!reg) return false;
   let pendingId = document.getElementById('cath-sch-pending-id').value;
   let editId = document.getElementById('cath-sch-edit-id').value;
+  let endoIdEl = document.getElementById('cath-sch-endo-id');
+  let caseTypeEl = document.getElementById('cath-sch-case-type');
+  let endoId = endoIdEl ? endoIdEl.value : '';
+  let caseType = caseTypeEl ? caseTypeEl.value : '';
   let id = editId || ('sch_' + Date.now() + '_' + Math.floor(Math.random()*1000));
   let existing = editId ? window.S.cathScheduled[editId] : null;
+  // Preserve IP linkage from the existing record if not explicitly set in the form
+  let finalEndoId = endoId || (existing && existing.sourceEndoId) || '';
+  let finalCaseType = caseType || (existing && existing.caseType) || '';
   window.S.cathScheduled[id] = {
     id: id,
     name: document.getElementById('cath-sch-name').value.trim(),
@@ -3324,6 +3397,8 @@ window.saveCathSched = async function(ev){
     proc: document.getElementById('cath-sch-proc').value,
     operator: document.getElementById('cath-sch-op').value,
     date: document.getElementById('cath-sch-date').value,
+    sourceEndoId: finalEndoId,
+    caseType: finalCaseType,
     createdAt: existing?.createdAt || Date.now(),
     createdBy: existing?.createdBy || reg,
     updatedAt: Date.now(),
@@ -3421,11 +3496,12 @@ function renderCathToday(){
     if(s.age) demo.push(s.age + 'y');
     if(s.nationality) demo.push(s.nationality);
     let demoStr = demo.join(' · ');
+    let ipBadge = (s.caseType === 'IP') ? `<span style="background:rgba(52,211,153,.15);color:var(--ok);border:1px solid rgba(52,211,153,.4);border-radius:4px;padding:2px 7px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.5px;margin-left:6px">🏥 IP</span>` : '';
     return `
-    <div class="cath-card">
+    <div class="cath-card"${s.caseType==='IP'?' style="border-left:3px solid var(--ok)"':''}>
       <div class="cath-card-head">
         <div style="background:var(--acc);color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;padding:4px 9px;border-radius:5px;letter-spacing:.5px">#${idx+1}</div>
-        <div class="cath-name" style="flex:1">${escapeHtml(s.name||'—')}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
+        <div class="cath-name" style="flex:1">${escapeHtml(s.name||'—')}${ipBadge}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
       </div>
       <div class="cath-row"><div class="cath-row-label">Civil ID</div><div class="cath-row-val">${escapeHtml(s.cid||'—')}</div></div>
       ${s.file?`<div class="cath-row"><div class="cath-row-label">File</div><div class="cath-row-val">${escapeHtml(s.file)}</div></div>`:''}
@@ -3623,10 +3699,11 @@ function renderCathScheduled(){
     if(s.age) demo.push(s.age + 'y');
     if(s.nationality) demo.push(s.nationality);
     let demoStr = demo.join(' · ');
+    let ipBadge = (s.caseType === 'IP') ? `<span style="background:rgba(52,211,153,.15);color:var(--ok);border:1px solid rgba(52,211,153,.4);border-radius:4px;padding:2px 7px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.5px;margin-left:6px">🏥 IP</span>` : '';
     return `
-    <div class="cath-card">
+    <div class="cath-card"${s.caseType==='IP'?' style="border-left:3px solid var(--ok)"':''}>
       <div class="cath-card-head">
-        <div class="cath-name">${escapeHtml(s.name||'—')}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
+        <div class="cath-name">${escapeHtml(s.name||'—')}${ipBadge}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
         <div class="cath-date">${fmtDate(s.date)}</div>
       </div>
       <div class="cath-row"><div class="cath-row-label">Civil ID</div><div class="cath-row-val">${escapeHtml(s.cid||'—')}</div></div>
@@ -3919,7 +3996,25 @@ dbRef.on('value',(snap)=>{
       if(rec[id] && rec[id].images){ delete rec[id].images; stripped = true; }
     });
   });
-  if(stripped){ dbRef.set(window.S); }
+
+  // ONE-TIME CLEANUP: remove orphan tombstones in docPins — a `retired:<hash>` entry
+  // that has no matching active replacement PIN for that doctor. Such entries
+  // could wrongly lock a doctor out of changing their PIN. Safe to run on every
+  // load because it's a no-op when there's nothing to clean.
+  let pinCleanup = false;
+  let dp = window.S.docPins || {};
+  // Build "who has an active live PIN" set
+  let withLive = new Set();
+  Object.keys(dp).forEach(k => { if(!k.startsWith('retired:')) withLive.add(dp[k]); });
+  Object.keys(dp).forEach(k => {
+    if(!k.startsWith('retired:')) return;
+    let docName = dp[k];
+    if(!withLive.has(docName)){
+      delete dp[k];
+      pinCleanup = true;
+    }
+  });
+  if(stripped || pinCleanup){ dbRef.set(window.S); }
 
   dataLoaded=true;
   document.getElementById("syncDot").style.background="var(--ok)";
@@ -3937,8 +4032,73 @@ dbRef.on('value',(snap)=>{
 });
 
 // ============================================================
-// OPD ALLOCATOR — mount sub-tab content
+// Send an IP endorsement patient directly to the cathlab schedule form
+// as an IP case (prefills name/age/nationality/file/hx from the IP entry
+// and opens the Cathlab → ＋ Schedule sub-tab). The saved cath appointment
+// is linked back to the endorsement via sourceEndoId so the IP card shows
+// a "🏥 CATH SCHEDULED" badge.
 // ============================================================
+window.sendEndoToCath = function(endoId){
+  ensureExtState();
+  let e = window.S.endorsements[endoId];
+  if(!e){ alert('Patient not found.'); return; }
+  // If already scheduled, jump to editing that existing schedule record
+  let existingSched = Object.values(window.S.cathScheduled||{}).find(s => s.sourceEndoId === endoId);
+  if(existingSched){
+    if(!confirm(`${e.name} already has a cath case scheduled on ${existingSched.date || '—'}.\n\nOpen it for editing / re-scheduling?`)) return;
+    // Switch tab + edit
+    let opdalBtn = document.querySelector('#mainTabs .tab[onclick*="\'opdal\'"]'); // close opdal if open
+    let cathBtn = document.querySelector('#mainTabs .tab[onclick*="\'cath\'"]');
+    if(cathBtn){ cathBtn.click(); }
+    setTimeout(()=>editScheduled(existingSched.id), 80);
+    return;
+  }
+  // Switch to Cathlab tab
+  let cathBtn = document.querySelector('#mainTabs .tab[onclick*="\'cath\'"]');
+  if(!cathBtn){ alert('Cathlab tab not available for your role.'); return; }
+  cathBtn.click();
+  // Defer so the cath tab rendering completes first
+  setTimeout(()=>{
+    clickCathSubtab('addSch');
+    resetCathSchForm(true);
+    // Populate from IP entry
+    document.getElementById('cath-sch-name').value = e.name || '';
+    document.getElementById('cath-sch-age').value = e.age || '';
+    document.getElementById('cath-sch-nat').value = e.nationality || '';
+    document.getElementById('cath-sch-file').value = e.mrn || '';
+    // Build a rich history from IP entry fields
+    let hxParts = [];
+    if(e.age || e.sex){
+      let head = '';
+      if(e.age) head += e.age;
+      if(e.sex) head += (e.sex==='Male'?'M':(e.sex==='Female'?'F':e.sex));
+      if(head) hxParts.push(head);
+    }
+    if(e.hx) hxParts.push('PMHx: ' + e.hx);
+    if(e.reason) hxParts.push('Admitted for: ' + e.reason);
+    if(e.ix) hxParts.push('Ix: ' + e.ix);
+    if(e.active) hxParts.push('Active: ' + e.active);
+    document.getElementById('cath-sch-hx').value = hxParts.join('\n');
+    // Link this schedule back to the IP entry
+    let endoEl = document.getElementById('cath-sch-endo-id');
+    let ctEl = document.getElementById('cath-sch-case-type');
+    if(endoEl) endoEl.value = endoId;
+    if(ctEl) ctEl.value = 'IP';
+    // Show green IP banner
+    let banner = document.getElementById('cathSchFromEndo');
+    if(banner) banner.style.display = 'block';
+    document.getElementById('cathSchFormTitle').innerText = `IP CASE: ${e.name} (${e.ward||'—'} · Bed ${e.bed||'—'})`;
+    updateSchDateBadge();
+    // Scroll form into view and focus the procedure select (most important missing field)
+    let proc = document.getElementById('cath-sch-proc');
+    if(proc){
+      proc.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(()=>proc.focus(), 250);
+    }
+  }, 100);
+};
+
+
 window.currentOpdalSub = 'ip';
 
 function mountOpdalSubtab(sub){
