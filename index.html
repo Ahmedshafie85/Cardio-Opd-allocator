@@ -1557,22 +1557,67 @@ window.exportCathToday = function(){
   cases.sort((a,b) => (a.operator||'zzzz').localeCompare(b.operator||'zzzz') || (a.proc||'').localeCompare(b.proc||''));
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-  // Title + subtitle
-  doc.setFont("helvetica","bold"); doc.setFontSize(15);
-  doc.text("Cathlab — Today's Case List", 40, 36);
-  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(90);
+  const pageW = doc.internal.pageSize.getWidth();
+  const leftMargin = 40;
+  const rightMargin = 40;
+
+  // ===== TITLE BAND (navy rectangle with white title) =====
+  doc.setFillColor(30, 64, 175);
+  doc.rect(0, 0, pageW, 56, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(17);
+  doc.text("CATHLAB — TODAY'S CASE LIST", leftMargin, 26);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
   const dateLabel = new Date(iso+"T00:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
-  const stamp = new Date().toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
-  doc.text(`Mubarak Al-Kabeer Hospital — ${dateLabel}     Generated: ${stamp}     Total: ${cases.length}`, 40, 52);
-  // Quick breakdown: IP vs Elective + operators
+  doc.text(dateLabel, leftMargin, 44);
+  // Hospital name on right of band
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+  let hospital = "Mubarak Al-Kabeer Hospital";
+  doc.text(hospital, pageW - rightMargin, 26, { align: "right" });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  doc.text("Cardiology Department", pageW - rightMargin, 42, { align: "right" });
+
+  // ===== INFO CHIPS ROW =====
   let ipCount = cases.filter(s => s.caseType === 'IP').length;
   let electiveCount = cases.length - ipCount;
-  let avail = window.S.census?.ward4?.available;
-  let availStr = (typeof avail === 'number') ? `${avail} available` : "census not updated";
-  doc.setFontSize(9); doc.setTextColor(60);
-  doc.text(`IP cases: ${ipCount}   ·   Elective: ${electiveCount}   ·   Ward 4: ${availStr}`, 40, 68);
-  // Table
-  const head = [["#","Patient","Age/Sex/Nat","Civil ID","File","Phone","Procedure","Operator","Type","History","Done / Result"]];
+
+  // Helper to draw a single rounded-rect chip
+  function drawChip(x, y, label, value, fill, text){
+    let pad = 8, lineH = 13;
+    doc.setFont("helvetica","bold"); doc.setFontSize(8.5);
+    let labelW = doc.getTextWidth(label);
+    doc.setFont("helvetica","bold"); doc.setFontSize(11);
+    let valW = doc.getTextWidth(String(value));
+    let w = Math.max(labelW, valW) + pad*2;
+    let h = 34;
+    doc.setFillColor(fill[0], fill[1], fill[2]);
+    doc.roundedRect(x, y, w, h, 4, 4, "F");
+    doc.setTextColor(text[0], text[1], text[2]);
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
+    doc.text(label, x + pad, y + 12);
+    doc.setFont("helvetica","bold"); doc.setFontSize(13);
+    doc.text(String(value), x + pad, y + 28);
+    return w;
+  }
+  let chipY = 68;
+  let cx = leftMargin;
+  // Total — blue
+  cx += drawChip(cx, chipY, "TOTAL CASES", cases.length, [219, 234, 254], [30, 64, 175]) + 8;
+  // IP — green
+  cx += drawChip(cx, chipY, "IP CASES", ipCount, [220, 252, 231], [5, 112, 73]) + 8;
+  // Elective — light slate
+  cx += drawChip(cx, chipY, "ELECTIVE", electiveCount, [226, 232, 240], [51, 65, 85]) + 8;
+
+  // Generated timestamp — subtle, right-aligned, same row
+  const stamp = new Date().toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Generated: ${stamp}`, pageW - rightMargin, chipY + 28, { align: "right" });
+
+  let tableStartY = 114;
+
+  // ===== TABLE =====
+  const head = [["#","Patient","Age/Sex/Nat","Civil ID","Procedure","Operator","Type","History","Done / Result"]];
   const body = cases.map((s, i) => {
     let demo = [];
     if(s.age) demo.push(s.age + "y");
@@ -1583,8 +1628,6 @@ window.exportCathToday = function(){
       s.name || "—",
       demo.join(" · ") || "—",
       s.cid || "—",
-      s.file || "—",
-      s.phone || "—",
       s.proc || "—",
       s.operator || "To be assigned",
       s.caseType === 'IP' ? "IP" : "Elective",
@@ -1593,41 +1636,63 @@ window.exportCathToday = function(){
     ];
   });
   doc.autoTable({
-    head, body, startY: 82,
-    styles: { font:"helvetica", fontSize: 8.5, cellPadding: 4, overflow: "linebreak", valign:"top" },
-    headStyles: { fillColor: [30,64,175], textColor: 255, fontStyle:"bold", fontSize: 9 },
-    alternateRowStyles: { fillColor: [243, 246, 250] },
+    head, body, startY: tableStartY,
+    styles: {
+      font:"helvetica", fontSize: 8.5, cellPadding: 5, overflow: "linebreak",
+      valign:"top", textColor: [30, 41, 59], lineColor: [203, 213, 225], lineWidth: 0.25
+    },
+    headStyles: {
+      fillColor: [30, 64, 175], textColor: 255, fontStyle: "bold",
+      fontSize: 9, halign: "left", cellPadding: 6, lineWidth: 0
+    },
+    alternateRowStyles: { fillColor: [241, 245, 249] },
     columnStyles: {
-      0: { cellWidth: 22, halign:"center" },
-      1: { cellWidth: 85, fontStyle: "bold" },
-      2: { cellWidth: 62 },
-      3: { cellWidth: 62 },
-      4: { cellWidth: 48 },
-      5: { cellWidth: 58 },
-      6: { cellWidth: 85 },
-      7: { cellWidth: 62 },
-      8: { cellWidth: 42, halign:"center", fontStyle:"bold" },
-      9: { cellWidth: 120 },
-      10: { cellWidth: 'auto', fontStyle: 'bold' }
+      0: { cellWidth: 22, halign: "center", fontStyle: "bold", textColor: [100, 116, 139] },
+      1: { cellWidth: 115, fontStyle: "bold", textColor: [15, 23, 42] },
+      2: { cellWidth: 68, fontSize: 8 },
+      3: { cellWidth: 68, fontSize: 8, textColor: [71, 85, 105] },
+      4: { cellWidth: 110, fontStyle: "bold", textColor: [30, 64, 175] },
+      5: { cellWidth: 72, fontSize: 8 },
+      6: { cellWidth: 50, halign: "center", fontStyle: "bold", fontSize: 8 },
+      7: { cellWidth: 150, fontSize: 8, textColor: [51, 65, 85] },
+      8: { cellWidth: 'auto', fontStyle: 'bold', fontSize: 8.5 }
     },
-    // Highlight IP rows (col 8) and result cells (col 10) in a light green band
     didParseCell: function(data){
-      if(data.section === 'body' && data.column.index === 8){
-        let txt = (data.cell.raw || "").toString();
-        if(txt === "IP"){ data.cell.styles.textColor = [5, 112, 73]; data.cell.styles.fillColor = [220, 252, 231]; }
-        else { data.cell.styles.textColor = [30, 64, 175]; }
+      if(data.section !== 'body') return;
+      let col = data.column.index;
+      let raw = (data.cell.raw || "").toString();
+      // Type column: IP = green pill, Elective = blue pill
+      if(col === 6){
+        if(raw === "IP"){
+          data.cell.styles.textColor = [5, 112, 73];
+          data.cell.styles.fillColor = [220, 252, 231];
+        } else {
+          data.cell.styles.textColor = [30, 64, 175];
+          data.cell.styles.fillColor = [219, 234, 254];
+        }
       }
-      if(data.section === 'body' && data.column.index === 10){
-        let txt = (data.cell.raw || "").toString();
-        if(txt){ data.cell.styles.textColor = [5, 112, 73]; data.cell.styles.fillColor = [220, 252, 231]; }
+      // Operator column: muted italic when "To be assigned"
+      if(col === 5 && raw === "To be assigned"){
+        data.cell.styles.textColor = [148, 163, 184];
+        data.cell.styles.fontStyle = "italic";
+      }
+      // Done / Result column: green fill + bold when present
+      if(col === 8){
+        if(raw && raw !== "—"){
+          data.cell.styles.textColor = [5, 112, 73];
+          data.cell.styles.fillColor = [220, 252, 231];
+        }
       }
     },
-    margin: { left: 40, right: 40 },
-    didDrawPage: (d) => {
+    margin: { left: leftMargin, right: rightMargin },
+    didDrawPage: function(d){
       const pageCount = doc.internal.getNumberOfPages();
       const pageSize = doc.internal.pageSize;
-      doc.setFontSize(8); doc.setTextColor(120);
-      doc.text(`Page ${d.pageNumber} of ${pageCount}`, pageSize.getWidth()-80, pageSize.getHeight()-20);
+      // Footer — left: hospital label, right: page number
+      doc.setFont("helvetica","normal"); doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text("Mubarak Al-Kabeer Hospital · Cardiology Department", leftMargin, pageSize.getHeight() - 20);
+      doc.text(`Page ${d.pageNumber} of ${pageCount}`, pageSize.getWidth() - rightMargin, pageSize.getHeight() - 20, { align: "right" });
     }
   });
   doc.save(`Cathlab_Today_${iso}.pdf`);
@@ -3531,9 +3596,12 @@ window.saveCathSched = async function(ev){
   }
   // If this is an IP case and a result was entered, sync the result back into
   // the linked IP endorsement's Investigations field (idempotent — will update
-  // in place rather than duplicate on subsequent edits).
+  // in place rather than duplicate on subsequent edits). The operator is
+  // credited inline in the IP text; the signer is recorded on the audit field
+  // only (so the edit trail still shows who typed it).
   if(finalCaseType === 'IP' && finalEndoId && window.S.endorsements && window.S.endorsements[finalEndoId]){
-    syncResultToIp(finalEndoId, resultVal, window.S.cathScheduled[id].date, reg);
+    let savedRecord = window.S.cathScheduled[id];
+    syncResultToIp(finalEndoId, resultVal, savedRecord.date, savedRecord.operator, reg);
   }
   dbRef.set(window.S);
   resetCathSchForm();
@@ -3550,8 +3618,14 @@ window.saveCathSched = async function(ev){
 // On the line immediately following the marker, the cath result is stored.
 // Doctors are free to edit the IP ix field manually — the marker + its
 // following line are the only parts this function rewrites.
+//
+// Credit: the "— by X" suffix on the result line names the OPERATOR (the
+// doctor who physically performed the procedure), not the registrar who
+// clicked save. If no operator is on the record, no suffix is added.
+// The `updatedBy` audit field on the IP record still uses the signer so the
+// audit trail reflects who typed it.
 // ============================================================
-function syncResultToIp(endoId, resultText, schedDateIso, byName){
+function syncResultToIp(endoId, resultText, schedDateIso, operatorName, signerName){
   let e = window.S.endorsements[endoId];
   if(!e) return;
   let currentIx = e.ix || '';
@@ -3566,7 +3640,8 @@ function syncResultToIp(endoId, resultText, schedDateIso, byName){
   let marker = `[[cath:${schedDateIso||'date'}]]`;
   let block = '';
   if(resultText){
-    block = `${marker}\nCath (${pretty}): ${resultText}${byName?' — by '+byName:''}`;
+    let opSuffix = operatorName ? ` — by ${operatorName}` : '';
+    block = `${marker}\nCath (${pretty}): ${resultText}${opSuffix}`;
   }
   // Remove any existing block for the same date marker (match marker line
   // + the immediately following line).
@@ -3586,7 +3661,7 @@ function syncResultToIp(endoId, resultText, schedDateIso, byName){
   if(newIx === currentIx) return; // nothing to change
   e.ix = newIx;
   e.updatedAt = Date.now();
-  e.updatedBy = byName || e.updatedBy || 'Cathlab';
+  e.updatedBy = signerName || e.updatedBy || 'Cathlab';
 }
 
 window.deleteScheduled = function(sid){
