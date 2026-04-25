@@ -758,9 +758,6 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
         <label>Appointment Date</label>
         <input type="date" id="cath-sch-date" class="pi" required style="margin-bottom:6px">
         <div id="cathSchDateBadge"></div>
-        <label>Procedure Done / Result <span style="font-weight:normal">(optional — fill in after the procedure)</span></label>
-        <textarea id="cath-sch-result" rows="3" style="width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:10px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-bottom:11px;resize:vertical;line-height:1.5" placeholder="e.g. PCI LAD 1 DES, TIMI 3 flow, no complications"></textarea>
-        <div id="cathSchResultIpNote" style="display:none;font-family:'DM Mono',monospace;font-size:10px;color:var(--ok);margin-top:-6px;margin-bottom:10px;padding:0 2px">↻ For IP cases, this result auto-syncs back to the patient's Investigations field in the IP list.</div>
         <label>Doctor PIN</label>
         <input type="password" id="cath-sch-pin" maxlength="6" inputmode="numeric" required>
         <button type="submit" class="btn" style="margin-top:6px" id="cathSchSaveBtn">💾 Save Appointment</button>
@@ -927,7 +924,7 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
   <div class="card">
     <div class="rl" style="margin-bottom:10px">WARD &amp; CCU CENSUS</div>
     <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:14px">
-      Updated <strong style="color:var(--warn)">twice daily</strong> by the assigned cardiologist. Ward 4 = 20 beds. CCU = 15 beds. An advisory alert will appear if <strong>scheduled cath cases</strong> for a day exceed available Ward 4 beds — scheduling is not blocked; it just reminds the cathlab doctor to free a bed or reschedule elective patients.
+      Updated <strong style="color:var(--warn)">twice daily</strong> by the assigned cardiologist. Ward 4 = 20 beds. CCU = 15 beds. Low availability against scheduled cath patients will trigger an alert.
     </div>
     <div id="censusAlertBox"></div>
     <div id="censusCards"></div>
@@ -1045,12 +1042,6 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
       <hr class="adm-hr">
       <div class="rl" style="margin-bottom:8px">RECENT PIN CHANGES</div>
       <div id="pinreset-log" style="display:flex;flex-direction:column;gap:6px"></div>
-      <hr class="adm-hr">
-      <div class="rl" style="margin-bottom:6px;color:var(--dim)">MAINTENANCE</div>
-      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);line-height:1.55;margin-bottom:10px">
-        Removes <strong>orphan tombstones</strong> from the PIN database — internal markers for retired (changed) PINs whose owner no longer has an active replacement. This is rare and only useful if a doctor reports being unable to log in <strong>and</strong> unable to change their PIN. Safe to run; only deletes orphan markers.
-      </div>
-      <button class="btn" style="background:var(--sur2);border:1px solid var(--bor);color:var(--mid)" onclick="adminCleanOrphanTombstones()">🧹 Clean Orphan Tombstones</button>
     </div>
 
     <div class="adm-sec" id="adm-removals">
@@ -1550,160 +1541,6 @@ function exportPDF(title, data){
   const today = new Date().toISOString().slice(0,10);
   doc.save(`${safeTitle}_${today}.pdf`);
 }
-
-// ============================================================
-// Export today's cath list as a PDF (one-tap from the Cathlab → Today tab)
-// ============================================================
-window.exportCathToday = function(){
-  ensureExtState();
-  if(typeof window.jspdf === "undefined"){ alert("PDF library still loading. Please try again in a second."); return; }
-  let iso = todayIso();
-  let cases = Object.values(window.S.cathScheduled||{}).filter(s => s.date === iso);
-  if(!cases.length){ alert("No cath cases scheduled for today."); return; }
-  cases.sort((a,b) => (a.operator||'zzzz').localeCompare(b.operator||'zzzz') || (a.proc||'').localeCompare(b.proc||''));
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const leftMargin = 40;
-  const rightMargin = 40;
-
-  // ===== TITLE BAND (navy rectangle with white title) =====
-  doc.setFillColor(30, 64, 175);
-  doc.rect(0, 0, pageW, 56, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(17);
-  doc.text("CATHLAB — TODAY'S CASE LIST", leftMargin, 26);
-  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-  const dateLabel = new Date(iso+"T00:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
-  doc.text(dateLabel, leftMargin, 44);
-  // Hospital name on right of band
-  doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-  let hospital = "Mubarak Al-Kabeer Hospital";
-  doc.text(hospital, pageW - rightMargin, 26, { align: "right" });
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-  doc.text("Cardiology Department", pageW - rightMargin, 42, { align: "right" });
-
-  // ===== INFO CHIPS ROW =====
-  let ipCount = cases.filter(s => s.caseType === 'IP').length;
-  let electiveCount = cases.length - ipCount;
-
-  // Helper to draw a single rounded-rect chip
-  function drawChip(x, y, label, value, fill, text){
-    let pad = 8, lineH = 13;
-    doc.setFont("helvetica","bold"); doc.setFontSize(8.5);
-    let labelW = doc.getTextWidth(label);
-    doc.setFont("helvetica","bold"); doc.setFontSize(11);
-    let valW = doc.getTextWidth(String(value));
-    let w = Math.max(labelW, valW) + pad*2;
-    let h = 34;
-    doc.setFillColor(fill[0], fill[1], fill[2]);
-    doc.roundedRect(x, y, w, h, 4, 4, "F");
-    doc.setTextColor(text[0], text[1], text[2]);
-    doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
-    doc.text(label, x + pad, y + 12);
-    doc.setFont("helvetica","bold"); doc.setFontSize(13);
-    doc.text(String(value), x + pad, y + 28);
-    return w;
-  }
-  let chipY = 68;
-  let cx = leftMargin;
-  // Total — blue
-  cx += drawChip(cx, chipY, "TOTAL CASES", cases.length, [219, 234, 254], [30, 64, 175]) + 8;
-  // IP — green
-  cx += drawChip(cx, chipY, "IP CASES", ipCount, [220, 252, 231], [5, 112, 73]) + 8;
-  // Elective — light slate
-  cx += drawChip(cx, chipY, "ELECTIVE", electiveCount, [226, 232, 240], [51, 65, 85]) + 8;
-
-  // Generated timestamp — subtle, right-aligned, same row
-  const stamp = new Date().toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
-  doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Generated: ${stamp}`, pageW - rightMargin, chipY + 28, { align: "right" });
-
-  let tableStartY = 114;
-
-  // ===== TABLE =====
-  const head = [["#","Patient","Age/Sex/Nat","Civil ID","Procedure","Operator","Type","History","Done / Result"]];
-  const body = cases.map((s, i) => {
-    let demo = [];
-    if(s.age) demo.push(s.age + "y");
-    if(s.sex) demo.push(s.sex === "Male" ? "M" : (s.sex === "Female" ? "F" : s.sex));
-    if(s.nationality) demo.push(s.nationality);
-    return [
-      String(i+1),
-      s.name || "—",
-      demo.join(" · ") || "—",
-      s.cid || "—",
-      s.proc || "—",
-      s.operator || "To be assigned",
-      s.caseType === 'IP' ? "IP" : "Elective",
-      (s.hx || "").slice(0, 200),
-      (s.result || "").slice(0, 250)
-    ];
-  });
-  doc.autoTable({
-    head, body, startY: tableStartY,
-    styles: {
-      font:"helvetica", fontSize: 8.5, cellPadding: 5, overflow: "linebreak",
-      valign:"top", textColor: [30, 41, 59], lineColor: [203, 213, 225], lineWidth: 0.25
-    },
-    headStyles: {
-      fillColor: [30, 64, 175], textColor: 255, fontStyle: "bold",
-      fontSize: 9, halign: "left", cellPadding: 6, lineWidth: 0
-    },
-    alternateRowStyles: { fillColor: [241, 245, 249] },
-    columnStyles: {
-      0: { cellWidth: 22, halign: "center", fontStyle: "bold", textColor: [100, 116, 139] },
-      1: { cellWidth: 115, fontStyle: "bold", textColor: [15, 23, 42] },
-      2: { cellWidth: 68, fontSize: 8 },
-      3: { cellWidth: 68, fontSize: 8, textColor: [71, 85, 105] },
-      4: { cellWidth: 110, fontStyle: "bold", textColor: [30, 64, 175] },
-      5: { cellWidth: 72, fontSize: 8 },
-      6: { cellWidth: 50, halign: "center", fontStyle: "bold", fontSize: 8 },
-      7: { cellWidth: 150, fontSize: 8, textColor: [51, 65, 85] },
-      8: { cellWidth: 'auto', fontStyle: 'bold', fontSize: 8.5 }
-    },
-    didParseCell: function(data){
-      if(data.section !== 'body') return;
-      let col = data.column.index;
-      let raw = (data.cell.raw || "").toString();
-      // Type column: IP = green pill, Elective = blue pill
-      if(col === 6){
-        if(raw === "IP"){
-          data.cell.styles.textColor = [5, 112, 73];
-          data.cell.styles.fillColor = [220, 252, 231];
-        } else {
-          data.cell.styles.textColor = [30, 64, 175];
-          data.cell.styles.fillColor = [219, 234, 254];
-        }
-      }
-      // Operator column: muted italic when "To be assigned"
-      if(col === 5 && raw === "To be assigned"){
-        data.cell.styles.textColor = [148, 163, 184];
-        data.cell.styles.fontStyle = "italic";
-      }
-      // Done / Result column: green fill + bold when present
-      if(col === 8){
-        if(raw && raw !== "—"){
-          data.cell.styles.textColor = [5, 112, 73];
-          data.cell.styles.fillColor = [220, 252, 231];
-        }
-      }
-    },
-    margin: { left: leftMargin, right: rightMargin },
-    didDrawPage: function(d){
-      const pageCount = doc.internal.getNumberOfPages();
-      const pageSize = doc.internal.pageSize;
-      // Footer — left: hospital label, right: page number
-      doc.setFont("helvetica","normal"); doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
-      doc.text("Mubarak Al-Kabeer Hospital · Cardiology Department", leftMargin, pageSize.getHeight() - 20);
-      doc.text(`Page ${d.pageNumber} of ${pageCount}`, pageSize.getWidth() - rightMargin, pageSize.getHeight() - 20, { align: "right" });
-    }
-  });
-  doc.save(`Cathlab_Today_${iso}.pdf`);
-};
-
 function rLog(){ let b=document.getElementById("lb"); b.innerHTML=""; let combined=(window.S.logs||[]).concat(window.S.oplogs||[]).concat(window.S.eplogs||[]).sort((a,b)=>b.ts-a.ts).slice(0,50); if(window.lf!=="all") combined=combined.filter(x=>x.cd===window.lf); combined.forEach(x=>{ let r=document.createElement("div"); r.className="lr"; let docLabel=x.epClinicId?`EP/${x.room}`:`Dr. ${x.doc}`; let delCell = adm ? `<button class="log-del" title="Delete this entry" onclick="deleteLogEntry(${x.ts})">🗑</button>` : `<div></div>`; r.innerHTML=`<div class="lti">${x.ad}<br><span>${x.time}</span></div><div class="lm">${x.fn}</div><div>${docLabel}<br><span class="rt">${x.room}</span></div><div class="lgx" style="color:var(--acc)">${x.apt||"—"}</div><div class="lgx">${x.reg}</div>${delCell}`; b.appendChild(r); }); }
 window.deleteLogEntry = function(ts){
   if(!adm){ alert("Admin access required."); return; }
@@ -3375,26 +3212,12 @@ function clickCathSubtab(name){
   }
 }
 
-// Helper: when this cath schedule form is a regular appointment, name/civil ID/
-// procedure/date are all required. When it's an IP case coming from the IP list,
-// those strict fields are relaxed (the IP record may be incomplete at this stage)
-// — only the date and the signer's PIN remain required.
-function setCathSchRequiredMode(isIp){
-  let strictIds = ['cath-sch-name','cath-sch-cid','cath-sch-proc'];
-  strictIds.forEach(id => {
-    let el = document.getElementById(id);
-    if(!el) return;
-    if(isIp){ el.removeAttribute('required'); }
-    else { el.setAttribute('required',''); }
-  });
-}
-
 window.resetCathSchForm = function(quiet){
   document.getElementById('cath-sch-pending-id').value = '';
   document.getElementById('cath-sch-edit-id').value = '';
   let endoIdEl = document.getElementById('cath-sch-endo-id'); if(endoIdEl) endoIdEl.value = '';
   let caseTypeEl = document.getElementById('cath-sch-case-type'); if(caseTypeEl) caseTypeEl.value = '';
-  ['cath-sch-name','cath-sch-age','cath-sch-nat','cath-sch-cid','cath-sch-phone','cath-sch-file','cath-sch-hx','cath-sch-result','cath-sch-pin','cath-sch-date'].forEach(id=>{
+  ['cath-sch-name','cath-sch-age','cath-sch-nat','cath-sch-cid','cath-sch-phone','cath-sch-file','cath-sch-hx','cath-sch-pin','cath-sch-date'].forEach(id=>{
     let el = document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('cath-sch-proc').selectedIndex = 0;
@@ -3404,14 +3227,11 @@ window.resetCathSchForm = function(quiet){
   document.getElementById('cathSchFromPending').style.display = 'none';
   document.getElementById('cathSchEditing').style.display = 'none';
   let fromEndoEl = document.getElementById('cathSchFromEndo'); if(fromEndoEl) fromEndoEl.style.display = 'none';
-  let ipNoteEl = document.getElementById('cathSchResultIpNote'); if(ipNoteEl) ipNoteEl.style.display = 'none';
   document.getElementById('cathSchFormTitle').innerText = 'SCHEDULE A CATH APPOINTMENT';
   document.getElementById('cathSchSaveBtn').innerText = '💾 Save Appointment';
   let badge = document.getElementById('cathSchDateBadge');
   if(badge) badge.innerHTML = '';
   hidePinFieldIfLoggedIn('cath-sch-pin');
-  // Reset to strict validation by default
-  setCathSchRequiredMode(false);
   if(!quiet){
     // Switch back to Today sub-tab
     clickCathSubtab('today');
@@ -3500,8 +3320,6 @@ window.editScheduled = function(sid){
   document.getElementById('cath-sch-file').value = s.file || '';
   document.getElementById('cath-sch-hx').value = s.hx || '';
   document.getElementById('cath-sch-date').value = s.date || '';
-  let resultInputEl = document.getElementById('cath-sch-result');
-  if(resultInputEl) resultInputEl.value = s.result || '';
   // Preserve IP linkage through edits
   let endoEl = document.getElementById('cath-sch-endo-id');
   let ctEl = document.getElementById('cath-sch-case-type');
@@ -3518,14 +3336,10 @@ window.editScheduled = function(sid){
     if(op.options[i].value === s.operator){ op.selectedIndex = i; break; }
   }
   document.getElementById('cathSchEditing').style.display = 'block';
-  // Also show IP banner if this is an IP case + relax validation + show the
-  // result-sync reminder note above the PIN field.
+  // Also show IP banner if this is an IP case
   if(s.caseType === 'IP'){
     let ipBanner = document.getElementById('cathSchFromEndo');
     if(ipBanner) ipBanner.style.display = 'block';
-    let ipNote = document.getElementById('cathSchResultIpNote');
-    if(ipNote) ipNote.style.display = 'block';
-    setCathSchRequiredMode(true);
   }
   document.getElementById('cathSchFormTitle').innerText = `EDITING: ${s.name}${s.caseType==='IP'?' (IP Case)':''}`;
   document.getElementById('cathSchSaveBtn').innerText = '💾 Update Appointment';
@@ -3571,9 +3385,6 @@ window.saveCathSched = async function(ev){
   // Preserve IP linkage from the existing record if not explicitly set in the form
   let finalEndoId = endoId || (existing && existing.sourceEndoId) || '';
   let finalCaseType = caseType || (existing && existing.caseType) || '';
-  let resultEl = document.getElementById('cath-sch-result');
-  let resultVal = resultEl ? resultEl.value.trim() : '';
-  let previousResult = existing ? (existing.result || '') : '';
   window.S.cathScheduled[id] = {
     id: id,
     name: document.getElementById('cath-sch-name').value.trim(),
@@ -3586,9 +3397,6 @@ window.saveCathSched = async function(ev){
     proc: document.getElementById('cath-sch-proc').value,
     operator: document.getElementById('cath-sch-op').value,
     date: document.getElementById('cath-sch-date').value,
-    result: resultVal,
-    resultAt: resultVal ? (resultVal === previousResult && existing?.resultAt ? existing.resultAt : Date.now()) : null,
-    resultBy: resultVal ? (resultVal === previousResult && existing?.resultBy ? existing.resultBy : reg) : null,
     sourceEndoId: finalEndoId,
     caseType: finalCaseType,
     createdAt: existing?.createdAt || Date.now(),
@@ -3600,75 +3408,11 @@ window.saveCathSched = async function(ev){
   if(pendingId && window.S.cathPending[pendingId]){
     delete window.S.cathPending[pendingId];
   }
-  // If this is an IP case and a result was entered, sync the result back into
-  // the linked IP endorsement's Investigations field (idempotent — will update
-  // in place rather than duplicate on subsequent edits). The operator is
-  // credited inline in the IP text; the signer is recorded on the audit field
-  // only (so the edit trail still shows who typed it).
-  if(finalCaseType === 'IP' && finalEndoId && window.S.endorsements && window.S.endorsements[finalEndoId]){
-    let savedRecord = window.S.cathScheduled[id];
-    syncResultToIp(finalEndoId, resultVal, savedRecord.date, savedRecord.operator, reg);
-  }
   dbRef.set(window.S);
   resetCathSchForm();
   renderCathAll();
   return false;
 };
-
-// ============================================================
-// Sync cath outcome back to the linked IP endorsement's "Investigations"
-// field. Idempotent: each endo entry carries a marker comment we can
-// recognise to update in place instead of appending duplicates.
-//
-// Marker format in the ix text:  [[cath:<schedDateIso>]]
-// On the line immediately following the marker, the cath result is stored.
-// Doctors are free to edit the IP ix field manually — the marker + its
-// following line are the only parts this function rewrites.
-//
-// Credit: the "— by X" suffix on the result line names the OPERATOR (the
-// doctor who physically performed the procedure), not the registrar who
-// clicked save. If no operator is on the record, no suffix is added.
-// The `updatedBy` audit field on the IP record still uses the signer so the
-// audit trail reflects who typed it.
-// ============================================================
-function syncResultToIp(endoId, resultText, schedDateIso, operatorName, signerName){
-  let e = window.S.endorsements[endoId];
-  if(!e) return;
-  let currentIx = e.ix || '';
-  // Prettify date for display
-  let pretty = schedDateIso || '';
-  try {
-    if(schedDateIso){
-      pretty = new Date(schedDateIso + 'T00:00:00').toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-    }
-  } catch(err){ /* keep iso as fallback */ }
-  // Build the new block. If result is empty, we remove any previous block.
-  let marker = `[[cath:${schedDateIso||'date'}]]`;
-  let block = '';
-  if(resultText){
-    let opSuffix = operatorName ? ` — by ${operatorName}` : '';
-    block = `${marker}\nCath (${pretty}): ${resultText}${opSuffix}`;
-  }
-  // Remove any existing block for the same date marker (match marker line
-  // + the immediately following line).
-  let markerRe = new RegExp(
-    '(?:^|\\n)' + marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\n[^\\n]*',
-    'g'
-  );
-  let cleaned = currentIx.replace(markerRe, '').replace(/\n{3,}/g,'\n\n').trim();
-  // If there was any other existing [[cath:*]] block for a DIFFERENT date, leave
-  // it alone — doctors may have multiple cath events on the record.
-  let newIx;
-  if(block){
-    newIx = cleaned ? (block + '\n\n' + cleaned) : block;
-  } else {
-    newIx = cleaned;
-  }
-  if(newIx === currentIx) return; // nothing to change
-  e.ix = newIx;
-  e.updatedAt = Date.now();
-  e.updatedBy = signerName || e.updatedBy || 'Cathlab';
-}
 
 window.deleteScheduled = function(sid){
   ensureExtState();
@@ -3741,7 +3485,6 @@ function renderCathToday(){
       ${availBlock}
     </div>
     ${opBreakdown ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${opBreakdown}</div>` : ''}
-    ${all.length ? `<button class="btn" style="margin-top:12px;padding:10px 14px;font-size:12px" onclick="exportCathToday()">📄 Export Today's Cath List as PDF</button>` : ''}
   </div>`;
 
   if(!all.length){
@@ -3766,7 +3509,6 @@ function renderCathToday(){
       <div class="cath-row"><div class="cath-row-label">History</div><div class="cath-row-val">${escapeHtml(s.hx||'—')}</div></div>
       <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--acc2);font-weight:600">${escapeHtml(s.proc||'—')}</div></div>
       <div class="cath-row"><div class="cath-row-label">Operator</div><div class="cath-row-val">${s.operator ? escapeHtml(s.operator) : '<span style="color:var(--dim);font-style:italic">To be assigned</span>'}</div></div>
-      ${s.result ? `<div class="cath-row" style="background:rgba(52,211,153,.06);border-radius:6px;padding:7px 9px;margin-top:4px"><div class="cath-row-label" style="color:var(--ok)">Done / Result</div><div class="cath-row-val" style="color:var(--ok);font-weight:600;line-height:1.5">${escapeHtml(s.result)}${s.caseType==='IP'?' <span style="font-weight:normal;color:var(--dim);font-size:10px;font-family:\'DM Mono\',monospace">· synced to IP list</span>':''}</div></div>` : ''}
       
       <div class="cath-btn-row">
         <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
@@ -3913,7 +3655,6 @@ function renderCathCalendar(){
               ${s.file?`<div class="cath-row"><div class="cath-row-label">File</div><div class="cath-row-val">${escapeHtml(s.file)}</div></div>`:''}
               <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--acc2);font-weight:600">${escapeHtml(s.proc||'—')}</div></div>
               <div class="cath-row"><div class="cath-row-label">Operator</div><div class="cath-row-val">${s.operator ? escapeHtml(s.operator) : '<span style="color:var(--dim);font-style:italic">To be assigned</span>'}</div></div>
-      ${s.result ? `<div class="cath-row" style="background:rgba(52,211,153,.06);border-radius:6px;padding:7px 9px;margin-top:4px"><div class="cath-row-label" style="color:var(--ok)">Done / Result</div><div class="cath-row-val" style="color:var(--ok);font-weight:600;line-height:1.5">${escapeHtml(s.result)}${s.caseType==='IP'?' <span style="font-weight:normal;color:var(--dim);font-size:10px;font-family:\'DM Mono\',monospace">· synced to IP list</span>':''}</div></div>` : ''}
               <div class="cath-btn-row">
                 <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
                 <button class="cath-del-btn" onclick="deleteScheduled('${s.id}')">✕ Remove</button>
@@ -3971,7 +3712,6 @@ function renderCathScheduled(){
       <div class="cath-row"><div class="cath-row-label">History</div><div class="cath-row-val">${escapeHtml(s.hx||'—')}</div></div>
       <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--acc2);font-weight:600">${escapeHtml(s.proc||'—')}</div></div>
       <div class="cath-row"><div class="cath-row-label">Operator</div><div class="cath-row-val">${s.operator ? escapeHtml(s.operator) : '<span style="color:var(--dim);font-style:italic">To be assigned</span>'}</div></div>
-      ${s.result ? `<div class="cath-row" style="background:rgba(52,211,153,.06);border-radius:6px;padding:7px 9px;margin-top:4px"><div class="cath-row-label" style="color:var(--ok)">Done / Result</div><div class="cath-row-val" style="color:var(--ok);font-weight:600;line-height:1.5">${escapeHtml(s.result)}${s.caseType==='IP'?' <span style="font-weight:normal;color:var(--dim);font-size:10px;font-family:\'DM Mono\',monospace">· synced to IP list</span>':''}</div></div>` : ''}
       
       <div class="cath-btn-row">
         <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
@@ -4187,12 +3927,9 @@ function renderCensusAlert(){
   let alerts = computeBedAlerts();
   let html = '';
   if(alerts.length){
-    html = `<div class="census-alert"><div class="census-alert-icon">⚠️</div><div class="census-alert-body">
-      <strong>Low Ward 4 availability vs. scheduled cath cases</strong>
-      <div style="font-size:10.5px;color:var(--mid);margin-top:3px;line-height:1.55">This is an advisory only — scheduling is not blocked. Please empty a bed, or contact elective patients to reschedule.</div>
-      <div style="margin-top:8px">
-      ${alerts.map(a => `• ${fmtDate(a.date)}: <b>${a.scheduled}</b> cath scheduled, only <b>${a.available}</b> Ward 4 bed${a.available===1?'':'s'} available <span style="color:#fbbf24">(short by ${a.shortage})</span>`).join('<br>')}
-      </div>
+    html = `<div class="census-alert"><div class="census-alert-icon">🚨</div><div class="census-alert-body">
+      <strong>Ward 4 bed shortage — contact elective patients for reappointment</strong>
+      ${alerts.map(a => `• ${fmtDate(a.date)}: ${a.scheduled} scheduled, only ${a.available} Ward 4 beds available <span style="color:#fbbf24">(short by ${a.shortage})</span>`).join('<br>')}
     </div></div>`;
   }
   if(cathBox) cathBox.innerHTML = html;
@@ -4259,13 +3996,25 @@ dbRef.on('value',(snap)=>{
       if(rec[id] && rec[id].images){ delete rec[id].images; stripped = true; }
     });
   });
-  if(stripped){ dbRef.set(window.S); }
 
-  // NOTE: orphan-tombstone cleanup of docPins is intentionally NOT run on
-  // every load anymore. Auto-cleanups that write back to Firebase from inside
-  // the value-listener can race with concurrent writes from other devices and
-  // overwrite live PIN updates. Cleanup is now a manual admin-only action —
-  // see the "Clean Orphan Tombstones" button on the Admin → Reset PIN tab.
+  // ONE-TIME CLEANUP: remove orphan tombstones in docPins — a `retired:<hash>` entry
+  // that has no matching active replacement PIN for that doctor. Such entries
+  // could wrongly lock a doctor out of changing their PIN. Safe to run on every
+  // load because it's a no-op when there's nothing to clean.
+  let pinCleanup = false;
+  let dp = window.S.docPins || {};
+  // Build "who has an active live PIN" set
+  let withLive = new Set();
+  Object.keys(dp).forEach(k => { if(!k.startsWith('retired:')) withLive.add(dp[k]); });
+  Object.keys(dp).forEach(k => {
+    if(!k.startsWith('retired:')) return;
+    let docName = dp[k];
+    if(!withLive.has(docName)){
+      delete dp[k];
+      pinCleanup = true;
+    }
+  });
+  if(stripped || pinCleanup){ dbRef.set(window.S); }
 
   dataLoaded=true;
   document.getElementById("syncDot").style.background="var(--ok)";
@@ -4338,17 +4087,13 @@ window.sendEndoToCath = function(endoId){
     // Show green IP banner
     let banner = document.getElementById('cathSchFromEndo');
     if(banner) banner.style.display = 'block';
-    let ipNote = document.getElementById('cathSchResultIpNote');
-    if(ipNote) ipNote.style.display = 'block';
-    // Relax validation: only date + PIN are required for IP cases
-    setCathSchRequiredMode(true);
     document.getElementById('cathSchFormTitle').innerText = `IP CASE: ${e.name} (${e.ward||'—'} · Bed ${e.bed||'—'})`;
     updateSchDateBadge();
-    // Scroll form into view and focus the date input (only required field)
-    let dateEl = document.getElementById('cath-sch-date');
-    if(dateEl){
-      dateEl.scrollIntoView({behavior:'smooth', block:'center'});
-      setTimeout(()=>dateEl.focus(), 250);
+    // Scroll form into view and focus the procedure select (most important missing field)
+    let proc = document.getElementById('cath-sch-proc');
+    if(proc){
+      proc.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(()=>proc.focus(), 250);
     }
   }, 100);
 };
@@ -4751,34 +4496,6 @@ window.adminResetPin = async function(){
   if(window.S.pinChanges.length > 200) window.S.pinChanges = window.S.pinChanges.slice(-200);
   dbRef.set(window.S);
   alert(`✅ PIN reset for ${docName}. Share the new 6-digit PIN with them securely.`);
-  renderPinResetTab();
-};
-
-// Admin-only manual cleanup: scans docPins for `retired:<hash>` entries whose
-// owner has no active replacement PIN. Such orphans can wrongly block a
-// doctor from changing their PIN. Shows what would be deleted, asks for
-// confirmation, then writes once.
-window.adminCleanOrphanTombstones = function(){
-  if(!adm && window.currentRole !== 'admin'){ alert('Admin access required.'); return; }
-  ensureExtState();
-  let dp = window.S.docPins || {};
-  let withLive = new Set();
-  Object.keys(dp).forEach(k => { if(!k.startsWith('retired:')) withLive.add(dp[k]); });
-  let orphans = [];
-  Object.keys(dp).forEach(k => {
-    if(!k.startsWith('retired:')) return;
-    let owner = dp[k];
-    if(!withLive.has(owner)) orphans.push({ key: k, owner: owner });
-  });
-  if(!orphans.length){
-    alert('No orphan tombstones found. PIN database is clean.');
-    return;
-  }
-  let preview = orphans.map(o => '• ' + o.owner).join('\n');
-  if(!confirm(`Found ${orphans.length} orphan tombstone${orphans.length===1?'':'s'} for:\n\n${preview}\n\nDelete them?\n\nThe affected doctors will then be able to log in with their original 4-digit PIN and set a new one.`)) return;
-  orphans.forEach(o => { delete dp[o.key]; });
-  dbRef.set(window.S);
-  alert(`✅ Cleaned ${orphans.length} orphan tombstone${orphans.length===1?'':'s'}.`);
   renderPinResetTab();
 };
 
