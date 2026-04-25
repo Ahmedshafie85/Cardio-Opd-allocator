@@ -1045,6 +1045,12 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
       <hr class="adm-hr">
       <div class="rl" style="margin-bottom:8px">RECENT PIN CHANGES</div>
       <div id="pinreset-log" style="display:flex;flex-direction:column;gap:6px"></div>
+      <hr class="adm-hr">
+      <div class="rl" style="margin-bottom:6px;color:var(--dim)">MAINTENANCE</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);line-height:1.55;margin-bottom:10px">
+        Removes <strong>orphan tombstones</strong> from the PIN database — internal markers for retired (changed) PINs whose owner no longer has an active replacement. This is rare and only useful if a doctor reports being unable to log in <strong>and</strong> unable to change their PIN. Safe to run; only deletes orphan markers.
+      </div>
+      <button class="btn" style="background:var(--sur2);border:1px solid var(--bor);color:var(--mid)" onclick="adminCleanOrphanTombstones()">🧹 Clean Orphan Tombstones</button>
     </div>
 
     <div class="adm-sec" id="adm-removals">
@@ -4253,25 +4259,13 @@ dbRef.on('value',(snap)=>{
       if(rec[id] && rec[id].images){ delete rec[id].images; stripped = true; }
     });
   });
+  if(stripped){ dbRef.set(window.S); }
 
-  // ONE-TIME CLEANUP: remove orphan tombstones in docPins — a `retired:<hash>` entry
-  // that has no matching active replacement PIN for that doctor. Such entries
-  // could wrongly lock a doctor out of changing their PIN. Safe to run on every
-  // load because it's a no-op when there's nothing to clean.
-  let pinCleanup = false;
-  let dp = window.S.docPins || {};
-  // Build "who has an active live PIN" set
-  let withLive = new Set();
-  Object.keys(dp).forEach(k => { if(!k.startsWith('retired:')) withLive.add(dp[k]); });
-  Object.keys(dp).forEach(k => {
-    if(!k.startsWith('retired:')) return;
-    let docName = dp[k];
-    if(!withLive.has(docName)){
-      delete dp[k];
-      pinCleanup = true;
-    }
-  });
-  if(stripped || pinCleanup){ dbRef.set(window.S); }
+  // NOTE: orphan-tombstone cleanup of docPins is intentionally NOT run on
+  // every load anymore. Auto-cleanups that write back to Firebase from inside
+  // the value-listener can race with concurrent writes from other devices and
+  // overwrite live PIN updates. Cleanup is now a manual admin-only action —
+  // see the "Clean Orphan Tombstones" button on the Admin → Reset PIN tab.
 
   dataLoaded=true;
   document.getElementById("syncDot").style.background="var(--ok)";
@@ -4757,6 +4751,34 @@ window.adminResetPin = async function(){
   if(window.S.pinChanges.length > 200) window.S.pinChanges = window.S.pinChanges.slice(-200);
   dbRef.set(window.S);
   alert(`✅ PIN reset for ${docName}. Share the new 6-digit PIN with them securely.`);
+  renderPinResetTab();
+};
+
+// Admin-only manual cleanup: scans docPins for `retired:<hash>` entries whose
+// owner has no active replacement PIN. Such orphans can wrongly block a
+// doctor from changing their PIN. Shows what would be deleted, asks for
+// confirmation, then writes once.
+window.adminCleanOrphanTombstones = function(){
+  if(!adm && window.currentRole !== 'admin'){ alert('Admin access required.'); return; }
+  ensureExtState();
+  let dp = window.S.docPins || {};
+  let withLive = new Set();
+  Object.keys(dp).forEach(k => { if(!k.startsWith('retired:')) withLive.add(dp[k]); });
+  let orphans = [];
+  Object.keys(dp).forEach(k => {
+    if(!k.startsWith('retired:')) return;
+    let owner = dp[k];
+    if(!withLive.has(owner)) orphans.push({ key: k, owner: owner });
+  });
+  if(!orphans.length){
+    alert('No orphan tombstones found. PIN database is clean.');
+    return;
+  }
+  let preview = orphans.map(o => '• ' + o.owner).join('\n');
+  if(!confirm(`Found ${orphans.length} orphan tombstone${orphans.length===1?'':'s'} for:\n\n${preview}\n\nDelete them?\n\nThe affected doctors will then be able to log in with their original 4-digit PIN and set a new one.`)) return;
+  orphans.forEach(o => { delete dp[o.key]; });
+  dbRef.set(window.S);
+  alert(`✅ Cleaned ${orphans.length} orphan tombstone${orphans.length===1?'':'s'}.`);
   renderPinResetTab();
 };
 
