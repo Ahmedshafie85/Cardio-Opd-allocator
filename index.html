@@ -758,6 +758,9 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
         <label>Appointment Date</label>
         <input type="date" id="cath-sch-date" class="pi" required style="margin-bottom:6px">
         <div id="cathSchDateBadge"></div>
+        <label>Procedure Done / Result <span style="font-weight:normal">(optional — fill in after the procedure)</span></label>
+        <textarea id="cath-sch-result" rows="3" style="width:100%;background:var(--sur2);border:1px solid var(--bor);border-radius:7px;padding:10px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-bottom:11px;resize:vertical;line-height:1.5" placeholder="e.g. PCI LAD 1 DES, TIMI 3 flow, no complications"></textarea>
+        <div id="cathSchResultIpNote" style="display:none;font-family:'DM Mono',monospace;font-size:10px;color:var(--ok);margin-top:-6px;margin-bottom:10px;padding:0 2px">↻ For IP cases, this result auto-syncs back to the patient's Investigations field in the IP list.</div>
         <label>Doctor PIN</label>
         <input type="password" id="cath-sch-pin" maxlength="6" inputmode="numeric" required>
         <button type="submit" class="btn" style="margin-top:6px" id="cathSchSaveBtn">💾 Save Appointment</button>
@@ -924,7 +927,7 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
   <div class="card">
     <div class="rl" style="margin-bottom:10px">WARD &amp; CCU CENSUS</div>
     <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:14px">
-      Updated <strong style="color:var(--warn)">twice daily</strong> by the assigned cardiologist. Ward 4 = 20 beds. CCU = 15 beds. Low availability against scheduled cath patients will trigger an alert.
+      Updated <strong style="color:var(--warn)">twice daily</strong> by the assigned cardiologist. Ward 4 = 20 beds. CCU = 15 beds. An advisory alert will appear if <strong>scheduled cath cases</strong> for a day exceed available Ward 4 beds — scheduling is not blocked; it just reminds the cathlab doctor to free a bed or reschedule elective patients.
     </div>
     <div id="censusAlertBox"></div>
     <div id="censusCards"></div>
@@ -1042,6 +1045,12 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
       <hr class="adm-hr">
       <div class="rl" style="margin-bottom:8px">RECENT PIN CHANGES</div>
       <div id="pinreset-log" style="display:flex;flex-direction:column;gap:6px"></div>
+      <hr class="adm-hr">
+      <div class="rl" style="margin-bottom:6px;color:var(--dim)">MAINTENANCE</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);line-height:1.55;margin-bottom:10px">
+        Removes <strong>orphan tombstones</strong> from the PIN database — internal markers for retired (changed) PINs whose owner no longer has an active replacement. This is rare and only useful if a doctor reports being unable to log in <strong>and</strong> unable to change their PIN. Safe to run; only deletes orphan markers.
+      </div>
+      <button class="btn" style="background:var(--sur2);border:1px solid var(--bor);color:var(--mid)" onclick="adminCleanOrphanTombstones()">🧹 Clean Orphan Tombstones</button>
     </div>
 
     <div class="adm-sec" id="adm-removals">
@@ -1110,6 +1119,36 @@ const firebaseConfig = { apiKey: "AIzaSyAT7Y3jWM4ix7I5cM4vKsHIJRaZZ6AZ9yI", auth
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const dbRef = db.ref('mkh_clinic_data');
+
+// ============================================================
+// SCOPED-WRITE HELPERS
+// ============================================================
+// CRITICAL POLICY: never call dbRef.set(window.S) anywhere except the explicit
+// "Wipe All Database Data" admin button. Every other write goes through these
+// helpers, which write only the specific child node that changed. This makes
+// it impossible for a write originating from one feature to overwrite data
+// belonging to another feature.
+//
+// Naming: dbWrite('node', value)  → dbRef.child('node').set(value)
+//         dbWriteAt('parent/<id>', record) → dbRef.child('parent/<id>').set(record)
+//         dbRemoveAt('parent/<id>')  → dbRef.child('parent/<id>').remove()
+// ============================================================
+function dbWrite(node, value){
+  // Set a top-level child node (e.g. 'docPins', 'pinChanges', 'leave', 'logs')
+  return dbRef.child(node).set(value === undefined ? null : value);
+}
+function dbWriteAt(path, record){
+  // Set a deep path (e.g. 'endorsements/abc123')
+  return dbRef.child(path).set(record === undefined ? null : record);
+}
+function dbRemoveAt(path){
+  return dbRef.child(path).remove();
+}
+// Convenience: write multiple top-level nodes atomically (Firebase update())
+function dbUpdate(nodesObj){
+  // nodesObj is { 'endorsements/abc': {...}, 'removals': [...] }
+  return dbRef.update(nodesObj);
+}
 var docPINsHashed = {"fe675fe7aaee830b6fed09b64e034f84dcbdaeb429d9cccd4ebb90e15af8dd71":"Dr. Rehan","b281bc2c616cb3c3a097215fdc9397ae87e6e06b156cc34e656be7a1a9ce8839":"Dr. Ramy","8c9a013ab70c0434313e3e881c310b9ff24aff1075255ceede3f2c239c231623":"Dr. Badawy","75992a5ac67ff644d3063976c2effd10bdd93fcc109798e3d5c1acf2e530d01a":"Dr. Sharkawy","7f861bcee185de001377d79e08af62e94b1e7718e2470e08520c917f8d953602":"Dr. Mostafa","478c4ffb1cbcea37956a748e6c19d8eadd0a47e86f5e308d26cad39453b5d1ab":"Dr. Ibrahim","2c8b871e52d4e5f5db5ff84a82a45327e20df77edef961c4b6fa0e9c3d97ce5b":"Dr. Hadad","9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d":"Dr. Emara","6ad4a6b1e5ea5569795e516d71909e0ce4809d9dc983d2c219144f684f816e12":"Dr. Rahim","7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":"Dr. Mamdouh","3dd9c0995d54c0abd51a90f1d57b1ce77bc885fc8a7cea52dcad3c2540dda5ee":"Dr. Slam","165940940a02a187e4463ff467090930038c5af8fc26107bf301e714f599a1da":"Dr. Ezz","2ec42bc1f3e672fc1cf7fdcfc23246415dcf20f03c0d4a5bbbd92a185708f5b7":"Dr. R Gamal","df4865fca1f159162557359ef967f9502087f57527b0e030e139933e54f3061e":"Dr. Moghl","9553627933b214db60798fe40d2b4f8497781d024f53d62dc1b12469b7d53784":"Dr. Darwish","ef32cc5c2b7c62093d3ec4844b36a02b08bb83eee2efa6b6b5e85ad605790192":"Dr. Omar","b0ab628c9e14621846c58b4eb35060ef3885253a457d2d76136716d4850bad45":"Dr. Sajid","9989a37538faecc495bbe774b30fb447a1582b8f1bc14ac88dfd84996a7b799a":"Dr. Ali","61ab550f4c85a975cd46f8606ede483d8ee720a76f627773de1bc1dd8ce5fb35":"Dr. Eyad","f296867839c8befafed32b55a7c11ab4ad14387d2434b970a55237d537bc9353":"Dr. Mongy","cdad86ca9450d1c143675a8436131cabaf55905c114fa4524bf6a9ec5662cad7":"Dr. Bahlol","85d6385b945c0d602103db39b0b654b2af93b5127938e26a959c123f0789b948":"Prof. Zubaid","6c94e35ccc352d4e9ef0b99562cff995a5741ce8de8ad11b568892934daee366":"Dr. Abdullah","77459b9b941bcb4714d0c121313c900ecf30541d158eb2b9b178cdb8eca6457e":"Dr. Fahad","483029d526219f816e8e8f6a9de07b422633dba180ffc26faac22862a017519f":"Dr. Farouk","a20a2b7bb0842d5cf8a0c06c626421fd51ec103925c1819a51271f2779afa730":"Dr. Arab","6f6a4e56098cfd9af29e3ae549503b370211a4e94421457fe4cfd39a38a1fa08":"Dr. Nazanin","f1cfa5ebb149e8099d561aae57beed6c68f990f45a910ea9d7b460dbcc5350be":"Dr. Velibore","e5e53c784d5d49de1cabb6e904bf3380026aadcb9769775a268dd304dd9aa2df":"Dr. Ali Alsaygh","f37f3f2b0dc57a86dee4ba6ff855283bb4d2f0dea1c5bd1b708853444c2ffcec":"Dr. Ali Alsulaimi","38206b956d53155a677deb4b506f24e025fd66c62ccb3af33cd7f1319685ea73":"Dr. Hamza","b33ed571eded536f0f0bc2be4e4384055acd592fe6652a555320fdca4dbeb175":"Dr. Ibrahim Hassan","a20c25627ed7bbb6d2b999c589b698e6ecd84384e2e0e510d8869d79a5ad244c":"Dr. Hisham","3ba982075eba89702c1637b9ce03d8a3d8b6dce9434dd07a4c30b5525ab27850":"Dr. Farag","7a24738c1004bcc250f2e527aeab5e3b1891d00a5146a54b2e8c20df84a8c09d":"Dr. Hany","ad25fc1532c8454fdda1d5e5258dd5771e919eaf4db2ca59842043804ccb6fb5":"Dr. Ehab","56f2f6918fec1d2d8eaa4f1b900ee2241576ba4e24f6c601b1ca4f05173fdb5a":"Dr. Samir","59012b44adb8c2f5e94b7a197e260fa945cc23ddd4d8737195d9391396d0ec5c":"Dr. Maged","7e66b5dd3d158d14ba3300cad5702ee6d72befaec37890eed25c91687bb649df":"Dr. Ashraf","e276f59bc5a81f2968dfb34b6324f7d59fea2723fd733bc9e70d65e848ef8f42":"Dr. Fawzy","41214f55c1e8d6170239eb93d7cc105abbee1dc0fbe8f7a258962da285dfe9cd":"Dr. Akmal","ff4b467b7a593047c46682ecdbf6da36b3f3bb4b50d35f08f17f751ef5f15531":"Dr. Zaher","41c8fa7d060badc5618a28326dc00cf07e1ce22a79a94a1fed94f271d3127447":"Dr. Shafie","888df25ae35772424a560c7152a1de794440e0ea5cfee62828333a456a506e05":"Admin"};
 var ADMIN_HASH = "b2b2f104d32c638903e151a9b20d6e27b41d8c0c84cf8458738f83ca2f1dd744";
 var CLERK_HASH = "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab";
@@ -1347,14 +1386,16 @@ window.skipCurrentDoc = function(){
   if(!confirm(`Skip Dr. ${name}? This patient will go to the next doctor. Dr. ${name} will automatically return to the queue after the next assignment.`)) return;
   if(!window.S.skipped) window.S.skipped = {};
   window.S.skipped[name] = true;
-  dbRef.set(window.S);
+  // Scoped: skipped only
+  dbWrite('skipped', window.S.skipped);
   rAll();
 };
 window.unskipDoc = function(name){
   if(!window.S.skipped) window.S.skipped = {};
   if(!window.S.skipped[name]) return;
   delete window.S.skipped[name];
-  dbRef.set(window.S);
+  // Scoped: skipped only
+  dbWrite('skipped', window.S.skipped);
   rAll();
 };
 
@@ -1383,8 +1424,15 @@ window.doAssign = async function(type, manualSlotIndex=null) {
     window.S.logs.push({fn, reg, doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt, ts:Date.now()});
     // Auto-clear all active skips: a patient has been placed, so any cath doc
     // that was held aside should return to the rotation for the next patient.
-    if(window.S.skipped) window.S.skipped = {};
-    dbRef.set(window.S);
+    let clearedSkips = false;
+    if(window.S.skipped && Object.keys(window.S.skipped).length){
+      window.S.skipped = {};
+      clearedSkips = true;
+    }
+    // Scoped: write logs + (skipped if mutated)
+    let updates = { logs: window.S.logs };
+    if(clearedSkips) updates.skipped = window.S.skipped;
+    dbUpdate(updates);
     document.getElementById("fi").value="";
     let rpinEl = document.getElementById("rpin"); if(rpinEl) rpinEl.value="";
     rAll(); return;
@@ -1404,7 +1452,8 @@ window.doAssign = async function(type, manualSlotIndex=null) {
     let cap = checkCapacity(c.d, c.r, getTodayFullDateStr(), 'op');
     if(!cap.ok) return alert(cap.reason);
     window.S.oplogs.push({fn:finalId, reg:"Clerk", doc:c.d, room:c.r, si:i, cd:tn(), ad:nd(), time:nt(), apt:"", ts:Date.now()});
-    dbRef.set(window.S);
+    // Scoped: write oplogs only
+    dbWrite('oplogs', window.S.oplogs);
     document.getElementById("opfi").value=""; document.getElementById("opphone").value="";
     rAll();
     alert(finalId==="—" ? "Walk-in assigned (anonymous patient)." : "Walk-in assigned.");
@@ -1431,8 +1480,15 @@ window.doSpecificAssign = async function() {
   let cap=checkCapacity(c.d, c.r, apt, 'ip');
   if(!cap.ok) return alert(cap.reason);
   window.S.logs.push({fn, reg, doc:c.d, room:c.r, si:idx, cd:tn(), ad:nd(), time:nt(), apt, ts:Date.now()});
-  if(window.S.skipped && window.S.skipped[c.d]) delete window.S.skipped[c.d];
-  dbRef.set(window.S);
+  let clearedSkip = false;
+  if(window.S.skipped && window.S.skipped[c.d]){
+    delete window.S.skipped[c.d];
+    clearedSkip = true;
+  }
+  // Scoped: logs + (skipped if mutated)
+  let updates = { logs: window.S.logs };
+  if(clearedSkip) updates.skipped = window.S.skipped;
+  dbUpdate(updates);
   document.getElementById("spec-fi").value="";
   let spinEl = document.getElementById("spec-pin"); if(spinEl) spinEl.value="";
   document.getElementById("spec-date").value="";
@@ -1461,7 +1517,8 @@ window.doFixAssign = function() {
   if(!cap.ok) return alert(cap.reason);
   if(!confirm(`Book appointment: ${patId==="—"?"Anonymous":patId} → Dr.${c.d} (${c.r}) on ${apt}`)) return;
   window.S.oplogs.push({fn:patId, reg:"Clerk", doc:c.d, room:c.r, si:selectedFixDoc.idx, cd:tn(), ad:nd(), time:nt(), apt, ts:Date.now()});
-  dbRef.set(window.S);
+  // Scoped: oplogs only
+  dbWrite('oplogs', window.S.oplogs);
   document.getElementById("fix-fi").value=""; document.getElementById("fix-phone").value="";
   document.getElementById("fix-date").value=""; document.querySelectorAll("#fix-clinic-grid .spec-card").forEach(c=>c.classList.remove("selected"));
   document.getElementById("fix-form").style.display="none"; selectedFixDoc=null;
@@ -1491,7 +1548,8 @@ window.doEpAssign=async function(){
   if((window.S.eplogs||[]).some(e=>e.fn===fn)) return alert("Duplicate EP booking");
   if(!confirm(`Confirm EP: ${fn} → ${selectedEpClinic.room} (${selectedEpClinic.label}) ${apt}`)) return;
   window.S.eplogs.push({fn, reg:regName, doc:"EP", room:selectedEpClinic.room, epClinicId:selectedEpClinic.id, epLabel:selectedEpClinic.label, cd:tn(), ad:nd(), time:nt(), apt, ts:Date.now()});
-  dbRef.set(window.S);
+  // Scoped: eplogs only
+  dbWrite('eplogs', window.S.eplogs);
   document.getElementById("ep-fi").value="";
   let epPinEl = document.getElementById("ep-pin"); if(epPinEl) epPinEl.value="";
   renderEpDates(selectedEpClinic);
@@ -1541,6 +1599,160 @@ function exportPDF(title, data){
   const today = new Date().toISOString().slice(0,10);
   doc.save(`${safeTitle}_${today}.pdf`);
 }
+
+// ============================================================
+// Export today's cath list as a PDF (one-tap from the Cathlab → Today tab)
+// ============================================================
+window.exportCathToday = function(){
+  ensureExtState();
+  if(typeof window.jspdf === "undefined"){ alert("PDF library still loading. Please try again in a second."); return; }
+  let iso = todayIso();
+  let cases = Object.values(window.S.cathScheduled||{}).filter(s => s.date === iso);
+  if(!cases.length){ alert("No cath cases scheduled for today."); return; }
+  cases.sort((a,b) => (a.operator||'zzzz').localeCompare(b.operator||'zzzz') || (a.proc||'').localeCompare(b.proc||''));
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const leftMargin = 40;
+  const rightMargin = 40;
+
+  // ===== TITLE BAND (navy rectangle with white title) =====
+  doc.setFillColor(30, 64, 175);
+  doc.rect(0, 0, pageW, 56, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(17);
+  doc.text("CATHLAB — TODAY'S CASE LIST", leftMargin, 26);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+  const dateLabel = new Date(iso+"T00:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+  doc.text(dateLabel, leftMargin, 44);
+  // Hospital name on right of band
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+  let hospital = "Mubarak Al-Kabeer Hospital";
+  doc.text(hospital, pageW - rightMargin, 26, { align: "right" });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  doc.text("Cardiology Department", pageW - rightMargin, 42, { align: "right" });
+
+  // ===== INFO CHIPS ROW =====
+  let ipCount = cases.filter(s => s.caseType === 'IP').length;
+  let electiveCount = cases.length - ipCount;
+
+  // Helper to draw a single rounded-rect chip
+  function drawChip(x, y, label, value, fill, text){
+    let pad = 8, lineH = 13;
+    doc.setFont("helvetica","bold"); doc.setFontSize(8.5);
+    let labelW = doc.getTextWidth(label);
+    doc.setFont("helvetica","bold"); doc.setFontSize(11);
+    let valW = doc.getTextWidth(String(value));
+    let w = Math.max(labelW, valW) + pad*2;
+    let h = 34;
+    doc.setFillColor(fill[0], fill[1], fill[2]);
+    doc.roundedRect(x, y, w, h, 4, 4, "F");
+    doc.setTextColor(text[0], text[1], text[2]);
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
+    doc.text(label, x + pad, y + 12);
+    doc.setFont("helvetica","bold"); doc.setFontSize(13);
+    doc.text(String(value), x + pad, y + 28);
+    return w;
+  }
+  let chipY = 68;
+  let cx = leftMargin;
+  // Total — blue
+  cx += drawChip(cx, chipY, "TOTAL CASES", cases.length, [219, 234, 254], [30, 64, 175]) + 8;
+  // IP — green
+  cx += drawChip(cx, chipY, "IP CASES", ipCount, [220, 252, 231], [5, 112, 73]) + 8;
+  // Elective — light slate
+  cx += drawChip(cx, chipY, "ELECTIVE", electiveCount, [226, 232, 240], [51, 65, 85]) + 8;
+
+  // Generated timestamp — subtle, right-aligned, same row
+  const stamp = new Date().toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Generated: ${stamp}`, pageW - rightMargin, chipY + 28, { align: "right" });
+
+  let tableStartY = 114;
+
+  // ===== TABLE =====
+  const head = [["#","Patient","Age/Sex/Nat","Civil ID","Procedure","Operator","Type","History","Done / Result"]];
+  const body = cases.map((s, i) => {
+    let demo = [];
+    if(s.age) demo.push(s.age + "y");
+    if(s.sex) demo.push(s.sex === "Male" ? "M" : (s.sex === "Female" ? "F" : s.sex));
+    if(s.nationality) demo.push(s.nationality);
+    return [
+      String(i+1),
+      s.name || "—",
+      demo.join(" · ") || "—",
+      s.cid || "—",
+      s.proc || "—",
+      s.operator || "To be assigned",
+      s.caseType === 'IP' ? "IP" : "Elective",
+      (s.hx || "").slice(0, 200),
+      (s.result || "").slice(0, 250)
+    ];
+  });
+  doc.autoTable({
+    head, body, startY: tableStartY,
+    styles: {
+      font:"helvetica", fontSize: 8.5, cellPadding: 5, overflow: "linebreak",
+      valign:"top", textColor: [30, 41, 59], lineColor: [203, 213, 225], lineWidth: 0.25
+    },
+    headStyles: {
+      fillColor: [30, 64, 175], textColor: 255, fontStyle: "bold",
+      fontSize: 9, halign: "left", cellPadding: 6, lineWidth: 0
+    },
+    alternateRowStyles: { fillColor: [241, 245, 249] },
+    columnStyles: {
+      0: { cellWidth: 22, halign: "center", fontStyle: "bold", textColor: [100, 116, 139] },
+      1: { cellWidth: 115, fontStyle: "bold", textColor: [15, 23, 42] },
+      2: { cellWidth: 68, fontSize: 8 },
+      3: { cellWidth: 68, fontSize: 8, textColor: [71, 85, 105] },
+      4: { cellWidth: 110, fontStyle: "bold", textColor: [30, 64, 175] },
+      5: { cellWidth: 72, fontSize: 8 },
+      6: { cellWidth: 50, halign: "center", fontStyle: "bold", fontSize: 8 },
+      7: { cellWidth: 150, fontSize: 8, textColor: [51, 65, 85] },
+      8: { cellWidth: 'auto', fontStyle: 'bold', fontSize: 8.5 }
+    },
+    didParseCell: function(data){
+      if(data.section !== 'body') return;
+      let col = data.column.index;
+      let raw = (data.cell.raw || "").toString();
+      // Type column: IP = green pill, Elective = blue pill
+      if(col === 6){
+        if(raw === "IP"){
+          data.cell.styles.textColor = [5, 112, 73];
+          data.cell.styles.fillColor = [220, 252, 231];
+        } else {
+          data.cell.styles.textColor = [30, 64, 175];
+          data.cell.styles.fillColor = [219, 234, 254];
+        }
+      }
+      // Operator column: muted italic when "To be assigned"
+      if(col === 5 && raw === "To be assigned"){
+        data.cell.styles.textColor = [148, 163, 184];
+        data.cell.styles.fontStyle = "italic";
+      }
+      // Done / Result column: green fill + bold when present
+      if(col === 8){
+        if(raw && raw !== "—"){
+          data.cell.styles.textColor = [5, 112, 73];
+          data.cell.styles.fillColor = [220, 252, 231];
+        }
+      }
+    },
+    margin: { left: leftMargin, right: rightMargin },
+    didDrawPage: function(d){
+      const pageCount = doc.internal.getNumberOfPages();
+      const pageSize = doc.internal.pageSize;
+      // Footer — left: hospital label, right: page number
+      doc.setFont("helvetica","normal"); doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text("Mubarak Al-Kabeer Hospital · Cardiology Department", leftMargin, pageSize.getHeight() - 20);
+      doc.text(`Page ${d.pageNumber} of ${pageCount}`, pageSize.getWidth() - rightMargin, pageSize.getHeight() - 20, { align: "right" });
+    }
+  });
+  doc.save(`Cathlab_Today_${iso}.pdf`);
+};
+
 function rLog(){ let b=document.getElementById("lb"); b.innerHTML=""; let combined=(window.S.logs||[]).concat(window.S.oplogs||[]).concat(window.S.eplogs||[]).sort((a,b)=>b.ts-a.ts).slice(0,50); if(window.lf!=="all") combined=combined.filter(x=>x.cd===window.lf); combined.forEach(x=>{ let r=document.createElement("div"); r.className="lr"; let docLabel=x.epClinicId?`EP/${x.room}`:`Dr. ${x.doc}`; let delCell = adm ? `<button class="log-del" title="Delete this entry" onclick="deleteLogEntry(${x.ts})">🗑</button>` : `<div></div>`; r.innerHTML=`<div class="lti">${x.ad}<br><span>${x.time}</span></div><div class="lm">${x.fn}</div><div>${docLabel}<br><span class="rt">${x.room}</span></div><div class="lgx" style="color:var(--acc)">${x.apt||"—"}</div><div class="lgx">${x.reg}</div>${delCell}`; b.appendChild(r); }); }
 window.deleteLogEntry = function(ts){
   if(!adm){ alert("Admin access required."); return; }
@@ -1556,11 +1768,12 @@ window.deleteLogEntry = function(ts){
   let docLabel = e.epClinicId ? `EP/${e.room}` : `Dr. ${e.doc}`;
   if(!confirm(`Delete this log entry?\n\nPatient: ${e.fn}\n${docLabel} — ${e.room}\nDate: ${e.ad} ${e.time}\n\nThis action cannot be undone.`)) return;
   window.S[findAndEntry.key].splice(findAndEntry.idx, 1);
-  dbRef.set(window.S);
+  // Scoped: write only the specific log array that changed
+  dbWrite(findAndEntry.key, window.S[findAndEntry.key]);
   rAll();
 };
 function renderLeaveAdmin(){ let g=document.getElementById("leave-grid"); g.innerHTML=""; [...new Set(CL.map(c=>c.d))].forEach(name=>{ let ipO=window.S.leave[name]?.ip, opO=window.S.leave[name]?.op, d=document.createElement("div"); d.className="dc"; d.style.textAlign="center"; d.innerHTML=`<div class="dd">${name}</div><div class="lv-btn-box"><button class="lv-btn ${ipO?'off':'on'}" onclick="toggleS('${name}','ip')">IP ${ipO?'OFF':'OK'}</button><button class="lv-btn ${opO?'off':'on'}" onclick="toggleS('${name}','op')">OP ${opO?'OFF':'OK'}</button></div>`; g.appendChild(d); }); }
-window.toggleS=(name,type)=>{ if(!window.S.leave[name]) window.S.leave[name]={ip:false,op:false}; window.S.leave[name][type]=!window.S.leave[name][type]; dbRef.set(window.S); rAll(); };
+window.toggleS=(name,type)=>{ if(!window.S.leave[name]) window.S.leave[name]={ip:false,op:false}; window.S.leave[name][type]=!window.S.leave[name][type]; dbWrite('leave', window.S.leave); rAll(); };
 
 // ===== BLOCKED DATES ADMIN (per-doctor) =====
 function populateBlockedDocDropdown(){
@@ -1607,7 +1820,8 @@ window.addBlockedDate = function(){
     let af = typeof a==="string"?a:a.from, bf = typeof b==="string"?b:b.from;
     return af.localeCompare(bf);
   });
-  dbRef.set(window.S);
+  // Scoped: blockedDates only
+  dbWrite('blockedDates', window.S.blockedDates);
   fromInput.value = ""; toInput.value = "";
   renderBlockedList();
   rAll();
@@ -1624,7 +1838,8 @@ window.removeBlockedDate = function(docKey, from, to){
   if(!confirm(`Unblock ${prettyDocLabel(docKey)} for this range?`)) return;
   bd[docKey].splice(i,1);
   if(bd[docKey].length === 0) delete bd[docKey];
-  dbRef.set(window.S);
+  // Scoped: blockedDates only
+  dbWrite('blockedDates', window.S.blockedDates);
   renderBlockedList();
   rAll();
 };
@@ -1773,7 +1988,8 @@ window.deleteAnonymousOpd = function() {
   let confirmMsg = `⚠️ You are about to delete ${anonymousEntries.length} anonymous OPD entries (patients with no file/phone number). This action is irreversible. Are you sure?`;
   if(confirm(confirmMsg)) {
     window.S.oplogs = (window.S.oplogs || []).filter(entry => entry.fn !== "—");
-    dbRef.set(window.S);
+    // Scoped: oplogs only
+    dbWrite('oplogs', window.S.oplogs);
     rAll();
     alert(`Deleted ${anonymousEntries.length} anonymous OPD entries.`);
   }
@@ -2104,7 +2320,8 @@ window.saveEndo = async function(ev){
     updatedBy: reg
   };
   window.S.endorsements[id] = entry;
-  dbRef.set(window.S);
+  // Scoped write: only this endorsement
+  dbWriteAt('endorsements/' + id, entry);
   closeEndoMo();
   renderEndoList();
   return false;
@@ -2132,7 +2349,11 @@ window.deleteEndo = function(id){
   // Cap at 500 entries
   if(window.S.removals.length > 500) window.S.removals = window.S.removals.slice(-500);
   delete window.S.endorsements[id];
-  dbRef.set(window.S);
+  // Scoped: remove this endorsement + push removals atomically
+  dbUpdate({
+    ['endorsements/' + id]: null,
+    removals: window.S.removals
+  });
   renderEndoList();
 };
 
@@ -3212,12 +3433,26 @@ function clickCathSubtab(name){
   }
 }
 
+// Helper: when this cath schedule form is a regular appointment, name/civil ID/
+// procedure/date are all required. When it's an IP case coming from the IP list,
+// those strict fields are relaxed (the IP record may be incomplete at this stage)
+// — only the date and the signer's PIN remain required.
+function setCathSchRequiredMode(isIp){
+  let strictIds = ['cath-sch-name','cath-sch-cid','cath-sch-proc'];
+  strictIds.forEach(id => {
+    let el = document.getElementById(id);
+    if(!el) return;
+    if(isIp){ el.removeAttribute('required'); }
+    else { el.setAttribute('required',''); }
+  });
+}
+
 window.resetCathSchForm = function(quiet){
   document.getElementById('cath-sch-pending-id').value = '';
   document.getElementById('cath-sch-edit-id').value = '';
   let endoIdEl = document.getElementById('cath-sch-endo-id'); if(endoIdEl) endoIdEl.value = '';
   let caseTypeEl = document.getElementById('cath-sch-case-type'); if(caseTypeEl) caseTypeEl.value = '';
-  ['cath-sch-name','cath-sch-age','cath-sch-nat','cath-sch-cid','cath-sch-phone','cath-sch-file','cath-sch-hx','cath-sch-pin','cath-sch-date'].forEach(id=>{
+  ['cath-sch-name','cath-sch-age','cath-sch-nat','cath-sch-cid','cath-sch-phone','cath-sch-file','cath-sch-hx','cath-sch-result','cath-sch-pin','cath-sch-date'].forEach(id=>{
     let el = document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('cath-sch-proc').selectedIndex = 0;
@@ -3227,11 +3462,14 @@ window.resetCathSchForm = function(quiet){
   document.getElementById('cathSchFromPending').style.display = 'none';
   document.getElementById('cathSchEditing').style.display = 'none';
   let fromEndoEl = document.getElementById('cathSchFromEndo'); if(fromEndoEl) fromEndoEl.style.display = 'none';
+  let ipNoteEl = document.getElementById('cathSchResultIpNote'); if(ipNoteEl) ipNoteEl.style.display = 'none';
   document.getElementById('cathSchFormTitle').innerText = 'SCHEDULE A CATH APPOINTMENT';
   document.getElementById('cathSchSaveBtn').innerText = '💾 Save Appointment';
   let badge = document.getElementById('cathSchDateBadge');
   if(badge) badge.innerHTML = '';
   hidePinFieldIfLoggedIn('cath-sch-pin');
+  // Reset to strict validation by default
+  setCathSchRequiredMode(false);
   if(!quiet){
     // Switch back to Today sub-tab
     clickCathSubtab('today');
@@ -3269,7 +3507,8 @@ window.saveCathPending = async function(ev){
     addedAt: Date.now(),
     addedBy: reg
   };
-  dbRef.set(window.S);
+  // Scoped write: only this pending case
+  dbWriteAt('cathPending/' + id, window.S.cathPending[id]);
   closeCathPendMo();
   renderCathAll();
   // Jump to pending tab so user sees their entry
@@ -3320,6 +3559,8 @@ window.editScheduled = function(sid){
   document.getElementById('cath-sch-file').value = s.file || '';
   document.getElementById('cath-sch-hx').value = s.hx || '';
   document.getElementById('cath-sch-date').value = s.date || '';
+  let resultInputEl = document.getElementById('cath-sch-result');
+  if(resultInputEl) resultInputEl.value = s.result || '';
   // Preserve IP linkage through edits
   let endoEl = document.getElementById('cath-sch-endo-id');
   let ctEl = document.getElementById('cath-sch-case-type');
@@ -3336,10 +3577,14 @@ window.editScheduled = function(sid){
     if(op.options[i].value === s.operator){ op.selectedIndex = i; break; }
   }
   document.getElementById('cathSchEditing').style.display = 'block';
-  // Also show IP banner if this is an IP case
+  // Also show IP banner if this is an IP case + relax validation + show the
+  // result-sync reminder note above the PIN field.
   if(s.caseType === 'IP'){
     let ipBanner = document.getElementById('cathSchFromEndo');
     if(ipBanner) ipBanner.style.display = 'block';
+    let ipNote = document.getElementById('cathSchResultIpNote');
+    if(ipNote) ipNote.style.display = 'block';
+    setCathSchRequiredMode(true);
   }
   document.getElementById('cathSchFormTitle').innerText = `EDITING: ${s.name}${s.caseType==='IP'?' (IP Case)':''}`;
   document.getElementById('cathSchSaveBtn').innerText = '💾 Update Appointment';
@@ -3365,7 +3610,11 @@ window.deletePending = function(pid){
   });
   if(window.S.removals.length > 500) window.S.removals = window.S.removals.slice(-500);
   delete window.S.cathPending[pid];
-  dbRef.set(window.S);
+  // Scoped: remove the pending case + push removals atomically
+  dbUpdate({
+    ['cathPending/' + pid]: null,
+    removals: window.S.removals
+  });
   renderCathAll();
 };
 
@@ -3385,6 +3634,9 @@ window.saveCathSched = async function(ev){
   // Preserve IP linkage from the existing record if not explicitly set in the form
   let finalEndoId = endoId || (existing && existing.sourceEndoId) || '';
   let finalCaseType = caseType || (existing && existing.caseType) || '';
+  let resultEl = document.getElementById('cath-sch-result');
+  let resultVal = resultEl ? resultEl.value.trim() : '';
+  let previousResult = existing ? (existing.result || '') : '';
   window.S.cathScheduled[id] = {
     id: id,
     name: document.getElementById('cath-sch-name').value.trim(),
@@ -3397,6 +3649,9 @@ window.saveCathSched = async function(ev){
     proc: document.getElementById('cath-sch-proc').value,
     operator: document.getElementById('cath-sch-op').value,
     date: document.getElementById('cath-sch-date').value,
+    result: resultVal,
+    resultAt: resultVal ? (resultVal === previousResult && existing?.resultAt ? existing.resultAt : Date.now()) : null,
+    resultBy: resultVal ? (resultVal === previousResult && existing?.resultBy ? existing.resultBy : reg) : null,
     sourceEndoId: finalEndoId,
     caseType: finalCaseType,
     createdAt: existing?.createdAt || Date.now(),
@@ -3408,11 +3663,91 @@ window.saveCathSched = async function(ev){
   if(pendingId && window.S.cathPending[pendingId]){
     delete window.S.cathPending[pendingId];
   }
-  dbRef.set(window.S);
+  // If this is an IP case and a result was entered, sync the result back into
+  // the linked IP endorsement's Investigations field (idempotent — will update
+  // in place rather than duplicate on subsequent edits). The operator is
+  // credited inline in the IP text; the signer is recorded on the audit field
+  // only (so the edit trail still shows who typed it).
+  let endoMutated = false;
+  if(finalCaseType === 'IP' && finalEndoId && window.S.endorsements && window.S.endorsements[finalEndoId]){
+    let savedRecord = window.S.cathScheduled[id];
+    let ixBefore = window.S.endorsements[finalEndoId].ix;
+    syncResultToIp(finalEndoId, resultVal, savedRecord.date, savedRecord.operator, reg);
+    let ixAfter = window.S.endorsements[finalEndoId].ix;
+    if(ixBefore !== ixAfter) endoMutated = true;
+  }
+  // Build a single atomic update with only the specific paths that changed:
+  //   1) cathScheduled/<id>            — always (the new/edited case)
+  //   2) cathPending/<pendingId>       — only if scheduled from pending
+  //   3) endorsements/<finalEndoId>    — only if IP case result was synced back
+  let updates = {};
+  updates['cathScheduled/' + id] = window.S.cathScheduled[id];
+  if(pendingId){
+    updates['cathPending/' + pendingId] = null;
+  }
+  if(endoMutated){
+    updates['endorsements/' + finalEndoId] = window.S.endorsements[finalEndoId];
+  }
+  dbUpdate(updates);
   resetCathSchForm();
   renderCathAll();
   return false;
 };
+
+// ============================================================
+// Sync cath outcome back to the linked IP endorsement's "Investigations"
+// field. Idempotent: each endo entry carries a marker comment we can
+// recognise to update in place instead of appending duplicates.
+//
+// Marker format in the ix text:  [[cath:<schedDateIso>]]
+// On the line immediately following the marker, the cath result is stored.
+// Doctors are free to edit the IP ix field manually — the marker + its
+// following line are the only parts this function rewrites.
+//
+// Credit: the "— by X" suffix on the result line names the OPERATOR (the
+// doctor who physically performed the procedure), not the registrar who
+// clicked save. If no operator is on the record, no suffix is added.
+// The `updatedBy` audit field on the IP record still uses the signer so the
+// audit trail reflects who typed it.
+// ============================================================
+function syncResultToIp(endoId, resultText, schedDateIso, operatorName, signerName){
+  let e = window.S.endorsements[endoId];
+  if(!e) return;
+  let currentIx = e.ix || '';
+  // Prettify date for display
+  let pretty = schedDateIso || '';
+  try {
+    if(schedDateIso){
+      pretty = new Date(schedDateIso + 'T00:00:00').toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    }
+  } catch(err){ /* keep iso as fallback */ }
+  // Build the new block. If result is empty, we remove any previous block.
+  let marker = `[[cath:${schedDateIso||'date'}]]`;
+  let block = '';
+  if(resultText){
+    let opSuffix = operatorName ? ` — by ${operatorName}` : '';
+    block = `${marker}\nCath (${pretty}): ${resultText}${opSuffix}`;
+  }
+  // Remove any existing block for the same date marker (match marker line
+  // + the immediately following line).
+  let markerRe = new RegExp(
+    '(?:^|\\n)' + marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\n[^\\n]*',
+    'g'
+  );
+  let cleaned = currentIx.replace(markerRe, '').replace(/\n{3,}/g,'\n\n').trim();
+  // If there was any other existing [[cath:*]] block for a DIFFERENT date, leave
+  // it alone — doctors may have multiple cath events on the record.
+  let newIx;
+  if(block){
+    newIx = cleaned ? (block + '\n\n' + cleaned) : block;
+  } else {
+    newIx = cleaned;
+  }
+  if(newIx === currentIx) return; // nothing to change
+  e.ix = newIx;
+  e.updatedAt = Date.now();
+  e.updatedBy = signerName || e.updatedBy || 'Cathlab';
+}
 
 window.deleteScheduled = function(sid){
   ensureExtState();
@@ -3435,7 +3770,11 @@ window.deleteScheduled = function(sid){
   });
   if(window.S.removals.length > 500) window.S.removals = window.S.removals.slice(-500);
   delete window.S.cathScheduled[sid];
-  dbRef.set(window.S);
+  // Scoped: remove the scheduled case + push removals atomically
+  dbUpdate({
+    ['cathScheduled/' + sid]: null,
+    removals: window.S.removals
+  });
   renderCathAll();
 };
 
@@ -3485,6 +3824,7 @@ function renderCathToday(){
       ${availBlock}
     </div>
     ${opBreakdown ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${opBreakdown}</div>` : ''}
+    ${all.length ? `<button class="btn" style="margin-top:12px;padding:10px 14px;font-size:12px" onclick="exportCathToday()">📄 Export Today's Cath List as PDF</button>` : ''}
   </div>`;
 
   if(!all.length){
@@ -3509,6 +3849,7 @@ function renderCathToday(){
       <div class="cath-row"><div class="cath-row-label">History</div><div class="cath-row-val">${escapeHtml(s.hx||'—')}</div></div>
       <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--acc2);font-weight:600">${escapeHtml(s.proc||'—')}</div></div>
       <div class="cath-row"><div class="cath-row-label">Operator</div><div class="cath-row-val">${s.operator ? escapeHtml(s.operator) : '<span style="color:var(--dim);font-style:italic">To be assigned</span>'}</div></div>
+      ${s.result ? `<div class="cath-row" style="background:rgba(52,211,153,.06);border-radius:6px;padding:7px 9px;margin-top:4px"><div class="cath-row-label" style="color:var(--ok)">Done / Result</div><div class="cath-row-val" style="color:var(--ok);font-weight:600;line-height:1.5">${escapeHtml(s.result)}${s.caseType==='IP'?' <span style="font-weight:normal;color:var(--dim);font-size:10px;font-family:\'DM Mono\',monospace">· synced to IP list</span>':''}</div></div>` : ''}
       
       <div class="cath-btn-row">
         <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
@@ -3655,6 +3996,7 @@ function renderCathCalendar(){
               ${s.file?`<div class="cath-row"><div class="cath-row-label">File</div><div class="cath-row-val">${escapeHtml(s.file)}</div></div>`:''}
               <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--acc2);font-weight:600">${escapeHtml(s.proc||'—')}</div></div>
               <div class="cath-row"><div class="cath-row-label">Operator</div><div class="cath-row-val">${s.operator ? escapeHtml(s.operator) : '<span style="color:var(--dim);font-style:italic">To be assigned</span>'}</div></div>
+      ${s.result ? `<div class="cath-row" style="background:rgba(52,211,153,.06);border-radius:6px;padding:7px 9px;margin-top:4px"><div class="cath-row-label" style="color:var(--ok)">Done / Result</div><div class="cath-row-val" style="color:var(--ok);font-weight:600;line-height:1.5">${escapeHtml(s.result)}${s.caseType==='IP'?' <span style="font-weight:normal;color:var(--dim);font-size:10px;font-family:\'DM Mono\',monospace">· synced to IP list</span>':''}</div></div>` : ''}
               <div class="cath-btn-row">
                 <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
                 <button class="cath-del-btn" onclick="deleteScheduled('${s.id}')">✕ Remove</button>
@@ -3712,6 +4054,7 @@ function renderCathScheduled(){
       <div class="cath-row"><div class="cath-row-label">History</div><div class="cath-row-val">${escapeHtml(s.hx||'—')}</div></div>
       <div class="cath-row"><div class="cath-row-label">Procedure</div><div class="cath-row-val" style="color:var(--acc2);font-weight:600">${escapeHtml(s.proc||'—')}</div></div>
       <div class="cath-row"><div class="cath-row-label">Operator</div><div class="cath-row-val">${s.operator ? escapeHtml(s.operator) : '<span style="color:var(--dim);font-style:italic">To be assigned</span>'}</div></div>
+      ${s.result ? `<div class="cath-row" style="background:rgba(52,211,153,.06);border-radius:6px;padding:7px 9px;margin-top:4px"><div class="cath-row-label" style="color:var(--ok)">Done / Result</div><div class="cath-row-val" style="color:var(--ok);font-weight:600;line-height:1.5">${escapeHtml(s.result)}${s.caseType==='IP'?' <span style="font-weight:normal;color:var(--dim);font-size:10px;font-family:\'DM Mono\',monospace">· synced to IP list</span>':''}</div></div>` : ''}
       
       <div class="cath-btn-row">
         <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
@@ -3826,7 +4169,8 @@ window.saveCensus = async function(ev){
     updatedAt: Date.now(),
     updatedBy: reg
   };
-  dbRef.set(window.S);
+  // Scoped: only this unit's census
+  dbWriteAt('census/' + unit, window.S.census[unit]);
   closeCensusMo();
   renderCensus();
   renderCensusAlert();
@@ -3927,9 +4271,12 @@ function renderCensusAlert(){
   let alerts = computeBedAlerts();
   let html = '';
   if(alerts.length){
-    html = `<div class="census-alert"><div class="census-alert-icon">🚨</div><div class="census-alert-body">
-      <strong>Ward 4 bed shortage — contact elective patients for reappointment</strong>
-      ${alerts.map(a => `• ${fmtDate(a.date)}: ${a.scheduled} scheduled, only ${a.available} Ward 4 beds available <span style="color:#fbbf24">(short by ${a.shortage})</span>`).join('<br>')}
+    html = `<div class="census-alert"><div class="census-alert-icon">⚠️</div><div class="census-alert-body">
+      <strong>Low Ward 4 availability vs. scheduled cath cases</strong>
+      <div style="font-size:10.5px;color:var(--mid);margin-top:3px;line-height:1.55">This is an advisory only — scheduling is not blocked. Please empty a bed, or contact elective patients to reschedule.</div>
+      <div style="margin-top:8px">
+      ${alerts.map(a => `• ${fmtDate(a.date)}: <b>${a.scheduled}</b> cath scheduled, only <b>${a.available}</b> Ward 4 bed${a.available===1?'':'s'} available <span style="color:#fbbf24">(short by ${a.shortage})</span>`).join('<br>')}
+      </div>
     </div></div>`;
   }
   if(cathBox) cathBox.innerHTML = html;
@@ -3962,7 +4309,7 @@ window.filterLog=(f,b)=>{ document.querySelectorAll(".fb").forEach(x=>x.classLis
 window.adminLogin=async (id)=>{ let v=document.getElementById(id).value; if(!v) return; let h=await sha256(v); if(h===ADMIN_HASH){ adm=true; document.querySelectorAll(".apgate").forEach(e=>e.style.display="none"); document.querySelectorAll(".ac-content").forEach(e=>e.style.display="block"); rAll(); } else { alert("Incorrect PIN"); document.getElementById(id).value=""; } };
 window.goOpTab=(tab,btn)=>{ document.querySelectorAll("#opc .tab").forEach(t=>t.classList.remove("on")); btn.classList.add("on"); document.getElementById("op-walkin").style.display=tab==="walkin"?"block":"none"; document.getElementById("op-fix").style.display=tab==="fix"?"block":"none"; if(tab==="fix") renderFixClinics(); };
 window.closeMo=()=>document.getElementById("mo").classList.remove("on");
-window.delEntry=()=>{ let s=document.getElementById("dfi").value.trim(); if(!s) return; let idxL=window.S.logs.findIndex(e=>e.fn.toString().includes(s)), idxO=window.S.oplogs.findIndex(e=>e.fn.toString().includes(s)), idxE=(window.S.eplogs||[]).findIndex(e=>e.fn.toString().includes(s)); if(idxL===-1 && idxO===-1 && idxE===-1) return alert("Not found"); if(confirm("Delete?")){ if(idxL!==-1) window.S.logs.splice(idxL,1); else if(idxO!==-1) window.S.oplogs.splice(idxO,1); else window.S.eplogs.splice(idxE,1); dbRef.set(window.S); rAll(); } };
+window.delEntry=()=>{ let s=document.getElementById("dfi").value.trim(); if(!s) return; let idxL=window.S.logs.findIndex(e=>e.fn.toString().includes(s)), idxO=window.S.oplogs.findIndex(e=>e.fn.toString().includes(s)), idxE=(window.S.eplogs||[]).findIndex(e=>e.fn.toString().includes(s)); if(idxL===-1 && idxO===-1 && idxE===-1) return alert("Not found"); if(confirm("Delete?")){ let key; if(idxL!==-1){ window.S.logs.splice(idxL,1); key='logs'; } else if(idxO!==-1){ window.S.oplogs.splice(idxO,1); key='oplogs'; } else { window.S.eplogs.splice(idxE,1); key='eplogs'; } dbWrite(key, window.S[key]); rAll(); } };
 window.resetAll=()=>{ if(confirm("WIPE EVERYTHING?")){ window.S={logs:[], oplogs:[], eplogs:[], leave:{}, skipped:{}, blockedDates:{}, endorsements:{}, cathScheduled:{}, cathPending:{}, census:{ward4:null,ccu:null}, onCall:{}, docPins:{}, pinChanges:[], removals:[]}; dbRef.set(window.S); rAll(); } };
 window.exportWeekly=()=>{ let all=(window.S.logs||[]).concat(window.S.oplogs||[]).concat(window.S.eplogs||[]).sort((a,b)=>b.ts-a.ts); if(!all.length) return alert("No data"); exportPDF("Master Log — All Entries", all); };
 
@@ -3988,33 +4335,27 @@ dbRef.on('value',(snap)=>{
 
   // ONE-TIME CLEANUP: strip any leftover 'images' arrays from existing records
   // (image upload was removed; this wipes old blobs to reclaim Firebase space).
-  // Writes back only if something was actually stripped.
-  let stripped = false;
+  // Writes back ONLY the specific bucket(s) that actually changed — never the
+  // whole state, to avoid the historical race that caused data loss.
+  let strippedBuckets = {};
   ['endorsements','cathScheduled','cathPending'].forEach(bucket => {
     let rec = window.S[bucket] || {};
+    let changed = false;
     Object.keys(rec).forEach(id => {
-      if(rec[id] && rec[id].images){ delete rec[id].images; stripped = true; }
+      if(rec[id] && rec[id].images){ delete rec[id].images; changed = true; }
     });
+    if(changed) strippedBuckets[bucket] = rec;
   });
+  if(Object.keys(strippedBuckets).length){
+    // Atomic scoped update — touches only the buckets that lost images
+    dbUpdate(strippedBuckets);
+  }
 
-  // ONE-TIME CLEANUP: remove orphan tombstones in docPins — a `retired:<hash>` entry
-  // that has no matching active replacement PIN for that doctor. Such entries
-  // could wrongly lock a doctor out of changing their PIN. Safe to run on every
-  // load because it's a no-op when there's nothing to clean.
-  let pinCleanup = false;
-  let dp = window.S.docPins || {};
-  // Build "who has an active live PIN" set
-  let withLive = new Set();
-  Object.keys(dp).forEach(k => { if(!k.startsWith('retired:')) withLive.add(dp[k]); });
-  Object.keys(dp).forEach(k => {
-    if(!k.startsWith('retired:')) return;
-    let docName = dp[k];
-    if(!withLive.has(docName)){
-      delete dp[k];
-      pinCleanup = true;
-    }
-  });
-  if(stripped || pinCleanup){ dbRef.set(window.S); }
+  // NOTE: orphan-tombstone cleanup of docPins is intentionally NOT run on
+  // every load anymore. Auto-cleanups that write back to Firebase from inside
+  // the value-listener can race with concurrent writes from other devices and
+  // overwrite live PIN updates. Cleanup is now a manual admin-only action —
+  // see the "Clean Orphan Tombstones" button on the Admin → Reset PIN tab.
 
   dataLoaded=true;
   document.getElementById("syncDot").style.background="var(--ok)";
@@ -4087,13 +4428,17 @@ window.sendEndoToCath = function(endoId){
     // Show green IP banner
     let banner = document.getElementById('cathSchFromEndo');
     if(banner) banner.style.display = 'block';
+    let ipNote = document.getElementById('cathSchResultIpNote');
+    if(ipNote) ipNote.style.display = 'block';
+    // Relax validation: only date + PIN are required for IP cases
+    setCathSchRequiredMode(true);
     document.getElementById('cathSchFormTitle').innerText = `IP CASE: ${e.name} (${e.ward||'—'} · Bed ${e.bed||'—'})`;
     updateSchDateBadge();
-    // Scroll form into view and focus the procedure select (most important missing field)
-    let proc = document.getElementById('cath-sch-proc');
-    if(proc){
-      proc.scrollIntoView({behavior:'smooth', block:'center'});
-      setTimeout(()=>proc.focus(), 250);
+    // Scroll form into view and focus the date input (only required field)
+    let dateEl = document.getElementById('cath-sch-date');
+    if(dateEl){
+      dateEl.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(()=>dateEl.focus(), 250);
     }
   }, 100);
 };
@@ -4319,7 +4664,8 @@ window.saveOncall = function(ev){
   ensureExtState();
   if(!window.S.onCall) window.S.onCall = {};
   window.S.onCall[iso] = roster;
-  dbRef.set(window.S);
+  // Scoped write: only this day's roster, not the whole state
+  dbWriteAt('onCall/' + iso, roster);
   closeOncallMo();
   renderOncallCalendar();
   return false;
@@ -4331,7 +4677,8 @@ window.clearOncallDay = function(){
   if(!confirm('Clear the entire on-call roster for this day?')) return;
   ensureExtState();
   if(window.S.onCall && window.S.onCall[iso]) delete window.S.onCall[iso];
-  dbRef.set(window.S);
+  // Scoped remove: only this day
+  dbRemoveAt('onCall/' + iso);
   closeOncallMo();
   renderOncallCalendar();
 };
@@ -4419,7 +4766,8 @@ window.changeMyPin = async function(ev){
   if(!window.S.pinChanges) window.S.pinChanges = [];
   window.S.pinChanges.push({ ts: Date.now(), doc: window.currentDoctor, by: window.currentDoctor + ' (self)', action: 'change' });
   if(window.S.pinChanges.length > 200) window.S.pinChanges = window.S.pinChanges.slice(-200);
-  dbRef.set(window.S);
+  // Scoped write: only docPins + pinChanges, atomic via update()
+  dbUpdate({ docPins: window.S.docPins, pinChanges: window.S.pinChanges });
   alert('✅ PIN updated. Use your new 6-digit PIN next time you log in.');
   renderProfileTab();
   return false;
@@ -4494,8 +4842,38 @@ window.adminResetPin = async function(){
   if(!window.S.pinChanges) window.S.pinChanges = [];
   window.S.pinChanges.push({ ts: Date.now(), doc: docName, by: 'Admin', action: 'reset' });
   if(window.S.pinChanges.length > 200) window.S.pinChanges = window.S.pinChanges.slice(-200);
-  dbRef.set(window.S);
+  // Scoped write: only docPins + pinChanges, atomic via update()
+  dbUpdate({ docPins: window.S.docPins, pinChanges: window.S.pinChanges });
   alert(`✅ PIN reset for ${docName}. Share the new 6-digit PIN with them securely.`);
+  renderPinResetTab();
+};
+
+// Admin-only manual cleanup: scans docPins for `retired:<hash>` entries whose
+// owner has no active replacement PIN. Such orphans can wrongly block a
+// doctor from changing their PIN. Shows what would be deleted, asks for
+// confirmation, then writes once.
+window.adminCleanOrphanTombstones = function(){
+  if(!adm && window.currentRole !== 'admin'){ alert('Admin access required.'); return; }
+  ensureExtState();
+  let dp = window.S.docPins || {};
+  let withLive = new Set();
+  Object.keys(dp).forEach(k => { if(!k.startsWith('retired:')) withLive.add(dp[k]); });
+  let orphans = [];
+  Object.keys(dp).forEach(k => {
+    if(!k.startsWith('retired:')) return;
+    let owner = dp[k];
+    if(!withLive.has(owner)) orphans.push({ key: k, owner: owner });
+  });
+  if(!orphans.length){
+    alert('No orphan tombstones found. PIN database is clean.');
+    return;
+  }
+  let preview = orphans.map(o => '• ' + o.owner).join('\n');
+  if(!confirm(`Found ${orphans.length} orphan tombstone${orphans.length===1?'':'s'} for:\n\n${preview}\n\nDelete them?\n\nThe affected doctors will then be able to log in with their original 4-digit PIN and set a new one.`)) return;
+  orphans.forEach(o => { delete dp[o.key]; });
+  // Scoped write: only docPins
+  dbWrite('docPins', window.S.docPins);
+  alert(`✅ Cleaned ${orphans.length} orphan tombstone${orphans.length===1?'':'s'}.`);
   renderPinResetTab();
 };
 
@@ -4570,15 +4948,19 @@ window.renderRemovalsList = function(){
     let who = window.currentDoctor || (window.currentRole === 'admin' ? 'Admin' : (window.currentRole||'Unknown'));
     ensureExtState();
     let entry;
+    let logKey;
     if(idxL!==-1){
       entry = window.S.logs[idxL];
       window.S.logs.splice(idxL,1);
+      logKey = 'logs';
     } else if(idxO!==-1){
       entry = window.S.oplogs[idxO];
       window.S.oplogs.splice(idxO,1);
+      logKey = 'oplogs';
     } else {
       entry = window.S.eplogs[idxE];
       window.S.eplogs.splice(idxE,1);
+      logKey = 'eplogs';
     }
     window.S.removals.push({
       type: 'log',
@@ -4593,7 +4975,8 @@ window.renderRemovalsList = function(){
       createdAt: entry.ts || null
     });
     if(window.S.removals.length > 500) window.S.removals = window.S.removals.slice(-500);
-    dbRef.set(window.S);
+    // Scoped: only the affected log array + removals
+    dbUpdate({ [logKey]: window.S[logKey], removals: window.S.removals });
     rAll();
   };
 })();
