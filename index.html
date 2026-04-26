@@ -2454,7 +2454,7 @@ window.openEndoForm = function(id){
     let wardDisplay = e.ward || '';
     let fixed = ['Ward 4','CCU'];
     let isOther = wardDisplay && !fixed.includes(wardDisplay);
-    document.getElementById('endoMoTitle').innerText = `Edit · ${wardDisplay||''} B${normBed(e.bed)}`;
+    document.getElementById('endoMoTitle').innerText = `Edit · ${wardDisplay||''} ${bedLabel(e.bed)}`;
     document.getElementById('endo-ward').value = isOther ? 'Others' : wardDisplay;
     document.getElementById('endo-ward-other').value = isOther ? wardDisplay : '';
     document.getElementById('endo-bed').value = e.bed || '';
@@ -2537,7 +2537,7 @@ window.deleteEndo = function(id){
   ensureExtState();
   let e = window.S.endorsements[id];
   if(!e) return;
-  if(!confirm(`Discharge / remove ${e.name} (${abbrevWard(e.ward||'')} · B${normBed(e.bed)}) from the IP list? This is permanent.`)) return;
+  if(!confirm(`Discharge / remove ${e.name} (${abbrevWard(e.ward||'')} · ${bedLabel(e.bed)}) from the IP list? This is permanent.`)) return;
   // Log removal for admin tracking
   let who = window.currentDoctor || (window.currentRole === 'admin' ? 'Admin' : (window.currentRole||'Unknown'));
   window.S.removals.push({
@@ -2702,7 +2702,7 @@ window.exportHFPatientPDF = function(id){
   doc.setFont('helvetica','bold'); doc.setTextColor(100,60,180);
   doc.text('Ward / Bed', lm+120, y+13);
   doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
-  doc.text((abbrevWard(p.ward)||'—') + ' · B' + normBed(p.bed), lm+120, y+26);
+  doc.text((abbrevWard(p.ward)||'—') + ' · ' + bedLabel(p.bed), lm+120, y+26);
   if(p.hftype){
     doc.setFont('helvetica','bold'); doc.setTextColor(100,60,180);
     doc.text('HF Type', lm+270, y+13);
@@ -2768,7 +2768,7 @@ function renderHFList(){
     let hftypeBadge = p.hftype ? `<span style="background:rgba(20,184,166,.18);color:#2dd4bf;border:1px solid rgba(20,184,166,.4);border-radius:4px;padding:2px 7px;font-family:'DM Mono',monospace;font-size:9px;margin-left:6px">${escapeHtml(p.hftype)}</span>` : '';
     return `<div class="endo-card" style="border-left:3px solid rgba(167,139,250,.5)">
       <div class="endo-card-head">
-        <div class="endo-bed" style="background:linear-gradient(135deg,#0d9488,#14b8a6)">${escapeHtml(abbrevWard(p.ward)||'—')} · <span style="opacity:.8">B</span>${escapeHtml(normBed(p.bed))}</div>
+        <div class="endo-bed" style="background:linear-gradient(135deg,#0d9488,#14b8a6)">${escapeHtml(abbrevWard(p.ward)||'—')} · ${escapeHtml(bedLabel(p.bed))}</div>
         <div style="flex:1;min-width:0">
           <div class="endo-name">${escapeHtml(p.name||'—')}${hftypeBadge}</div>
           <div class="endo-mrn">MRN · ${escapeHtml(p.mrn||'—')}${demo?' · <span style="color:var(--dim)">'+escapeHtml(demo)+'</span>':''}</div>
@@ -2886,7 +2886,28 @@ function abbrevRoom(room){
 // e.g. "Bed 3" → "3", "Bed 11" → "11", "3" → "3"
 function normBed(bed){
   if(!bed) return "—";
-  return String(bed).replace(/^bed\s*/i, "").trim() || bed;
+  return String(bed).replace(/^bed\s*/i, "").trim() || String(bed);
+}
+
+// Format bed for display: prepend "B" only for plain numbers.
+// "3" → "B3", "11" → "B11"
+// "SR2", "SR 2", "Side Room 2" → "SR2" (no B)
+// "Room 2" → "R2" (no B, already abbreviated)
+// "Bed 3" → "B3" (strips "Bed " then numeric → prepend B)
+function bedLabel(bed){
+  if(!bed || bed === "—") return "—";
+  // Strip leading "Bed " prefix
+  let v = String(bed).replace(/^bed\s*/i, "").trim();
+  // Abbreviate "Side Room X" → "SR X" → "SRX"
+  v = v.replace(/^side\s*room\s*/i, "SR").replace(/^SR\s+/i, "SR");
+  // Abbreviate "Room X" → "RX"
+  v = v.replace(/^room\s*/i, "R");
+  // If purely numeric → prepend B
+  if(/^\d+$/.test(v)) return "B" + v;
+  // If starts with digit but has letters (e.g. "3A") → prepend B
+  if(/^\d/.test(v)) return "B" + v;
+  // Otherwise (SR2, R2, ICU-1, etc.) → show as-is
+  return v;
 }
 
 function renderEndoList(){
@@ -2973,7 +2994,7 @@ function renderEndoList(){
     return `
     <div class="endo-card${isOpen?' open':''}">
       <div class="endo-card-head endo-card-toggle" onclick="toggleEndoCard('${e.id}')">
-        <div class="endo-bed">${escapeHtml(e.ward ? abbrevWard(e.ward) : '—')} · <span style="opacity:.8">B</span>${escapeHtml(normBed(e.bed))}</div>
+        <div class="endo-bed">${escapeHtml(e.ward ? abbrevWard(e.ward) : '—')} · ${escapeHtml(bedLabel(e.bed))}</div>
         <div style="flex:1;min-width:0">
           <div class="endo-name">${escapeHtml(e.name||'—')}</div>
           <div class="endo-mrn">MRN · ${escapeHtml(e.mrn||'—')}${summary?' · <span style="color:var(--dim)">'+escapeHtml(summary)+'</span>':''}</div>
@@ -4399,7 +4420,7 @@ function renderCathToday(){
         ${(()=>{
         if(s.caseType==='IP' && s.sourceEndoId && window.S.endorsements && window.S.endorsements[s.sourceEndoId]){
           let _e=window.S.endorsements[s.sourceEndoId];
-          if(_e.ward||_e.bed) return `<div style="background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;font-family:'DM Serif Display',serif;font-size:14px;padding:5px 11px;border-radius:7px;min-width:44px;text-align:center;white-space:nowrap;box-shadow:0 2px 8px rgba(8,145,178,.3)">${escapeHtml(abbrevWard(_e.ward||''))} · B${escapeHtml(normBed(_e.bed||'—'))}</div>`;
+          if(_e.ward||_e.bed) return `<div style="background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;font-family:'DM Serif Display',serif;font-size:14px;padding:5px 11px;border-radius:7px;min-width:44px;text-align:center;white-space:nowrap;box-shadow:0 2px 8px rgba(8,145,178,.3)">${escapeHtml(abbrevWard(_e.ward||''))} · ${escapeHtml(bedLabel(_e.bed||'—'))}</div>`;
         }
         return '';
       })()}
@@ -4415,10 +4436,10 @@ function renderCathToday(){
             ip = {hx:e2.hx,reason:e2.reason,ix:e2.ix,active:e2.active,plan:e2.plan};
             if(!s.sex && e2.sex) s._sex=e2.sex;
             if(!s.cid && e2.cid) s._cid=e2.cid;
-            if(e2.ward || e2.bed){ wardBed = (abbrevWard(e2.ward)||'') + (e2.bed?' · B'+normBed(e2.bed):''); }
+            if(e2.ward || e2.bed){ wardBed = (abbrevWard(e2.ward)||'') + (e2.bed?' · '+bedLabel(e2.bed):''); }
           }
           // Also try stored ward/bed on the cath record itself (for new records)
-          if(!wardBed && (s.ipWard||s.ipBed)){ wardBed = (abbrevWard(s.ipWard)||'') + (s.ipBed?' · B'+normBed(s.ipBed):''); }
+          if(!wardBed && (s.ipWard||s.ipBed)){ wardBed = (abbrevWard(s.ipWard)||'') + (s.ipBed?' · '+bedLabel(s.ipBed):''); }
         }
         let sexVal = s.sex || s._sex || '';
         let cidVal = s.cid || s._cid || '';
@@ -4587,7 +4608,7 @@ function renderCathCalendar(){
                 ${(()=>{
         if(s.caseType==='IP' && s.sourceEndoId && window.S.endorsements && window.S.endorsements[s.sourceEndoId]){
           let _e=window.S.endorsements[s.sourceEndoId];
-          if(_e.ward||_e.bed) return `<div style="background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;font-family:'DM Serif Display',serif;font-size:14px;padding:5px 11px;border-radius:7px;min-width:44px;text-align:center;white-space:nowrap;box-shadow:0 2px 8px rgba(8,145,178,.3)">${escapeHtml(abbrevWard(_e.ward||''))} · B${escapeHtml(normBed(_e.bed||'—'))}</div>`;
+          if(_e.ward||_e.bed) return `<div style="background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;font-family:'DM Serif Display',serif;font-size:14px;padding:5px 11px;border-radius:7px;min-width:44px;text-align:center;white-space:nowrap;box-shadow:0 2px 8px rgba(8,145,178,.3)">${escapeHtml(abbrevWard(_e.ward||''))} · ${escapeHtml(bedLabel(_e.bed||'—'))}</div>`;
         }
         return '';
       })()}
@@ -4608,9 +4629,9 @@ function renderCathCalendar(){
               if(s.caseType==='IP'){
                 if(s.sourceEndoId && window.S.endorsements && window.S.endorsements[s.sourceEndoId]){
                   let e4=window.S.endorsements[s.sourceEndoId];
-                  if(e4.ward||e4.bed) wardBed2=(abbrevWard(e4.ward)||'')+(e4.bed?' · B'+normBed(e4.bed):'');
+                  if(e4.ward||e4.bed) wardBed2=(abbrevWard(e4.ward)||'')+(e4.bed?' · '+bedLabel(e4.bed):'');
                 }
-                if(!wardBed2 && (s.ipWard||s.ipBed)) wardBed2=(abbrevWard(s.ipWard)||'')+(s.ipBed?' · B'+normBed(s.ipBed):'');
+                if(!wardBed2 && (s.ipWard||s.ipBed)) wardBed2=(abbrevWard(s.ipWard)||'')+(s.ipBed?' · '+bedLabel(s.ipBed):'');
               }
               let rows='';
               if(wardBed2) rows+=`<div class="cath-row"><div class="cath-row-label" style="color:var(--ok)">Location</div><div class="cath-row-val" style="font-weight:600;color:var(--ok)">${escapeHtml(wardBed2)}</div></div>`;
@@ -4683,7 +4704,7 @@ function renderCathScheduled(){
         ${(()=>{
         if(s.caseType==='IP' && s.sourceEndoId && window.S.endorsements && window.S.endorsements[s.sourceEndoId]){
           let _e=window.S.endorsements[s.sourceEndoId];
-          if(_e.ward||_e.bed) return `<div style="background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;font-family:'DM Serif Display',serif;font-size:14px;padding:5px 11px;border-radius:7px;min-width:44px;text-align:center;white-space:nowrap;box-shadow:0 2px 8px rgba(8,145,178,.3)">${escapeHtml(abbrevWard(_e.ward||''))} · B${escapeHtml(normBed(_e.bed||'—'))}</div>`;
+          if(_e.ward||_e.bed) return `<div style="background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;font-family:'DM Serif Display',serif;font-size:14px;padding:5px 11px;border-radius:7px;min-width:44px;text-align:center;white-space:nowrap;box-shadow:0 2px 8px rgba(8,145,178,.3)">${escapeHtml(abbrevWard(_e.ward||''))} · ${escapeHtml(bedLabel(_e.bed||'—'))}</div>`;
         }
         return '';
       })()}
@@ -4701,10 +4722,10 @@ function renderCathScheduled(){
             ip = {hx:e2.hx,reason:e2.reason,ix:e2.ix,active:e2.active,plan:e2.plan};
             if(!s.sex && e2.sex) s._sex=e2.sex;
             if(!s.cid && e2.cid) s._cid=e2.cid;
-            if(e2.ward || e2.bed){ wardBed = (abbrevWard(e2.ward)||'') + (e2.bed?' · B'+normBed(e2.bed):''); }
+            if(e2.ward || e2.bed){ wardBed = (abbrevWard(e2.ward)||'') + (e2.bed?' · '+bedLabel(e2.bed):''); }
           }
           // Also try stored ward/bed on the cath record itself (for new records)
-          if(!wardBed && (s.ipWard||s.ipBed)){ wardBed = (abbrevWard(s.ipWard)||'') + (s.ipBed?' · B'+normBed(s.ipBed):''); }
+          if(!wardBed && (s.ipWard||s.ipBed)){ wardBed = (abbrevWard(s.ipWard)||'') + (s.ipBed?' · '+bedLabel(s.ipBed):''); }
         }
         let sexVal = s.sex || s._sex || '';
         let cidVal = s.cid || s._cid || '';
@@ -5115,7 +5136,7 @@ window.sendEndoToCath = function(endoId){
     if(ipNote) ipNote.style.display = 'block';
     // Relax validation: only date + PIN are required for IP cases
     setCathSchRequiredMode(true);
-    document.getElementById('cathSchFormTitle').innerText = `IP CASE: ${e.name} (${abbrevWard(e.ward||'—')} · B${normBed(e.bed)})`;
+    document.getElementById('cathSchFormTitle').innerText = `IP CASE: ${e.name} (${abbrevWard(e.ward||'—')} · ${bedLabel(e.bed)})`;
     updateSchDateBadge();
     // Scroll form into view and focus the date input (only required field)
     let dateEl = document.getElementById('cath-sch-date');
