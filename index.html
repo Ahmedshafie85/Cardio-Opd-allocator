@@ -2570,30 +2570,74 @@ window.exportCathListPDF = function(isoDate){
 
   for(let i=0; i<cases.length; i++){
     let s = cases[i];
-    // Estimate card height
-    let hxLines = s.hx ? doc.splitTextToSize(s.hx, usableW - CARD_PAD*2 - 60).length : 0;
-    let resLines = s.result ? doc.splitTextToSize(s.result, usableW - CARD_PAD*2 - 60).length : 0;
-    let estH = 20 + LINE*2 + (hxLines ? LINE*(hxLines+1)+4 : 0) + (resLines ? LINE*(resLines+1)+6 : 0) + CARD_PAD*2 + 4;
+    let isIP = s.caseType === 'IP';
+    let textW = usableW - CARD_PAD*2 - (isIP?4:0);
+
+    // ---- Resolve clinical fields (IP cases pull from stored ipFields with fallback to live endorsement) ----
+    let ip = null;
+    if(isIP){
+      if(s.ipHx||s.ipReason||s.ipIx||s.ipActive||s.ipPlan){
+        ip = {hx:s.ipHx, reason:s.ipReason, ix:s.ipIx, active:s.ipActive, plan:s.ipPlan};
+      } else if(s.sourceEndoId && window.S.endorsements && window.S.endorsements[s.sourceEndoId]){
+        let e2 = window.S.endorsements[s.sourceEndoId];
+        ip = {hx:e2.hx, reason:e2.reason, ix:e2.ix, active:e2.active, plan:e2.plan};
+      }
+    }
+
+    // ---- Build clinical info rows (label/value pairs) ----
+    let clinRows = [];
+    if(ip){
+      if(ip.hx)     clinRows.push({label:"Past History",     value:ip.hx,     color:[80,80,140]});
+      if(ip.reason) clinRows.push({label:"Reason / Dx",      value:ip.reason, color:[180,83,9]});
+      if(ip.ix)     clinRows.push({label:"Investigations",   value:ip.ix,     color:[80,80,140]});
+      if(ip.active) clinRows.push({label:"Active Issues",    value:ip.active, color:[185,28,28]});
+      if(ip.plan)   clinRows.push({label:"Plan",             value:ip.plan,   color:[5,112,73]});
+    } else if(s.hx){
+      clinRows.push({label:"Risk Factors / History", value:s.hx, color:[80,80,140]});
+    }
+
+    // Pre-wrap each row's value to compute exact line counts
+    clinRows.forEach(r => { r.lines = doc.splitTextToSize(r.value, textW); });
+
+    // ---- Compute accurate card height ----
+    let demo = [];
+    if(s.sex) demo.push(s.sex);
+    if(s.age) demo.push(s.age + "y");
+    if(s.nationality) demo.push(s.nationality);
+    let idParts = [];
+    if(s.cid) idParts.push("Civil ID: " + s.cid);
+    if(s.file) idParts.push("File: " + s.file);
+    if(s.phone) idParts.push("Tel: " + s.phone);
+
+    let h = CARD_PAD;            // top padding
+    h += LINE + 4;               // name row
+    if(demo.length)    h += LINE;
+    if(idParts.length) h += LINE;
+    h += 3 + 5;                  // divider gap before & after
+    clinRows.forEach(r => { h += LINE + r.lines.length * LINE; }); // label + wrapped value
+    h += 3 + LINE + LINE;        // procedure + operator (with small gap)
+    let resLines = s.result ? doc.splitTextToSize(s.result, textW - 4) : null;
+    if(resLines){
+      h += 4 + (resLines.length * LINE + 14) + 4;
+    }
+    h += CARD_PAD;               // bottom padding
+    let cardH = h;
 
     // Page break if needed (leave 40pt margin at bottom)
-    if(y + estH > pageH - 40){
+    if(y + cardH > pageH - 40){
       doc.addPage();
       drawHeader(doc.internal.getNumberOfPages());
       y = 84;
     }
 
     // --- Card background ---
-    let isIP = s.caseType === 'IP';
     let cardFill = isIP ? [240,253,244] : [248,250,252];
     let borderColor = isIP ? [5,150,105] : [148,163,184];
     doc.setFillColor(...cardFill);
-    // approximate card height for drawing
-    let cardH = estH;
     doc.roundedRect(lm, y, usableW, cardH, 5, 5, "F");
     doc.setDrawColor(...borderColor);
     doc.setLineWidth(isIP ? 1.5 : 0.5);
     doc.roundedRect(lm, y, usableW, cardH, 5, 5, "S");
-    // Left accent bar for IP
     if(isIP){ doc.setFillColor(5,150,105); doc.rect(lm, y, 4, cardH, "F"); }
 
     let cx = lm + CARD_PAD + (isIP ? 4 : 0);
@@ -2610,18 +2654,12 @@ window.exportCathListPDF = function(isoDate){
     cy += LINE + 4;
 
     // --- Row 2: Gender · Age · Nationality ---
-    let demo = [];
-    if(s.sex) demo.push(s.sex);
-    if(s.age) demo.push(s.age + "y");
-    if(s.nationality) demo.push(s.nationality);
-    doc.setFont("helvetica","normal"); doc.setFontSize(SMALL); doc.setTextColor(100,100,130);
-    if(demo.length) { doc.text(demo.join("  ·  "), cx, cy+9); cy += LINE; }
+    if(demo.length){
+      doc.setFont("helvetica","normal"); doc.setFontSize(SMALL); doc.setTextColor(100,100,130);
+      doc.text(demo.join("  ·  "), cx, cy+9); cy += LINE;
+    }
 
-    // --- Row 3: Civil ID · File number ---
-    let idParts = [];
-    if(s.cid) idParts.push("Civil ID: " + s.cid);
-    if(s.file) idParts.push("File: " + s.file);
-    if(s.phone) idParts.push("Tel: " + s.phone);
+    // --- Row 3: Civil ID · File · Phone ---
     if(idParts.length){
       doc.setFont("helvetica","normal"); doc.setFontSize(SMALL); doc.setTextColor(80,90,110);
       doc.text(idParts.join("   "), cx, cy+9); cy += LINE;
@@ -2633,15 +2671,15 @@ window.exportCathListPDF = function(isoDate){
     doc.line(cx, cy, pageW-rm-CARD_PAD, cy);
     cy += 5;
 
-    // --- Risk factors / Past history ---
-    if(s.hx){
-      doc.setFont("helvetica","bold"); doc.setFontSize(SMALL-0.5); doc.setTextColor(80,80,140);
-      doc.text("Risk Factors / History", cx, cy+9);
+    // --- Clinical info rows (IP-aware: Reason/Dx, Investigations, Active Issues, Plan, Past Hx) ---
+    clinRows.forEach(r => {
+      doc.setFont("helvetica","bold"); doc.setFontSize(SMALL-0.5); doc.setTextColor(...r.color);
+      doc.text(r.label, cx, cy+9);
       cy += LINE;
       doc.setFont("helvetica","normal"); doc.setFontSize(SMALL); doc.setTextColor(50,50,80);
-      let hxLines = doc.splitTextToSize(s.hx, usableW - CARD_PAD*2 - (isIP?4:0));
-      doc.text(hxLines, cx, cy+9); cy += hxLines.length * LINE;
-    }
+      doc.text(r.lines, cx, cy+9);
+      cy += r.lines.length * LINE;
+    });
 
     // --- Procedure & Operator ---
     cy += 3;
@@ -2653,12 +2691,11 @@ window.exportCathListPDF = function(isoDate){
     cy += LINE;
 
     // --- Outcome / Result ---
-    if(s.result){
+    if(resLines){
       cy += 4;
       doc.setFillColor(220,252,231);
-      let resLines = doc.splitTextToSize(s.result, usableW - CARD_PAD*2 - (isIP?4:0) - 4);
       let resH = resLines.length * LINE + 14;
-      doc.roundedRect(cx, cy, usableW - CARD_PAD*2 - (isIP?4:0), resH, 3, 3, "F");
+      doc.roundedRect(cx, cy, textW, resH, 3, 3, "F");
       doc.setFont("helvetica","bold"); doc.setFontSize(SMALL-0.5); doc.setTextColor(5,112,73);
       doc.text("OUTCOME / RESULT", cx+4, cy+10);
       doc.setFont("helvetica","normal"); doc.setFontSize(NORMAL); doc.setTextColor(5,90,60);
@@ -5681,11 +5718,13 @@ function computeBedAlerts(){
   if(!isCensusAlarmWindow()) return alerts;
   let ward4 = window.S.census?.ward4;
   if(!ward4 || typeof ward4.available !== 'number') return alerts;
-  // Only look at tomorrow (next calendar day)
-  let today = new Date(todayIso()+'T00:00:00');
-  let tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-  let tomorrowIso = tomorrow.toISOString().slice(0,10);
-  // Count only non-IP scheduled cases for tomorrow
+  // Only look at tomorrow (next calendar day) — use LOCAL date, not UTC.
+  // toISOString() shifts to UTC which causes off-by-one-day errors in Kuwait (UTC+3).
+  let tomorrow = new Date(todayIso()+'T00:00:00');
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  let tomorrowIso = tomorrow.getFullYear()+'-'+String(tomorrow.getMonth()+1).padStart(2,'0')+'-'+String(tomorrow.getDate()).padStart(2,'0');
+  // Count only non-IP scheduled cases for tomorrow (new admissions arriving in the morning).
+  // IP cases are already admitted and occupying a bed, so they don't add new Ward 4 demand.
   let nonIpTomorrow = Object.values(window.S.cathScheduled||{}).filter(s => {
     return s.date === tomorrowIso && s.caseType !== 'IP';
   }).length;
