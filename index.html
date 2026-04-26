@@ -223,6 +223,20 @@ header p{font-size:9px;color:#64748b;font-family:'DM Mono',monospace;letter-spac
 .cath-row{display:grid;grid-template-columns:90px 1fr;gap:10px;font-size:12px;padding:5px 0;align-items:start}
 .cath-row-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;padding-top:2px}
 .cath-row-val{color:var(--mid);line-height:1.5;word-break:break-word}
+/* Collapsible cath cards (mirror of endo-card collapse pattern) */
+.cath-card.collapsible{transition:border-color .2s,box-shadow .2s}
+.cath-card.collapsible .cath-card-head{cursor:pointer;user-select:none;margin-bottom:0;padding-bottom:0;border-bottom:0;transition:background .15s}
+.cath-card.collapsible .cath-card-head:hover{background:rgba(96,165,250,.03)}
+.cath-card.collapsible.open{border-color:rgba(96,165,250,.4);box-shadow:0 6px 24px rgba(0,0,0,.22)}
+.cath-card.collapsible.open .cath-card-head{margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--bor)}
+.cath-chevron{color:var(--dim);font-size:18px;line-height:1;flex-shrink:0;transition:transform .25s,color .15s;padding-left:8px}
+.cath-card.collapsible.open .cath-chevron{transform:rotate(180deg);color:var(--acc)}
+.cath-card.collapsible .cath-card-head:hover .cath-chevron{color:var(--acc)}
+.cath-card-body{display:none}
+.cath-card.collapsible.open .cath-card-body{display:block;animation:fadeIn .18s}
+.cath-collapse-bar{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.cath-collapse-btn{background:var(--sur2);border:1px solid var(--bor);color:var(--mid);border-radius:5px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.5px;cursor:pointer;transition:all .15s}
+.cath-collapse-btn:hover{border-color:var(--acc);color:var(--acc)}
 .cath-form label{margin-top:4px}
 .cath-pending-card{border-left:3px solid var(--warn);background:linear-gradient(90deg,rgba(251,191,36,.04) 0%,var(--sur) 50%)}
 .cath-pending-badge{font-family:'DM Mono',monospace;font-size:9px;color:var(--warn);background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:4px;padding:3px 7px;letter-spacing:1px;font-weight:600}
@@ -2575,17 +2589,27 @@ window.exportCathListPDF = function(isoDate){
 
     // ---- Resolve clinical fields (IP cases pull from stored ipFields with fallback to live endorsement) ----
     let ip = null;
+    let wardBed = '';
     if(isIP){
+      // Prefer stored ipFields on the cath record itself
       if(s.ipHx||s.ipReason||s.ipIx||s.ipActive||s.ipPlan){
         ip = {hx:s.ipHx, reason:s.ipReason, ix:s.ipIx, active:s.ipActive, plan:s.ipPlan};
-      } else if(s.sourceEndoId && window.S.endorsements && window.S.endorsements[s.sourceEndoId]){
-        let e2 = window.S.endorsements[s.sourceEndoId];
-        ip = {hx:e2.hx, reason:e2.reason, ix:e2.ix, active:e2.active, plan:e2.plan};
       }
+      // Live endorsement fallback (and the ward/bed lives on the endorsement, so always check it)
+      if(s.sourceEndoId && window.S.endorsements && window.S.endorsements[s.sourceEndoId]){
+        let e2 = window.S.endorsements[s.sourceEndoId];
+        if(!ip) ip = {hx:e2.hx, reason:e2.reason, ix:e2.ix, active:e2.active, plan:e2.plan};
+        if(e2.ward || e2.bed){ wardBed = (abbrevWard(e2.ward)||'') + (e2.bed?' · '+bedLabel(e2.bed):''); }
+      }
+      // Final fallback: ward/bed stored on the cath record
+      if(!wardBed && (s.ipWard||s.ipBed)){ wardBed = (abbrevWard(s.ipWard)||'') + (s.ipBed?' · '+bedLabel(s.ipBed):''); }
     }
 
     // ---- Build clinical info rows (label/value pairs) ----
     let clinRows = [];
+    if(isIP && wardBed){
+      clinRows.push({label:"Location", value:wardBed, color:[5,150,105]});
+    }
     if(ip){
       if(ip.hx)     clinRows.push({label:"Past History",     value:ip.hx,     color:[80,80,140]});
       if(ip.reason) clinRows.push({label:"Reason / Dx",      value:ip.reason, color:[180,83,9]});
@@ -3795,6 +3819,40 @@ function renderEndoList(){
 
 // Accordion state — set of expanded endorsement IDs (persists across re-renders within session)
 var expandedEndoIds = new Set();
+
+// Cath card collapse state — set of expanded cath-case IDs (default = all collapsed)
+var expandedCathIds = new Set();
+window.toggleCathCard = function(id){
+  if(expandedCathIds.has(id)) expandedCathIds.delete(id);
+  else expandedCathIds.add(id);
+  // Re-render whichever cath list is currently visible
+  if(typeof renderCathToday === 'function') renderCathToday();
+  if(typeof renderCathScheduled === 'function') renderCathScheduled();
+};
+window.expandAllCath = function(scope){
+  ensureExtState();
+  let ids = Object.keys(window.S.cathScheduled||{});
+  if(scope === 'today'){
+    let iso = todayIso();
+    ids = ids.filter(id => window.S.cathScheduled[id].date === iso);
+  }
+  ids.forEach(id => expandedCathIds.add(id));
+  if(typeof renderCathToday === 'function') renderCathToday();
+  if(typeof renderCathScheduled === 'function') renderCathScheduled();
+};
+window.collapseAllCath = function(scope){
+  ensureExtState();
+  if(scope === 'today'){
+    let iso = todayIso();
+    Object.keys(window.S.cathScheduled||{}).forEach(id => {
+      if(window.S.cathScheduled[id].date === iso) expandedCathIds.delete(id);
+    });
+  } else {
+    expandedCathIds.clear();
+  }
+  if(typeof renderCathToday === 'function') renderCathToday();
+  if(typeof renderCathScheduled === 'function') renderCathScheduled();
+};
 
 // ============================================================
 // resolveDoctor — pick the "who did this" stamp for save operations.
@@ -5170,20 +5228,27 @@ function renderCathToday(){
     ${all.length ? `<button class="btn" style="margin-top:12px;padding:10px 14px;font-size:12px" onclick="exportCathToday()">📄 Export Today's Cath List as PDF</button>` : ''}
   </div>`;
 
+  // Collapse/expand-all bar (only when there are cases)
+  let collapseBar = all.length ? `<div class="cath-collapse-bar">
+    <button class="cath-collapse-btn" onclick="expandAllCath('today')">▾ EXPAND ALL</button>
+    <button class="cath-collapse-btn" onclick="collapseAllCath('today')">▸ COLLAPSE ALL</button>
+  </div>` : '';
+
   if(!all.length){
     listEl.innerHTML = '<div class="cath-empty">No cath cases scheduled for today.</div>';
     return;
   }
-  listEl.innerHTML = all.map((s, idx) => {
+  listEl.innerHTML = collapseBar + all.map((s, idx) => {
     let demo = [];
     if(s.age) demo.push(s.age + 'y');
     if(s.sex) demo.push(s.sex === 'Male' ? 'M' : (s.sex === 'Female' ? 'F' : s.sex));
     if(s.nationality) demo.push(s.nationality);
     let demoStr = demo.join(' · ');
     let ipBadge = (s.caseType === 'IP') ? `<span style="background:rgba(52,211,153,.15);color:var(--ok);border:1px solid rgba(52,211,153,.4);border-radius:4px;padding:2px 7px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.5px;margin-left:6px">🏥 IP</span>` : '';
+    let isOpen = expandedCathIds.has(s.id);
     return `
-    <div class="cath-card"${s.caseType==='IP'?' style="border-left:3px solid var(--ok)"':''}>
-      <div class="cath-card-head">
+    <div class="cath-card collapsible${isOpen?' open':''}"${s.caseType==='IP'?' style="border-left:3px solid var(--ok)"':''}>
+      <div class="cath-card-head" onclick="toggleCathCard('${s.id}')">
         <div style="background:var(--acc);color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;padding:4px 9px;border-radius:5px;letter-spacing:.5px">#${idx+1}</div>
         <div class="cath-name" style="flex:1">${escapeHtml(s.name||'—')}${ipBadge}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
         ${(()=>{
@@ -5193,7 +5258,9 @@ function renderCathToday(){
         }
         return '';
       })()}
+        <div class="cath-chevron">▾</div>
       </div>
+      <div class="cath-card-body">
       ${(()=>{
         // For IP cases: use stored ipFields OR fall back to live endorsement data
         let ip = null; let wardBed = '';
@@ -5236,6 +5303,7 @@ function renderCathToday(){
       <div class="cath-btn-row">
         <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
         <button class="cath-del-btn" onclick="deleteScheduled('${s.id}')">✕ Remove</button>
+      </div>
       </div>
     </div>
   `;}).join('');
@@ -5460,16 +5528,21 @@ function renderCathScheduled(){
     c.innerHTML = '<div class="cath-empty">' + (q ? 'No appointments match this search.' : 'No scheduled cath appointments.<br>Use the <b>＋ Schedule</b> tab to schedule one.') + '</div>';
     return;
   }
-  c.innerHTML = all.map(s => {
+  let collapseBar2 = `<div class="cath-collapse-bar">
+    <button class="cath-collapse-btn" onclick="expandAllCath()">▾ EXPAND ALL</button>
+    <button class="cath-collapse-btn" onclick="collapseAllCath()">▸ COLLAPSE ALL</button>
+  </div>`;
+  c.innerHTML = collapseBar2 + all.map(s => {
     let demo = [];
     if(s.age) demo.push(s.age + 'y');
     if(s.sex) demo.push(s.sex === 'Male' ? 'M' : (s.sex === 'Female' ? 'F' : s.sex));
     if(s.nationality) demo.push(s.nationality);
     let demoStr = demo.join(' · ');
     let ipBadge = (s.caseType === 'IP') ? `<span style="background:rgba(52,211,153,.15);color:var(--ok);border:1px solid rgba(52,211,153,.4);border-radius:4px;padding:2px 7px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.5px;margin-left:6px">🏥 IP</span>` : '';
+    let isOpen = expandedCathIds.has(s.id);
     return `
-    <div class="cath-card"${s.caseType==='IP'?' style="border-left:3px solid var(--ok)"':''}>
-      <div class="cath-card-head">
+    <div class="cath-card collapsible${isOpen?' open':''}"${s.caseType==='IP'?' style="border-left:3px solid var(--ok)"':''}>
+      <div class="cath-card-head" onclick="toggleCathCard('${s.id}')">
         ${(()=>{
         if(s.caseType==='IP' && s.sourceEndoId && window.S.endorsements && window.S.endorsements[s.sourceEndoId]){
           let _e=window.S.endorsements[s.sourceEndoId];
@@ -5479,7 +5552,9 @@ function renderCathScheduled(){
       })()}
         <div class="cath-name">${escapeHtml(s.name||'—')}${ipBadge}${demoStr?' <span class="cath-demo">· '+escapeHtml(demoStr)+'</span>':''}</div>
         <div class="cath-date">${fmtDate(s.date)}</div>
+        <div class="cath-chevron">▾</div>
       </div>
+      <div class="cath-card-body">
       ${(()=>{
         // For IP cases: use stored ipFields OR fall back to live endorsement data
         let ip = null; let wardBed = '';
@@ -5523,6 +5598,7 @@ function renderCathScheduled(){
         <button class="cath-del-btn" onclick="editScheduled('${s.id}')" style="border-color:var(--acc);color:var(--acc)">✎ Edit</button>
         <button class="cath-del-btn" onclick="deleteScheduled('${s.id}')">✕ Remove</button>
         <span style="flex:1;text-align:right;font-family:'DM Mono',monospace;font-size:9px;color:#64748b">${s.updatedAt&&s.updatedAt!==s.createdAt ? 'Updated '+fmtDateTime(s.updatedAt)+' · '+escapeHtml(s.updatedBy||'—') : 'Added '+fmtDateTime(s.createdAt)+' · '+escapeHtml(s.createdBy||'—')}</span>
+      </div>
       </div>
     </div>
   `;}).join('');
