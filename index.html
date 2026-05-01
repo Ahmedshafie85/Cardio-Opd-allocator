@@ -127,8 +127,8 @@
   /* Multi-stop gradients for light theme */
   --body-gradient:linear-gradient(180deg,#e6ecf4 0%,#dfe6f0 60%,#d4dde9 100%);
   --header-gradient:linear-gradient(180deg,rgba(255,255,255,0.97) 0%,rgba(248,250,253,0.95) 100%);
-  --role-gate-gradient:radial-gradient(ellipse at center,#142035 0%,#0b1220 65%,#050912 100%);
-  --role-logo-gradient:linear-gradient(135deg,#1a3a4a 0%,#0e2532 100%);
+  --role-gate-gradient:radial-gradient(ellipse at center,#ffffff 0%,#e6ecf4 55%,#c5d0e0 100%);
+  --role-logo-gradient:linear-gradient(135deg,#0c7c8a 0%,#075d68 100%);
 
   /* Stronger shadow + crisp inner highlight so white cards lift off the page */
   --header-shadow:0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 10px rgba(10,22,40,0.08), 0 1px 0 rgba(10,22,40,0.05);
@@ -376,22 +376,19 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
 .tab:hover:not(.on){color:var(--mid);background:var(--acc-soft)}
 .card{box-shadow:var(--card-shadow-strong);transition:border-color .2s}
 
-/* ============= ROLE GATE — clinical login (always dark, regardless of theme) ============= */
+/* ============= ROLE GATE — clinical login (matches active theme) ============= */
 .role-gate{
   position:fixed;inset:0;
-  background:radial-gradient(ellipse at center,#142035 0%,#0b1220 65%,#050912 100%);
+  background:var(--role-gate-gradient);
   z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;
-  /* Lock dark colors for the login screen */
-  --txt:#eef2f7; --mid:#c7d0dc; --dim:#8694ab; --dim2:#5d6b82;
-  --sur:#111a2e; --sur2:#172238; --sur3:#1f2c46;
-  --bor:#243352; --bor2:#2d3e60;
-  --acc:#3aa6b7; --acc2:#5dc4d2;
-  --acc-soft:rgba(58,166,183,0.10); --acc-line:rgba(58,166,183,0.32);
 }
 .role-gate.hidden{display:none}
 .role-box{width:100%;max-width:420px;text-align:center}
-.role-logo{width:78px;height:78px;background:linear-gradient(135deg,#1a3a4a 0%,#0e2532 100%);border:1px solid var(--acc-line);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 12px 40px rgba(58,166,183,0.28),0 0 0 1px rgba(255,255,255,0.04) inset;color:var(--acc2)}
+.role-logo{width:78px;height:78px;background:var(--role-logo-gradient);border:1px solid var(--acc-line);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 12px 40px rgba(58,166,183,0.28),0 0 0 1px rgba(255,255,255,0.04) inset;color:var(--acc2)}
 .role-logo svg{width:42px;height:42px}
+/* In light mode the logo background is bright teal, so the icon needs white strokes */
+:root[data-theme="light"] .role-logo{color:#fff;box-shadow:0 12px 40px rgba(12,124,138,0.30),0 0 0 1px rgba(255,255,255,0.20) inset}
+:root[data-theme="light"] .role-logo svg path[fill]{fill:rgba(255,255,255,0.18)!important}
 .role-title{font-family:var(--font-ui);font-size:28px;color:var(--txt);margin-bottom:6px;letter-spacing:-0.02em;font-weight:700}
 .role-title .acc{color:var(--acc2)}
 .role-sub{font-family:var(--font-mono);font-size:10px;color:var(--dim);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:36px;font-weight:500}
@@ -2002,7 +1999,7 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
   <div class="card">
     <div class="rl" style="margin-bottom:6px">ON CALL SCHEDULE</div>
     <div style="font-family:var(--font-mono);font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:12px">
-      Tap any day in the calendar to view its on-call team. <strong style="color:var(--warn)">Admin</strong> can edit the roster for each day (3 First on-call, 1 CCU, 1 Second on-call, 1 Interventionist on-call).
+      Tap any day in the calendar to view its on-call team. <strong style="color:var(--warn)">Admin</strong> can edit the roster for each day (3 First on-call, 1 CCU, 2 Second on-call, 1 Interventionist on-call).
     </div>
     <div class="cal-legend" style="display:flex;flex-wrap:wrap;gap:8px 14px;font-family:var(--font-mono);font-size:10px;color:var(--dim);margin-bottom:10px;align-items:center">
       <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(250,204,21,.18);border:1px solid rgba(250,204,21,.35);display:inline-block"></span>Thu</span>
@@ -2038,6 +2035,7 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
         <span style="font-family:var(--font-mono);font-size:9px;color:var(--dim);letter-spacing:.06em">TO</span>
         <input type="date" id="oncallSearchTo" onchange="runOncallSearch()" style="background:var(--sur);border:1px solid var(--bor);color:var(--txt);border-radius:6px;padding:6px 9px;font-size:12px;font-family:var(--font-mono)">
         <button class="fb" onclick="clearOncallSearch()" style="font-size:11px">Clear</button>
+        <button class="fb" onclick="exportOncallPdf()" style="font-size:11px;background:var(--acc-soft);border-color:var(--acc-line);color:var(--acc2);font-weight:600">📄 Export PDF</button>
       </div>
       <div id="oncallSearchResults" style="margin-top:10px;display:none"></div>
     </div>
@@ -2069,9 +2067,11 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
           <div class="rl" style="margin-bottom:6px;color:var(--warn)">CCU (1 doctor)</div>
           <label>CCU on-call</label>
           <select id="oncall-ccu" data-doc-jump class="fd-sel" style="margin-bottom:14px"></select>
-          <div class="rl" style="margin-bottom:6px;color:var(--ok)">SECOND ON-CALL (1 doctor)</div>
-          <label>Second on-call</label>
-          <select id="oncall-second" data-doc-jump class="fd-sel" style="margin-bottom:14px"></select>
+          <div class="rl" style="margin-bottom:6px;color:var(--ok)">SECOND ON-CALL (2 doctors)</div>
+          <label>Second on-call #1</label>
+          <select id="oncall-second" data-doc-jump class="fd-sel" style="margin-bottom:10px"></select>
+          <label>Second on-call #2</label>
+          <select id="oncall-second2" data-doc-jump class="fd-sel" style="margin-bottom:14px"></select>
           <div class="rl" style="margin-bottom:6px;color:var(--ep)">INTERVENTIONIST ON-CALL (1 doctor)</div>
           <label>Interventionist on-call</label>
           <select id="oncall-interv" data-doc-jump class="fd-sel" style="margin-bottom:14px"></select>
@@ -6190,47 +6190,11 @@ function buildDocOptions(selectedValue, includeNone){
 }
 
 // =====================================================================
-// Doctor-list keyboard typeahead
-// Native <select> first-letter jump fails because every option starts
-// with "Dr. " — every keystroke just lands on the first doctor.
-// This handler buffers typed keys for ~700ms and jumps to the first
-// option whose name AFTER "Dr. " (or "Prof. ") starts with the buffer.
-// Attach by adding the attribute  data-doc-jump  to any <select>.
+// Doctor-list dropdown — kept as native <select>.
+// (A typeahead-jump experiment was removed at user's request: native
+// select first-letter jump is unreliable across browsers when every
+// option starts with the same prefix "Dr. ".)
 // =====================================================================
-(function(){
-  let buffer = '';
-  let lastKeyTs = 0;
-  function stripPrefix(s){
-    if(!s) return '';
-    return s.replace(/^\s*(?:Dr|Prof|Mr|Ms|Mrs)\.?\s+/i, '').toLowerCase();
-  }
-  document.addEventListener('keydown', function(e){
-    let el = e.target;
-    if(!el || el.tagName !== 'SELECT') return;
-    if(!el.hasAttribute('data-doc-jump')) return;
-    // Only single printable letters
-    if(e.key.length !== 1) return;
-    if(!/^[a-zA-Z]$/.test(e.key)) return;
-    let now = Date.now();
-    if(now - lastKeyTs > 700) buffer = '';
-    buffer += e.key.toLowerCase();
-    lastKeyTs = now;
-    // Find the first option matching the buffer (after Dr. prefix)
-    let opts = el.options;
-    for(let i=0; i<opts.length; i++){
-      let cleaned = stripPrefix(opts[i].text);
-      if(cleaned.startsWith(buffer)){
-        if(el.selectedIndex !== i){
-          el.selectedIndex = i;
-          // Fire change so listeners (e.g. search filter) react
-          el.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        e.preventDefault();
-        return;
-      }
-    }
-  }, true);
-})();
 
 function oncallIso(y,m,d){
   let mm = String(m+1).padStart(2,'0');
@@ -6245,13 +6209,13 @@ function getOncallForDay(iso){
 
 function oncallHasAny(roster){
   if(!roster) return false;
-  return !!(roster.first1 || roster.first2 || roster.first3 || roster.ccu || roster.second || roster.interv);
+  return !!(roster.first1 || roster.first2 || roster.first3 || roster.ccu || roster.second || roster.second2 || roster.interv);
 }
 
 function oncallCount(roster){
   if(!roster) return 0;
   let n = 0;
-  ['first1','first2','first3','ccu','second','interv'].forEach(k => { if(roster[k]) n++; });
+  ['first1','first2','first3','ccu','second','second2','interv'].forEach(k => { if(roster[k]) n++; });
   return n;
 }
 
@@ -6291,10 +6255,10 @@ window.renderOncallCalendar = function(){
       // Small colored pills representing filled roles
       if(roster.first1 || roster.first2 || roster.first3) dots += '<span class="oncall-cell-dot" style="background:var(--acc)"></span>';
       if(roster.ccu) dots += '<span class="oncall-cell-dot" style="background:var(--warn)"></span>';
-      if(roster.second) dots += '<span class="oncall-cell-dot" style="background:var(--ok)"></span>';
+      if(roster.second || roster.second2) dots += '<span class="oncall-cell-dot" style="background:var(--ok)"></span>';
       if(roster.interv) dots += '<span class="oncall-cell-dot" style="background:var(--ep)"></span>';
     }
-    html += `<div class="${cls}" onclick="selectOncallDay('${iso}')"><div class="cal-date">${d}</div>${dots?`<div class="oncall-dots">${dots}</div>`:''}${cnt?`<div class="cal-count" style="background:var(--sur2);color:var(--acc2);min-width:18px;font-size:9px">${cnt}/6</div>`:''}</div>`;
+    html += `<div class="${cls}" onclick="selectOncallDay('${iso}')"><div class="cal-date">${d}</div>${dots?`<div class="oncall-dots">${dots}</div>`:''}${cnt?`<div class="cal-count" style="background:var(--sur2);color:var(--acc2);min-width:18px;font-size:9px">${cnt}/7</div>`:''}</div>`;
   }
   grid.innerHTML = html;
   renderOncallDetail();
@@ -6413,11 +6377,11 @@ window.runOncallSearch = function(){
     if(toIso   && iso > toIso)   return;
     let r = onCallMap[iso] || {};
     let roles = [];
-    ['first1','first2','first3','ccu','second','interv'].forEach(k => {
+    ['first1','first2','first3','ccu','second','second2','interv'].forEach(k => {
       let nm = resolveDocName(r[k]);
       if(!nm) return;
       if(doctor && nm !== doctor) return;
-      let label = ({first1:'1st',first2:'1st',first3:'1st',ccu:'CCU',second:'2nd',interv:'Interv'})[k] || k;
+      let label = ({first1:'1st',first2:'1st',first3:'1st',ccu:'CCU',second:'2nd',second2:'2nd',interv:'Interv'})[k] || k;
       roles.push({role:label, name:nm});
     });
     if(roles.length){
@@ -6453,6 +6417,209 @@ window.runOncallSearch = function(){
   }).join('');
 };
 
+window.exportOncallPdf = function(){
+  if(typeof window.jspdf === 'undefined'){
+    alert('PDF library still loading. Please try again in a second.');
+    return;
+  }
+  ensureExtState();
+  const { jsPDF } = window.jspdf;
+
+  // Strip honorifics like "Dr. " / "Prof. " for compact display
+  function stripHon(n){
+    if(!n) return '';
+    return String(n).replace(/^\s*(?:Dr|Prof|Mr|Ms|Mrs)\.?\s+/i, '').trim();
+  }
+  function joinNames(arr){
+    let cleaned = arr.map(resolveDocName).filter(Boolean).map(stripHon);
+    return cleaned.length ? cleaned.join(', ') : '—';
+  }
+  function shortDate(d){
+    // Format like "Mon 5/5"
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return `${days[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+  }
+
+  // Determine range — use current search filters if set; otherwise default to current calendar month
+  let docVal = (document.getElementById('oncallSearchDoc')||{}).value || '';
+  let fromIso = (document.getElementById('oncallSearchFrom')||{}).value || '';
+  let toIso   = (document.getElementById('oncallSearchTo')||{}).value || '';
+
+  if(!fromIso && !toIso){
+    let y = oncallState.year, m = oncallState.month;
+    fromIso = _fmtIso(new Date(y, m, 1));
+    toIso   = _fmtIso(new Date(y, m+1, 0));
+  } else {
+    if(fromIso && !toIso) toIso = fromIso;
+    if(toIso && !fromIso) fromIso = toIso;
+    if(fromIso > toIso){ let tmp = fromIso; fromIso = toIso; toIso = tmp; }
+  }
+
+  // Collect days in range
+  let onCallMap = (window.S && window.S.onCall) || {};
+  let rows = [];
+  let cursor = new Date(fromIso + 'T00:00:00');
+  let end    = new Date(toIso   + 'T00:00:00');
+  while(cursor <= end){
+    let iso = _fmtIso(cursor);
+    let r = onCallMap[iso] || {};
+    let dow = cursor.getDay();
+
+    // Build columns (no Dr. prefix)
+    let firsts = joinNames([r.first1, r.first2, r.first3]);
+    let ccu    = stripHon(resolveDocName(r.ccu))    || '—';
+    let second = joinNames([r.second, r.second2]);
+    let interv = stripHon(resolveDocName(r.interv)) || '—';
+
+    // Filter by doctor if specified (compare against canonical name)
+    if(docVal){
+      let names = [r.first1, r.first2, r.first3, r.ccu, r.second, r.second2, r.interv].map(resolveDocName).filter(Boolean);
+      if(!names.includes(docVal)){ cursor.setDate(cursor.getDate()+1); continue; }
+    }
+
+    let isEid = (cursor.getFullYear() === 2026 && cursor.getMonth() === 4 && cursor.getDate() >= 26 && cursor.getDate() <= 30);
+    let dayLabel = shortDate(cursor) + (isEid ? '  · EID' : '');
+
+    // Tag the row for didParseCell color-coding (no visible text marker for Thu / weekend)
+    let tag = isEid ? 'eid' : (dow === 5 || dow === 6 ? 'we' : (dow === 4 ? 'thu' : 'plain'));
+
+    rows.push({ cells: [dayLabel, firsts, ccu, second, interv], tag });
+    cursor.setDate(cursor.getDate()+1);
+  }
+
+  if(!rows.length){
+    alert('No on-call data in this range.');
+    return;
+  }
+
+  let doc = new jsPDF({ orientation:'landscape', unit:'pt', format:'a4' });
+  let pageW = doc.internal.pageSize.getWidth();
+  let pageH = doc.internal.pageSize.getHeight();
+  let now = new Date();
+  let nowStr = now.toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  // ====== PREMIUM HEADER BAND ======
+  // Deep teal gradient feel via two stacked rectangles
+  doc.setFillColor(7, 93, 104);          // --acc2 dark teal
+  doc.rect(0, 0, pageW, 70, 'F');
+  doc.setFillColor(12, 124, 138);        // --acc lighter teal
+  doc.rect(0, 60, pageW, 10, 'F');
+  // Thin gold/amber accent line under the header
+  doc.setFillColor(217, 119, 6);
+  doc.rect(0, 70, pageW, 1.5, 'F');
+
+  // Title block
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.text('MKH CARDIOLOGY', 40, 32);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(220, 240, 244);
+  doc.text('On-Call Roster', 40, 50);
+
+  // Right side: range + meta
+  let fromNice = new Date(fromIso+'T00:00:00').toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  let toNice   = new Date(toIso+'T00:00:00').toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  doc.text(`${fromNice}  →  ${toNice}`, pageW - 40, 32, { align: 'right' });
+  if(docVal){
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(220, 240, 244);
+    doc.text(`Filtered: ${stripHon(docVal)}`, pageW - 40, 48, { align: 'right' });
+  }
+
+  // ====== TABLE ======
+  doc.autoTable({
+    startY: 90,
+    head: [['Date', 'First on-call (×3)', 'CCU', 'Second on-call (×2)', 'Interventionist']],
+    body: rows.map(r => r.cells),
+    margin: { left: 40, right: 40 },
+    styles: {
+      font: 'helvetica',
+      fontSize: 10,
+      cellPadding: { top: 7, right: 8, bottom: 7, left: 8 },
+      lineColor: [220, 226, 234],
+      lineWidth: 0.3,
+      textColor: [25, 35, 55],
+      valign: 'middle'
+    },
+    headStyles: {
+      fillColor: [7, 93, 104],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 9,
+      halign: 'left',
+      cellPadding: { top: 9, right: 8, bottom: 9, left: 8 },
+      lineWidth: 0
+    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { cellWidth: 95,  fontStyle: 'bold', textColor: [12, 124, 138] },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 110 },
+      3: { cellWidth: 160 },
+      4: { cellWidth: 130 }
+    },
+    didParseCell: function(data){
+      if(data.section !== 'body') return;
+      let row = rows[data.row.index];
+      if(!row) return;
+      // Color-coding by day type
+      if(row.tag === 'eid'){
+        data.cell.styles.fillColor = [243, 232, 255];   // soft lavender
+      } else if(row.tag === 'we'){
+        data.cell.styles.fillColor = [254, 235, 200];   // soft amber
+      } else if(row.tag === 'thu'){
+        data.cell.styles.fillColor = [254, 249, 195];   // soft yellow
+      }
+      // Date column accent — keep teal text colour even on tinted rows
+      if(data.column.index === 0){
+        data.cell.styles.textColor = [7, 93, 104];
+      }
+      // Empty-cell styling: dim em-dashes
+      if(data.cell.raw === '—'){
+        data.cell.styles.textColor = [170, 178, 190];
+      }
+    }
+  });
+
+  // ====== FOOTER ======
+  let finalY = doc.lastAutoTable.finalY + 18;
+  if(finalY > pageH - 40) finalY = pageH - 40;
+
+  // Subtle footer line
+  doc.setDrawColor(220, 226, 234);
+  doc.setLineWidth(0.4);
+  doc.line(40, finalY - 6, pageW - 40, finalY - 6);
+
+  // Inline color legend (small swatches) — left side
+  function legendChip(x, y, rgb, label){
+    doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+    doc.rect(x, y - 6, 8, 8, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(110, 118, 130);
+    doc.text(label, x + 12, y);
+  }
+  let lx = 40;
+  legendChip(lx, finalY + 3, [254, 249, 195], 'Thursday');                lx += 70;
+  legendChip(lx, finalY + 3, [254, 235, 200], 'Weekend');                 lx += 75;
+  legendChip(lx, finalY + 3, [243, 232, 255], 'Eid (May 26–30)');         lx += 110;
+
+  // Right side: timestamp
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(150, 158, 170);
+  doc.text(`Generated ${nowStr}`, pageW - 40, finalY + 3, { align: 'right' });
+
+  let fname = `oncall-roster_${fromIso}_to_${toIso}${docVal ? '_' + stripHon(docVal).replace(/\s+/g,'-') : ''}.pdf`;
+  doc.save(fname);
+};
+
 function renderOncallDetail(){
   let box = document.getElementById('oncallDayDetail');
   if(!box) return;
@@ -6481,8 +6648,8 @@ function renderOncallDetail(){
         <div class="oncall-role-docs">${chip(roster.ccu,'ccu')}</div>
       </div>
       <div class="oncall-role-block">
-        <div class="oncall-role-label" style="color:var(--ok)">Second On-call (1)</div>
-        <div class="oncall-role-docs">${chip(roster.second,'second')}</div>
+        <div class="oncall-role-label" style="color:var(--ok)">Second On-call (2)</div>
+        <div class="oncall-role-docs">${chip(roster.second,'second')} ${chip(roster.second2,'second')}</div>
       </div>
       <div class="oncall-role-block" style="margin-bottom:0">
         <div class="oncall-role-label" style="color:var(--ep)">Interventionist On-call (1)</div>
@@ -6517,6 +6684,7 @@ window.openOncallMo = function(iso){
   document.getElementById('oncall-first3').innerHTML = buildDocOptions(roster.first3, true);
   document.getElementById('oncall-ccu').innerHTML    = buildDocOptions(roster.ccu, true);
   document.getElementById('oncall-second').innerHTML = buildDocOptions(roster.second, true);
+  document.getElementById('oncall-second2').innerHTML = buildDocOptions(roster.second2, true);
   document.getElementById('oncall-interv').innerHTML = buildDocOptions(roster.interv, true);
   document.getElementById('oncallMo').classList.add('on');
 };
@@ -6533,6 +6701,7 @@ window.saveOncall = function(ev){
     first3: document.getElementById('oncall-first3').value || '',
     ccu:    document.getElementById('oncall-ccu').value || '',
     second: document.getElementById('oncall-second').value || '',
+    second2: document.getElementById('oncall-second2').value || '',
     interv: document.getElementById('oncall-interv').value || '',
     updatedAt: Date.now(),
     updatedBy: 'Admin'
