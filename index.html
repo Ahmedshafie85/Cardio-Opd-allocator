@@ -64,6 +64,15 @@
   --ep:#6f86d6;
   --ep2:#94a8e0;
 
+  /* Pending discharge / transfer tones (used in census splits and admin form).
+     Defined per theme so they stay readable in both modes. */
+  --pend-disch:#fbbf24;             /* amber-400 — readable on dark */
+  --pend-disch-soft:rgba(251,191,36,0.10);
+  --pend-disch-line:rgba(251,191,36,0.35);
+  --pend-tx:#60a5fa;                /* blue-400 — readable on dark */
+  --pend-tx-soft:rgba(96,165,250,0.10);
+  --pend-tx-line:rgba(96,165,250,0.35);
+
   /* Header bg used in backdrop-filter (rgba form) */
   --header-bg:rgba(11,18,32,0.92);
   --modal-bg:rgba(3,7,15,.85);
@@ -119,6 +128,15 @@
   /* EP indigo */
   --ep:#3b4eaa;
   --ep2:#2c3d8c;
+
+  /* Pending discharge / transfer — deeper shades for white surfaces.
+     amber-700 and blue-700 — both clear ≥ 4.5:1 contrast on white. */
+  --pend-disch:#b45309;             /* amber-700 */
+  --pend-disch-soft:rgba(180,83,9,0.10);
+  --pend-disch-line:rgba(180,83,9,0.45);
+  --pend-tx:#1d4ed8;                /* blue-700 */
+  --pend-tx-soft:rgba(29,78,216,0.10);
+  --pend-tx-line:rgba(29,78,216,0.45);
 
   /* Header backdrop and modal scrim */
   --header-bg:rgba(255,255,255,0.95);
@@ -712,22 +730,6 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
 .hero-card-foot a{color:var(--acc2);text-decoration:none;cursor:pointer;font-weight:600}
 .hero-card-foot a:hover{text-decoration:underline}
 
-/* === BULK ACTIONS BAR === */
-.endo-bulk-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--sur2);border:1px solid var(--bor);border-radius:9px;padding:8px 12px;margin-bottom:10px;font-family:var(--font-mono);font-size:11px}
-.endo-bulk-toggle{background:var(--sur);border:1px solid var(--bor);color:var(--mid);border-radius:6px;padding:5px 10px;cursor:pointer;font-family:var(--font-mono);font-size:10px;letter-spacing:.04em;font-weight:500;transition:all .15s}
-.endo-bulk-toggle.on{background:var(--acc-soft);border-color:var(--acc);color:var(--acc2)}
-.endo-bulk-count{color:var(--acc2);font-weight:600;letter-spacing:.04em}
-.endo-bulk-actions{display:flex;gap:6px;margin-left:auto}
-.endo-bulk-btn{background:var(--sur);border:1px solid var(--bor);color:var(--mid);border-radius:6px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;letter-spacing:.04em;font-weight:500;transition:all .15s}
-.endo-bulk-btn:hover{border-color:var(--acc-line);color:var(--acc2)}
-.endo-bulk-btn.danger:hover{border-color:var(--err);color:var(--err);background:rgba(226,100,100,.06)}
-.endo-bulk-btn:disabled{opacity:.4;cursor:not-allowed}
-.endo-card .endo-bulk-checkbox{display:none;flex-shrink:0;width:20px;height:20px;border-radius:5px;border:1.5px solid var(--bor);background:var(--sur2);align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#fff;font-weight:700;transition:all .15s;margin-right:4px}
-body.bulk-mode .endo-card .endo-bulk-checkbox{display:flex}
-.endo-card .endo-bulk-checkbox.checked{background:var(--acc);border-color:var(--acc)}
-body.bulk-mode .endo-card{cursor:default}
-body.bulk-mode .endo-card.bulk-selected{border-color:var(--acc);box-shadow:0 0 0 2px rgba(58,166,183,.25),var(--shadow-card)}
-
 /* === CRITICAL LAB VALUE FLAGS === */
 .lab-flag{display:inline-block;background:rgba(226,100,100,.18);color:var(--err);border:1px solid rgba(226,100,100,.5);border-radius:4px;padding:1px 5px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.02em;margin:0 1px}
 .lab-flag.crit{background:rgba(212,87,107,.22);color:#ff7a8a;border-color:rgba(212,87,107,.6);box-shadow:0 0 0 1px rgba(212,87,107,.15);animation:labpulse 2.4s ease-in-out infinite}
@@ -928,23 +930,11 @@ body.bulk-mode .endo-card.bulk-selected{border-color:var(--acc);box-shadow:0 0 0
   <!-- v3.3: My Patients Today hero card (rendered for doctors only) -->
   <div id="heroMyPatients"></div>
   <div class="endo-toolbar">
-    <input type="text" class="endo-search" id="endoSearch" placeholder="🔍 Search by ward, bed, name, MRN..." oninput="renderEndoList()">
     <button class="endo-add-btn" onclick="openEndoForm(null)">＋ New Patient</button>
   </div>
   <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
     <button class="endo-mini-btn" onclick="expandAllEndo()">⌄ Expand all</button>
     <button class="endo-mini-btn" onclick="collapseAllEndo()">⌃ Collapse all</button>
-    <button class="endo-bulk-toggle" id="endoBulkToggle" onclick="toggleBulkMode()" title="Multi-select for bulk discharge / mark-reviewed">☰ Bulk</button>
-  </div>
-  <!-- Bulk action bar (hidden until bulk mode is on) -->
-  <div class="endo-bulk-bar" id="endoBulkBar" style="display:none">
-    <span class="endo-bulk-count" id="endoBulkCount">0 selected</span>
-    <button class="endo-bulk-btn" onclick="bulkSelectAll()">Select all visible</button>
-    <button class="endo-bulk-btn" onclick="bulkClearSelection()">Clear</button>
-    <div class="endo-bulk-actions">
-      <button class="endo-bulk-btn" id="bulkMarkBtn" onclick="bulkMarkReviewed()">✓ Mark reviewed today</button>
-      <button class="endo-bulk-btn danger" id="bulkDischargeBtn" onclick="bulkDischarge()">✕ Discharge selected</button>
-    </div>
   </div>
   <div class="endo-ward-chips" id="endoWardChips"></div>
   <div id="endoCount" class="endo-count-bar"></div>
@@ -2345,12 +2335,12 @@ body.bulk-mode .endo-card.bulk-selected{border-color:var(--acc);box-shadow:0 0 0
 
           <div class="endo-edit-two">
             <div>
-              <label style="color:#fbbf24">⏳ Pending Discharges</label>
-              <input type="text" id="cens-pend-disc" inputmode="numeric" maxlength="2" placeholder="count" style="border-color:rgba(251,191,36,.35)">
+              <label style="color:var(--pend-disch)">⏳ Pending Discharges</label>
+              <input type="text" id="cens-pend-disc" inputmode="numeric" maxlength="2" placeholder="count" style="border-color:var(--pend-disch-line)">
             </div>
             <div>
-              <label style="color:#60a5fa">↪ Pending Transfer to Other Wards</label>
-              <input type="text" id="cens-other-tx" inputmode="numeric" maxlength="2" placeholder="count" style="border-color:rgba(96,165,250,.35)">
+              <label style="color:var(--pend-tx)">↪ Pending Transfer to Other Wards</label>
+              <input type="text" id="cens-other-tx" inputmode="numeric" maxlength="2" placeholder="count" style="border-color:var(--pend-tx-line)">
             </div>
           </div>
 
@@ -4450,11 +4440,8 @@ function renderEndoList(){
   sweepStalePatients();
   // v3.3: Render the "My Patients Today" hero card (no-op when not a doctor)
   if(typeof renderHeroCard === 'function') renderHeroCard();
-  // Update bulk-action UI (count, button states)
-  if(typeof updateBulkBar === 'function') updateBulkBar();
   let c = document.getElementById('endoList');
   if(!c) return;
-  let q = (document.getElementById('endoSearch')?.value || '').trim().toLowerCase();
   let all = Object.values(window.S.endorsements || {});
 
   // Build ward chips from unique wards in data + fixed set
@@ -4498,14 +4485,6 @@ function renderEndoList(){
     all = all.filter(e => (e.ward||'') === currentWardFilter);
   }
 
-  if(q){
-    all = all.filter(e =>
-      (e.ward||'').toLowerCase().includes(q) ||
-      (e.bed||'').toLowerCase().includes(q) ||
-      (e.name||'').toLowerCase().includes(q) ||
-      (e.mrn||'').toLowerCase().includes(q)
-    );
-  }
   // Sort: ward (Ward 4 first, then CCU, then ICU, then others alphabetic), then bed numeric
   let wardOrder = {'Ward 4':0,'CCU':1};
   all.sort((a,b)=>{
@@ -4521,10 +4500,10 @@ function renderEndoList(){
   });
 
   let countEl = document.getElementById('endoCount');
-  if(countEl) countEl.innerText = all.length ? `Showing ${all.length} patient${all.length>1?'s':''}${q?' matching search':''}${currentWardFilter!=='all'?' in '+currentWardFilter:''}` : '';
+  if(countEl) countEl.innerText = all.length ? `Showing ${all.length} patient${all.length>1?'s':''}${currentWardFilter!=='all'?' in '+currentWardFilter:''}` : '';
 
   if(!all.length){
-    c.innerHTML = '<div class="endo-empty">' + (q||currentWardFilter!=='all' ? 'No patients match this filter.' : 'No patients in the list yet. Click <b>＋ New Patient</b> to add the first one.') + '</div>';
+    c.innerHTML = '<div class="endo-empty">' + (currentWardFilter!=='all' ? 'No patients match this filter.' : 'No patients in the list yet. Click <b>＋ New Patient</b> to add the first one.') + '</div>';
     return;
   }
   c.innerHTML = all.map(e => {
@@ -4611,9 +4590,8 @@ function renderEndoList(){
     }
 
     return `
-    <div class="endo-card${isOpen?' open':''}${isStale?' stale':''}${(window.bulkSelectedIds&&window.bulkSelectedIds.has(e.id))?' bulk-selected':''}" data-endo-id="${e.id}">
-      <div class="endo-card-head endo-card-toggle" onclick="(window.bulkMode) ? toggleBulkSelect('${e.id}') : toggleEndoCard('${e.id}')">
-        <div class="endo-bulk-checkbox${(window.bulkSelectedIds&&window.bulkSelectedIds.has(e.id))?' checked':''}" onclick="event.stopPropagation();toggleBulkSelect('${e.id}')">${(window.bulkSelectedIds&&window.bulkSelectedIds.has(e.id))?'✓':''}</div>
+    <div class="endo-card${isOpen?' open':''}${isStale?' stale':''}" data-endo-id="${e.id}">
+      <div class="endo-card-head endo-card-toggle" onclick="toggleEndoCard('${e.id}')">
         <div class="endo-bed">${escapeHtml(e.ward ? abbrevWard(e.ward) : '—')} · ${escapeHtml(bedLabel(e.bed))}</div>
         <div style="flex:1;min-width:0">
           <div class="endo-name">${escapeHtml(e.name||'—')}</div>
@@ -5939,8 +5917,8 @@ function renderCensus(){
         <div class="census-split-item"><span class="census-split-label">Medical / Other</span><span class="census-split-val">${data.other}</span></div>
       </div>
       <div class="census-split">
-        <div class="census-split-item" style="border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.06)"><span class="census-split-label" style="color:#fbbf24">⏳ Pending Discharges</span><span class="census-split-val" style="color:#fbbf24">${data.pendingDischarges||0}</span></div>
-        <div class="census-split-item" style="border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.06)"><span class="census-split-label" style="color:#60a5fa">↪ Pending Transfer to Other Wards</span><span class="census-split-val" style="color:#60a5fa">${data.otherWardsTransfer||0}</span></div>
+        <div class="census-split-item" style="border-color:var(--pend-disch-line);background:var(--pend-disch-soft)"><span class="census-split-label" style="color:var(--pend-disch)">⏳ Pending Discharges</span><span class="census-split-val" style="color:var(--pend-disch)">${data.pendingDischarges||0}</span></div>
+        <div class="census-split-item" style="border-color:var(--pend-tx-line);background:var(--pend-tx-soft)"><span class="census-split-label" style="color:var(--pend-tx)">↪ Pending Transfer to Other Wards</span><span class="census-split-val" style="color:var(--pend-tx)">${data.otherWardsTransfer||0}</span></div>
       </div>
       <div class="census-risk">
         <div class="census-risk-tile red"><div class="census-risk-num">${data.critical||0}</div><div class="census-risk-lbl">🔴 CRITICAL</div>${data.criticalBeds?`<div class="census-risk-beds">${escapeHtml(data.criticalBeds)}</div>`:''}</div>
@@ -7839,147 +7817,6 @@ window.markReviewed = function(id){
   // safer than a partial path update against arbitrarily-nested fields.
   window.S.endorsements[id] = e;
   dbWriteAt('endorsements/' + id, e);
-  renderEndoList();
-};
-
-
-// ============================================================
-// #4 — BULK ACTIONS ON THE IP LIST
-// Two operations:
-//   - bulkMarkReviewed: stamps updatedAt = now on every selected patient
-//   - bulkDischarge:    removes every selected patient (with confirmation),
-//                       writing one removal log entry per patient
-// Selection state is in-memory only (resets on page reload, which is fine).
-// ============================================================
-window.bulkMode = false;
-window.bulkSelectedIds = new Set();
-
-window.toggleBulkMode = function(){
-  window.bulkMode = !window.bulkMode;
-  document.body.classList.toggle('bulk-mode', window.bulkMode);
-  let btn = document.getElementById('endoBulkToggle');
-  let bar = document.getElementById('endoBulkBar');
-  if(btn) btn.classList.toggle('on', window.bulkMode);
-  if(bar) bar.style.display = window.bulkMode ? 'flex' : 'none';
-  if(!window.bulkMode){
-    window.bulkSelectedIds.clear();
-  }
-  updateBulkBar();
-  renderEndoList();
-};
-
-window.toggleBulkSelect = function(id){
-  if(!window.bulkMode){
-    // First click on a checkbox auto-enters bulk mode
-    window.bulkMode = true;
-    document.body.classList.add('bulk-mode');
-    let btn = document.getElementById('endoBulkToggle');
-    if(btn) btn.classList.add('on');
-    let bar = document.getElementById('endoBulkBar');
-    if(bar) bar.style.display = 'flex';
-  }
-  if(window.bulkSelectedIds.has(id)) window.bulkSelectedIds.delete(id);
-  else window.bulkSelectedIds.add(id);
-  updateBulkBar();
-  // Update only the affected card (cheap re-render of the whole list is fine
-  // here too — keeps things simple given list sizes are typically <30).
-  renderEndoList();
-};
-
-window.bulkSelectAll = function(){
-  // Select all currently-rendered (i.e. matching the active ward + search)
-  // patient cards, not the entire database.
-  let cards = document.querySelectorAll('#endoList .endo-card[data-endo-id]');
-  cards.forEach(c => {
-    let id = c.getAttribute('data-endo-id');
-    if(id) window.bulkSelectedIds.add(id);
-  });
-  updateBulkBar();
-  renderEndoList();
-};
-
-window.bulkClearSelection = function(){
-  window.bulkSelectedIds.clear();
-  updateBulkBar();
-  renderEndoList();
-};
-
-window.updateBulkBar = function(){
-  let countEl = document.getElementById('endoBulkCount');
-  let markBtn = document.getElementById('bulkMarkBtn');
-  let dischargeBtn = document.getElementById('bulkDischargeBtn');
-  let n = window.bulkSelectedIds.size;
-  if(countEl) countEl.innerText = n + ' selected';
-  if(markBtn) markBtn.disabled = (n === 0);
-  if(dischargeBtn) dischargeBtn.disabled = (n === 0);
-};
-
-window.bulkMarkReviewed = function(){
-  ensureExtState();
-  let ids = [...window.bulkSelectedIds].filter(id => window.S.endorsements && window.S.endorsements[id]);
-  if(!ids.length) return;
-  let who;
-  if(window.currentDoctor) who = window.currentDoctor;
-  else if(window.currentRole === 'admin') who = 'Admin';
-  else { alert('Please log in as a doctor or admin to mark patients reviewed.'); return; }
-  if(!confirm(`Mark ${ids.length} patient${ids.length>1?'s':''} as reviewed now?\n\nThis updates the "last updated" timestamp without opening the edit form.`)) return;
-  let now = Date.now();
-  let updates = {};
-  ids.forEach(id => {
-    let e = window.S.endorsements[id];
-    e.updatedAt = now;
-    e.updatedBy = who;
-    updates['endorsements/' + id] = e;
-  });
-  dbUpdate(updates);
-  // Clear selection but keep bulk mode on so the consultant can keep going.
-  window.bulkSelectedIds.clear();
-  updateBulkBar();
-  renderEndoList();
-};
-
-window.bulkDischarge = function(){
-  ensureExtState();
-  let ids = [...window.bulkSelectedIds].filter(id => window.S.endorsements && window.S.endorsements[id]);
-  if(!ids.length) return;
-  let who;
-  if(window.currentDoctor) who = window.currentDoctor;
-  else if(window.currentRole === 'admin') who = 'Admin';
-  else who = (window.currentRole || 'Unknown');
-  // Build a preview of names for the confirmation dialog (capped at 8 for sanity)
-  let names = ids.map(id => {
-    let e = window.S.endorsements[id];
-    return e ? `• ${e.name||'—'} (${abbrevWard(e.ward||'')} · ${bedLabel(e.bed||'—')})` : '';
-  }).filter(Boolean);
-  let preview = names.slice(0, 8).join('\n');
-  if(names.length > 8) preview += `\n…and ${names.length - 8} more`;
-  if(!confirm(`Discharge ${ids.length} patient${ids.length>1?'s':''} from the IP list? This is permanent.\n\n${preview}`)) return;
-
-  let now = Date.now();
-  let updates = {};
-  ids.forEach(id => {
-    let e = window.S.endorsements[id];
-    if(!e) return;
-    window.S.removals.push({
-      type: 'ip',
-      ts: now,
-      by: who + ' (bulk discharge)',
-      patientName: e.name || '—',
-      mrn: e.mrn || '—',
-      ward: e.ward || '—',
-      bed: e.bed || '—',
-      reason: e.reason || '—',
-      createdBy: e.createdBy || '—',
-      createdAt: e.createdAt || null
-    });
-    delete window.S.endorsements[id];
-    updates['endorsements/' + id] = null;
-  });
-  if(window.S.removals.length > 500) window.S.removals = window.S.removals.slice(-500);
-  updates.removals = window.S.removals;
-  dbUpdate(updates);
-  window.bulkSelectedIds.clear();
-  updateBulkBar();
   renderEndoList();
 };
 
