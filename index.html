@@ -6176,7 +6176,20 @@ function getAllDoctorNames(){
   Object.values((window.S && window.S.docPins) || {}).forEach(n => { if(n && typeof n === 'string' && n !== 'Admin') names.add(resolveDocName(n)); });
   // Virtual entry: a generic "Fellow" rotation slot (no PIN needed)
   names.add('Fellow');
-  return [...names].sort();
+  // Sort by surname-first display (so the dropdown is alphabetical by surname)
+  return [...names].sort((a,b) => toSurnameFirst(a).localeCompare(toSurnameFirst(b)));
+}
+
+// Convert "Dr. Salam" → "Salam, Dr." for dropdown DISPLAY only
+// (the option's underlying value stays "Dr. Salam" everywhere else).
+// Names without a "Dr."/"Prof." prefix (e.g. "Fellow") are returned unchanged.
+function toSurnameFirst(n){
+  if(!n) return '';
+  let m = String(n).match(/^(\s*(?:Dr|Prof|Mr|Ms|Mrs)\.?)\s+(.+)$/i);
+  if(!m) return n;
+  let title = m[1].trim();
+  if(!/\.$/.test(title)) title += '.';
+  return `${m[2].trim()}, ${title}`;
 }
 
 function buildDocOptions(selectedValue, includeNone){
@@ -6184,7 +6197,9 @@ function buildDocOptions(selectedValue, includeNone){
   let resolved = resolveDocName(selectedValue);
   getAllDoctorNames().forEach(n => {
     let sel = (n === resolved) ? ' selected' : '';
-    opts += `<option value="${n}"${sel}>${n}</option>`;
+    let display = toSurnameFirst(n);
+    // value="Dr. Salam"  text="Salam, Dr."
+    opts += `<option value="${escapeHtml(n)}"${sel}>${escapeHtml(display)}</option>`;
   });
   return opts;
 }
@@ -6282,7 +6297,9 @@ function showOncallAdminSearchIfAdmin(){
     let sel = document.getElementById('oncallSearchDoc');
     if(sel && sel.options.length <= 1){
       let opts = '<option value="">— All doctors —</option>';
-      getAllDoctorNames().forEach(n => { opts += `<option value="${n}">${n}</option>`; });
+      getAllDoctorNames().forEach(n => {
+        opts += `<option value="${escapeHtml(n)}">${escapeHtml(toSurnameFirst(n))}</option>`;
+      });
       sel.innerHTML = opts;
     }
   } else {
