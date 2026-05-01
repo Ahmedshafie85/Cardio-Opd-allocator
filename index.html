@@ -8289,9 +8289,11 @@ window.renderHeroCard = function(){
   const H24 = 24 * 60 * 60 * 1000;
   let _todayIso = (typeof todayIso === 'function') ? todayIso() : new Date().toISOString().slice(0,10);
 
-  // ---- Stat 1: my stale IP patients ----
+  // ---- Stat 1: my stale patients (IP + HF combined) ----
   // "Mine" = I created OR I last updated. Stale = >24h since last update.
-  let myStale = [];
+  // HF Team patients are counted alongside IP patients so doctors see all
+  // their attributable cases in one number.
+  let myStale = [];   // { rec, kind: 'ip' | 'hf' }
   let myTotal = 0;
   Object.values(window.S.endorsements || {}).forEach(e => {
     let cb = window.canonicalDocName(e.createdBy);
@@ -8299,7 +8301,16 @@ window.renderHeroCard = function(){
     if(cb === me || ub === me){
       myTotal++;
       let last = e.updatedAt || e.createdAt || 0;
-      if(last && (now - last) > H24) myStale.push(e);
+      if(last && (now - last) > H24) myStale.push({ rec: e, kind: 'ip' });
+    }
+  });
+  Object.values(window.S.hfPatients || {}).forEach(p => {
+    let cb = window.canonicalDocName(p.createdBy);
+    let ub = window.canonicalDocName(p.updatedBy);
+    if(cb === me || ub === me){
+      myTotal++;
+      let last = p.updatedAt || p.createdAt || 0;
+      if(last && (now - last) > H24) myStale.push({ rec: p, kind: 'hf' });
     }
   });
 
@@ -8336,12 +8347,12 @@ window.renderHeroCard = function(){
        </div>`
     : (myTotal
         ? `<div class="hero-stat ok" title="All your patients are up to date">
-             <div class="hero-stat-lbl">My IP Patients</div>
+             <div class="hero-stat-lbl">My Patients</div>
              <div class="hero-stat-val">${myTotal}</div>
              <div class="hero-stat-detail">All up to date ✓</div>
            </div>`
-        : `<div class="hero-stat muted" title="No IP patients attributed to you yet">
-             <div class="hero-stat-lbl">My IP Patients</div>
+        : `<div class="hero-stat muted" title="No patients attributed to you yet">
+             <div class="hero-stat-lbl">My Patients</div>
              <div class="hero-stat-val">0</div>
              <div class="hero-stat-detail">Nothing assigned to you</div>
            </div>`);
@@ -8398,37 +8409,102 @@ window.dismissHero = function(){
   if(h) h.innerHTML = '';
 };
 
-// Hero stat click handlers
+// Cycles through ALL of the doctor's stale patients (IP + HF) on repeated taps.
+// Each tap advances to the next stale patient, switching to the HF section
+// if the next one is an HF Team patient. Wraps around at the end.
+window._myStaleCycleIdx = 0;
+window._myStaleCycleStamp = 0;
 window.filterMyStaleAndScroll = function(){
-  // Set the search box to the doctor's bare name? The IP search matches
-  // ward/bed/name/MRN — not "createdBy". Easiest UX: just scroll to the
-  // first stale card belonging to this doctor.
   let me = window.canonicalDocName(window.currentDoctor);
   if(!me) return;
   let now = Date.now();
   const H24 = 24 * 60 * 60 * 1000;
-  let firstMyStale = null;
+
+  // Build the same list the hero card built — IP + HF, stale only, mine only.
+  let myStale = [];
   Object.values(window.S.endorsements || {}).forEach(e => {
-    if(firstMyStale) return;
     let last = e.updatedAt || e.createdAt || 0;
     if((window.canonicalDocName(e.createdBy) === me || window.canonicalDocName(e.updatedBy) === me) &&
        last && (now - last) > H24){
-      firstMyStale = e;
+      myStale.push({ rec: e, kind: 'ip' });
     }
   });
-  if(!firstMyStale){ alert('No stale patients of yours found.'); return; }
-  // Make sure the All filter is active so the card is visible
-  if(typeof filterByWard === 'function' && currentWardFilter !== 'all'){
-    filterByWard('all');
-  }
-  setTimeout(()=>{
-    let card = document.querySelector(`.endo-card[data-endo-id="${firstMyStale.id}"]`);
-    if(card){
-      card.scrollIntoView({ behavior:'smooth', block:'center' });
-      card.style.outline = '2px solid var(--warn)';
-      setTimeout(()=>{ card.style.outline = ''; }, 1800);
+  Object.values(window.S.hfPatients || {}).forEach(p => {
+    let last = p.updatedAt || p.createdAt || 0;
+    if((window.canonicalDocName(p.createdBy) === me || window.canonicalDocName(p.updatedBy) === me) &&
+       last && (now - last) > H24){
+      myStale.push({ rec: p, kind: 'hf' });
     }
-  }, 60);
+  });
+
+  if(!myStale.length){ alert('No stale patients of yours found.'); return; }
+
+  // If the user clicked the tile again within 30 s, advance the cursor.
+  // Otherwise reset to the first one.
+  if(now - window._myStaleCycleStamp < 30000){
+    window._myStaleCycleIdx = (window._myStaleCycleIdx + 1) % myStale.length;
+  } else {
+    window._myStaleCycleIdx = 0;
+  }
+  window._myStaleCycleStamp = now;
+
+  let target = myStale[window._myStaleCycleIdx];
+
+  if(target.kind === 'ip'){
+    if(typeof filterByWard === 'function' && currentWardFilter !== 'all'){
+      filterByWard('all');
+    }
+    setTimeout(()=>{
+      let card = document.querySelector(`.endo-card[data-endo-id="${target.rec.id}"]`);
+      if(card){
+        card.scrollIntoView({ behavior:'smooth', block:'center' });
+        card.style.outline = '2px solid var(--warn)';
+        setTimeout(()=>{ card.style.outline = ''; }, 1800);
+      }
+      _showStaleCounter();
+    }, 80);
+  } else {
+    // HF: switch to HF Team filter, then expand & scroll to the card
+    if(typeof filterByWard === 'function'){
+      filterByWard('hf');
+    }
+    setTimeout(()=>{
+      if(window.expandedHFIds && !window.expandedHFIds.has(target.rec.id)){
+        window.expandedHFIds.add(target.rec.id);
+        if(typeof renderHFList === 'function') renderHFList();
+      }
+      setTimeout(()=>{
+        // HF cards don't carry a data-* hook — find by name+MRN as fallback
+        let cards = document.querySelectorAll('#hfList .endo-card');
+        let match = null;
+        cards.forEach(c => {
+          if(match) return;
+          let nm = c.querySelector('.endo-name')?.innerText || '';
+          let mr = c.querySelector('.endo-mrn')?.innerText || '';
+          if(nm.includes(target.rec.name||'') && mr.includes(target.rec.mrn||'')) match = c;
+        });
+        if(match){
+          match.scrollIntoView({ behavior:'smooth', block:'center' });
+          match.style.outline = '2px solid var(--warn)';
+          setTimeout(()=>{ match.style.outline = ''; }, 1800);
+        }
+        _showStaleCounter();
+      }, 80);
+    }, 100);
+  }
+
+  function _showStaleCounter(){
+    // Tiny toast so the doctor knows there are more to step through
+    let prev = document.getElementById('staleCycleToast');
+    if(prev) prev.remove();
+    if(myStale.length < 2) return;
+    let t = document.createElement('div');
+    t.id = 'staleCycleToast';
+    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--sur2);border:1px solid var(--warn);color:var(--txt);padding:8px 14px;border-radius:8px;font-family:var(--font-mono);font-size:11px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,.4);letter-spacing:.04em';
+    t.innerText = `Stale ${window._myStaleCycleIdx+1} of ${myStale.length} · tap "My Stale" again for next`;
+    document.body.appendChild(t);
+    setTimeout(()=>{ if(t.parentNode) t.remove(); }, 3500);
+  }
 };
 window.goCathFromHero = function(){
   let tab = document.querySelector('#mainTabs .tab[onclick*="\'cath\'"]');
@@ -8538,6 +8614,21 @@ window.renderGlobalSearch = function(){
     }
   });
 
+  // ----- HF Team patients -----
+  let hfMatches = [];
+  Object.values(window.S.hfPatients || {}).forEach(p => {
+    let hay = `${p.name||''} ${p.mrn||''} ${p.ward||''} ${p.bed||''} ${p.cid||''} ${p.hftype||''} ${p.reason||''}`.toLowerCase();
+    if(hay.includes(q)){
+      hfMatches.push({
+        kind: 'hf',
+        title: `${p.name || '—'}`,
+        sub: `HF Team · ${abbrevWard(p.ward||'')||'—'} · ${bedLabel(p.bed||'—')}${p.hftype?' · '+p.hftype:''}`,
+        tag: 'HF',
+        action: () => _gsJumpToHF(p.id)
+      });
+    }
+  });
+
   // ----- On-call: scan next 60 days, match days that include a doctor whose
   //                name contains the query -----
   let oncallMatches = [];
@@ -8582,6 +8673,7 @@ window.renderGlobalSearch = function(){
   // Build flat result list (cap at sensible size per kind)
   let results = []
     .concat(ipMatches.slice(0, 20))
+    .concat(hfMatches.slice(0, 15))
     .concat(cathMatches.slice(0, 20))
     .concat(echoMatches.slice(0, 10))
     .concat(oncallMatches.slice(0, 10))
@@ -8613,6 +8705,7 @@ window.renderGlobalSearch = function(){
     });
   }
   section('Inpatients', 'ip', ipMatches.slice(0,20));
+  section('HF Team', 'hf', hfMatches.slice(0,15));
   section('Cathlab', 'cath', cathMatches.slice(0,20));
   section('IP Echo List', 'echo', echoMatches.slice(0,10));
   section('On-Call', 'oncall', oncallMatches.slice(0,10));
@@ -8695,6 +8788,39 @@ function _gsJumpToCath(cathId, dateIso){
 function _gsJumpToEcho(endoId){
   let tab = document.querySelector('#mainTabs .tab[onclick*="\'echolist\'"]');
   if(tab) tab.click();
+}
+function _gsJumpToHF(hfId){
+  // Open the IP/Endorsement tab, switch to HF Team filter, expand the card and scroll
+  let tab = document.querySelector('#mainTabs .tab[onclick*="\'endo\'"]');
+  if(tab) tab.click();
+  setTimeout(() => {
+    if(typeof filterByWard === 'function') filterByWard('hf');
+    setTimeout(() => {
+      // Auto-expand the card
+      if(window.expandedHFIds && !window.expandedHFIds.has(hfId)){
+        window.expandedHFIds.add(hfId);
+        if(typeof renderHFList === 'function') renderHFList();
+      }
+      setTimeout(() => {
+        // HF cards don't have a data-* hook; match by name+MRN from state
+        let p = window.S.hfPatients && window.S.hfPatients[hfId];
+        if(!p) return;
+        let cards = document.querySelectorAll('#hfList .endo-card');
+        let match = null;
+        cards.forEach(c => {
+          if(match) return;
+          let nm = c.querySelector('.endo-name')?.innerText || '';
+          let mr = c.querySelector('.endo-mrn')?.innerText || '';
+          if(nm.includes(p.name||'') && mr.includes(p.mrn||'')) match = c;
+        });
+        if(match){
+          match.scrollIntoView({ behavior:'smooth', block:'center' });
+          match.style.outline = '2px solid var(--ep)';
+          setTimeout(()=>{ match.style.outline = ''; }, 1800);
+        }
+      }, 80);
+    }, 100);
+  }, 80);
 }
 function _gsJumpToOncall(iso){
   let tab = document.querySelector('#mainTabs .tab[onclick*="\'oncall\'"]');
