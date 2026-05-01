@@ -523,6 +523,20 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
 .oncall-empty{text-align:center;padding:30px 18px;color:var(--dim);font-family:var(--font-mono);font-size:11px}
 .cal-cell.has-oncall{background:linear-gradient(135deg,rgba(96,165,250,.06),rgba(56,189,248,.04))}
 
+/* Day-of-week color tints for the on-call calendar */
+.cal-cell.cal-thu{background:linear-gradient(135deg,rgba(250,204,21,.08),rgba(250,204,21,.03));border-color:rgba(250,204,21,.28)}
+/* Weekend (Fri + Sat) — shared warm amber tint, calibrated for both themes */
+.cal-cell.cal-weekend{background:linear-gradient(135deg,rgba(245,158,11,.13),rgba(245,158,11,.05));border-color:rgba(245,158,11,.38)}
+:root[data-theme="light"] .cal-cell.cal-weekend{background:linear-gradient(135deg,rgba(217,119,6,.14),rgba(217,119,6,.06));border-color:rgba(217,119,6,.42)}
+:root[data-theme="light"] .cal-cell.cal-thu{background:linear-gradient(135deg,rgba(202,138,4,.10),rgba(202,138,4,.04));border-color:rgba(202,138,4,.32)}
+/* Eid vacation — strongest tint, overrides day-of-week tints */
+.cal-cell.cal-eid{background:linear-gradient(135deg,rgba(168,85,247,.16),rgba(168,85,247,.06))!important;border-color:rgba(168,85,247,.45)!important}
+.cal-cell.cal-eid .cal-date{color:#c084fc;font-weight:700}
+:root[data-theme="light"] .cal-cell.cal-eid{background:linear-gradient(135deg,rgba(126,34,206,.14),rgba(126,34,206,.06))!important;border-color:rgba(126,34,206,.45)!important}
+:root[data-theme="light"] .cal-cell.cal-eid .cal-date{color:#7e22ce}
+/* Selected/today still wins visually */
+.cal-cell.selected{z-index:1}
+
 /* ============= REMOVALS LOG ============= */
 .rem-card{background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:12px 14px}
 .rem-card-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
@@ -1990,11 +2004,42 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
     <div style="font-family:var(--font-mono);font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:12px">
       Tap any day in the calendar to view its on-call team. <strong style="color:var(--warn)">Admin</strong> can edit the roster for each day (3 First on-call, 1 CCU, 1 Second on-call, 1 Interventionist on-call).
     </div>
+    <div class="cal-legend" style="display:flex;flex-wrap:wrap;gap:8px 14px;font-family:var(--font-mono);font-size:10px;color:var(--dim);margin-bottom:10px;align-items:center">
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(250,204,21,.18);border:1px solid rgba(250,204,21,.35);display:inline-block"></span>Thu</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(245,158,11,.20);border:1px solid rgba(245,158,11,.45);display:inline-block"></span>Weekend (Fri / Sat)</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(168,85,247,.20);border:1px solid rgba(168,85,247,.5);display:inline-block"></span>Eid (May 26–30)</span>
+    </div>
     <div class="cal-toolbar">
       <button class="cal-nav-btn" onclick="shiftOncallMonth(-1)">◀</button>
       <div class="cal-month-label" id="oncallMonthLabel">—</div>
       <button class="cal-nav-btn" onclick="shiftOncallMonth(1)">▶</button>
       <button class="cal-today-btn" onclick="jumpOncallToday()">Today</button>
+    </div>
+
+    <!-- Admin-only search: by doctor name, specific date, month, or period -->
+    <div id="oncallAdminSearch" class="apgate-content" style="display:none;background:var(--sur2);border:1px solid var(--bor);border-radius:10px;padding:10px 12px;margin:10px 0">
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--dim);letter-spacing:.06em;margin-bottom:8px">🔍 ADMIN SEARCH</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
+        <select id="oncallSearchDoc" data-doc-jump onchange="runOncallSearch()" style="flex:1;min-width:160px;background:var(--sur);border:1px solid var(--bor);color:var(--txt);border-radius:6px;padding:7px 9px;font-size:12px;font-family:var(--font-ui)">
+          <option value="">— All doctors —</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">
+        <span style="font-family:var(--font-mono);font-size:9px;color:var(--dim);letter-spacing:.06em;margin-right:2px">QUICK:</span>
+        <button class="fb" onclick="oncallQuickRange('thisMonth')" style="font-size:10px;padding:4px 9px">This month</button>
+        <button class="fb" onclick="oncallQuickRange('nextMonth')" style="font-size:10px;padding:4px 9px">Next month</button>
+        <button class="fb" onclick="oncallQuickRange('next7')" style="font-size:10px;padding:4px 9px">Next 7 days</button>
+        <button class="fb" onclick="oncallQuickRange('next30')" style="font-size:10px;padding:4px 9px">Next 30 days</button>
+        <button class="fb" onclick="oncallQuickRange('eid')" style="font-size:10px;padding:4px 9px">Eid (May 26–30)</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <span style="font-family:var(--font-mono);font-size:9px;color:var(--dim);letter-spacing:.06em">FROM</span>
+        <input type="date" id="oncallSearchFrom" onchange="runOncallSearch()" style="background:var(--sur);border:1px solid var(--bor);color:var(--txt);border-radius:6px;padding:6px 9px;font-size:12px;font-family:var(--font-mono)">
+        <span style="font-family:var(--font-mono);font-size:9px;color:var(--dim);letter-spacing:.06em">TO</span>
+        <input type="date" id="oncallSearchTo" onchange="runOncallSearch()" style="background:var(--sur);border:1px solid var(--bor);color:var(--txt);border-radius:6px;padding:6px 9px;font-size:12px;font-family:var(--font-mono)">
+        <button class="fb" onclick="clearOncallSearch()" style="font-size:11px">Clear</button>
+      </div>
+      <div id="oncallSearchResults" style="margin-top:10px;display:none"></div>
     </div>
     <div class="cal-weekdays">
       <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
@@ -2016,20 +2061,20 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
           <input type="hidden" id="oncall-iso">
           <div class="rl" style="margin-bottom:6px;color:var(--acc)">FIRST ON-CALL (3 doctors)</div>
           <label>First on-call #1</label>
-          <select id="oncall-first1" class="fd-sel" style="margin-bottom:10px"></select>
+          <select id="oncall-first1" data-doc-jump class="fd-sel" style="margin-bottom:10px"></select>
           <label>First on-call #2</label>
-          <select id="oncall-first2" class="fd-sel" style="margin-bottom:10px"></select>
+          <select id="oncall-first2" data-doc-jump class="fd-sel" style="margin-bottom:10px"></select>
           <label>First on-call #3</label>
-          <select id="oncall-first3" class="fd-sel" style="margin-bottom:14px"></select>
+          <select id="oncall-first3" data-doc-jump class="fd-sel" style="margin-bottom:14px"></select>
           <div class="rl" style="margin-bottom:6px;color:var(--warn)">CCU (1 doctor)</div>
           <label>CCU on-call</label>
-          <select id="oncall-ccu" class="fd-sel" style="margin-bottom:14px"></select>
+          <select id="oncall-ccu" data-doc-jump class="fd-sel" style="margin-bottom:14px"></select>
           <div class="rl" style="margin-bottom:6px;color:var(--ok)">SECOND ON-CALL (1 doctor)</div>
           <label>Second on-call</label>
-          <select id="oncall-second" class="fd-sel" style="margin-bottom:14px"></select>
+          <select id="oncall-second" data-doc-jump class="fd-sel" style="margin-bottom:14px"></select>
           <div class="rl" style="margin-bottom:6px;color:var(--ep)">INTERVENTIONIST ON-CALL (1 doctor)</div>
           <label>Interventionist on-call</label>
-          <select id="oncall-interv" class="fd-sel" style="margin-bottom:14px"></select>
+          <select id="oncall-interv" data-doc-jump class="fd-sel" style="margin-bottom:14px"></select>
           <button type="submit" class="btn" style="margin-top:6px">💾 Save Roster</button>
           <button type="button" class="btn" style="margin-top:6px;background:var(--sur2);border:1px solid var(--bor)" onclick="clearOncallDay()">🗑 Clear Day</button>
         </form>
@@ -2229,7 +2274,7 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
       <div class="adm-section-title">Reset Doctor PIN</div>
       <div class="adm-section-sub">Use when a doctor forgets their PIN. Set a new 6-digit PIN for any doctor. If the new PIN is already used by another doctor, the change will be refused.</div>
       <label>Doctor</label>
-      <select id="pinreset-doc" class="fd-sel" style="margin-bottom:11px"></select>
+      <select id="pinreset-doc" data-doc-jump class="fd-sel" style="margin-bottom:11px"></select>
       <label>New PIN (6 digits)</label>
       <input type="password" id="pinreset-new" maxlength="6" inputmode="numeric" placeholder="e.g. 123456" autocomplete="off">
       <label>Confirm New PIN</label>
@@ -2342,7 +2387,7 @@ function dbUpdate(nodesObj){
   // nodesObj is { 'endorsements/abc': {...}, 'removals': [...] }
   return dbRef.update(nodesObj);
 }
-var docPINsHashed = {"fe675fe7aaee830b6fed09b64e034f84dcbdaeb429d9cccd4ebb90e15af8dd71":"Dr. Rehan","b281bc2c616cb3c3a097215fdc9397ae87e6e06b156cc34e656be7a1a9ce8839":"Dr. Ramy","8c9a013ab70c0434313e3e881c310b9ff24aff1075255ceede3f2c239c231623":"Dr. Badawy","75992a5ac67ff644d3063976c2effd10bdd93fcc109798e3d5c1acf2e530d01a":"Dr. Sharkawy","7f861bcee185de001377d79e08af62e94b1e7718e2470e08520c917f8d953602":"Dr. Mostafa","478c4ffb1cbcea37956a748e6c19d8eadd0a47e86f5e308d26cad39453b5d1ab":"Dr. Ibrahim","2c8b871e52d4e5f5db5ff84a82a45327e20df77edef961c4b6fa0e9c3d97ce5b":"Dr. Hadad","9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d":"Dr. Emara","6ad4a6b1e5ea5569795e516d71909e0ce4809d9dc983d2c219144f684f816e12":"Dr. Rahim","7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":"Dr. Mamdouh","3dd9c0995d54c0abd51a90f1d57b1ce77bc885fc8a7cea52dcad3c2540dda5ee":"Dr. Slam","165940940a02a187e4463ff467090930038c5af8fc26107bf301e714f599a1da":"Dr. Ezz","2ec42bc1f3e672fc1cf7fdcfc23246415dcf20f03c0d4a5bbbd92a185708f5b7":"Dr. R Gamal","df4865fca1f159162557359ef967f9502087f57527b0e030e139933e54f3061e":"Dr. Moghl","9553627933b214db60798fe40d2b4f8497781d024f53d62dc1b12469b7d53784":"Dr. Darwish","ef32cc5c2b7c62093d3ec4844b36a02b08bb83eee2efa6b6b5e85ad605790192":"Dr. Omar","b0ab628c9e14621846c58b4eb35060ef3885253a457d2d76136716d4850bad45":"Dr. Sajid","9989a37538faecc495bbe774b30fb447a1582b8f1bc14ac88dfd84996a7b799a":"Dr. Ali","61ab550f4c85a975cd46f8606ede483d8ee720a76f627773de1bc1dd8ce5fb35":"Dr. Eyad","f296867839c8befafed32b55a7c11ab4ad14387d2434b970a55237d537bc9353":"Dr. Mongy","cdad86ca9450d1c143675a8436131cabaf55905c114fa4524bf6a9ec5662cad7":"Dr. Bahlol","85d6385b945c0d602103db39b0b654b2af93b5127938e26a959c123f0789b948":"Prof. Zubaid","6c94e35ccc352d4e9ef0b99562cff995a5741ce8de8ad11b568892934daee366":"Dr. Abdullah","77459b9b941bcb4714d0c121313c900ecf30541d158eb2b9b178cdb8eca6457e":"Dr. Fahad","483029d526219f816e8e8f6a9de07b422633dba180ffc26faac22862a017519f":"Dr. Farouk","a20a2b7bb0842d5cf8a0c06c626421fd51ec103925c1819a51271f2779afa730":"Dr. Arab","6f6a4e56098cfd9af29e3ae549503b370211a4e94421457fe4cfd39a38a1fa08":"Dr. Nazanin","f1cfa5ebb149e8099d561aae57beed6c68f990f45a910ea9d7b460dbcc5350be":"Dr. Velibore","e5e53c784d5d49de1cabb6e904bf3380026aadcb9769775a268dd304dd9aa2df":"Dr. Ali Alsaygh","f37f3f2b0dc57a86dee4ba6ff855283bb4d2f0dea1c5bd1b708853444c2ffcec":"Dr. Ali Alsulaimi","38206b956d53155a677deb4b506f24e025fd66c62ccb3af33cd7f1319685ea73":"Dr. Hamza","b33ed571eded536f0f0bc2be4e4384055acd592fe6652a555320fdca4dbeb175":"Dr. Ibrahim Hassan","a20c25627ed7bbb6d2b999c589b698e6ecd84384e2e0e510d8869d79a5ad244c":"Dr. Hisham","3ba982075eba89702c1637b9ce03d8a3d8b6dce9434dd07a4c30b5525ab27850":"Dr. Farag","7a24738c1004bcc250f2e527aeab5e3b1891d00a5146a54b2e8c20df84a8c09d":"Dr. Hany","ad25fc1532c8454fdda1d5e5258dd5771e919eaf4db2ca59842043804ccb6fb5":"Dr. Ehab","56f2f6918fec1d2d8eaa4f1b900ee2241576ba4e24f6c601b1ca4f05173fdb5a":"Dr. Samir","59012b44adb8c2f5e94b7a197e260fa945cc23ddd4d8737195d9391396d0ec5c":"Dr. Maged","7e66b5dd3d158d14ba3300cad5702ee6d72befaec37890eed25c91687bb649df":"Dr. Ashraf","e276f59bc5a81f2968dfb34b6324f7d59fea2723fd733bc9e70d65e848ef8f42":"Dr. Fawzy","41214f55c1e8d6170239eb93d7cc105abbee1dc0fbe8f7a258962da285dfe9cd":"Dr. Akmal","ff4b467b7a593047c46682ecdbf6da36b3f3bb4b50d35f08f17f751ef5f15531":"Dr. Zaher","41c8fa7d060badc5618a28326dc00cf07e1ce22a79a94a1fed94f271d3127447":"Dr. Shafie","888df25ae35772424a560c7152a1de794440e0ea5cfee62828333a456a506e05":"Admin"};
+var docPINsHashed = {"fe675fe7aaee830b6fed09b64e034f84dcbdaeb429d9cccd4ebb90e15af8dd71":"Dr. Rehan","b281bc2c616cb3c3a097215fdc9397ae87e6e06b156cc34e656be7a1a9ce8839":"Dr. Ramy","8c9a013ab70c0434313e3e881c310b9ff24aff1075255ceede3f2c239c231623":"Dr. Badawy","75992a5ac67ff644d3063976c2effd10bdd93fcc109798e3d5c1acf2e530d01a":"Dr. Sharkawy","7f861bcee185de001377d79e08af62e94b1e7718e2470e08520c917f8d953602":"Dr. Mostafa","478c4ffb1cbcea37956a748e6c19d8eadd0a47e86f5e308d26cad39453b5d1ab":"Dr. Ibrahim","2c8b871e52d4e5f5db5ff84a82a45327e20df77edef961c4b6fa0e9c3d97ce5b":"Dr. Hadad","9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d":"Dr. Emara","6ad4a6b1e5ea5569795e516d71909e0ce4809d9dc983d2c219144f684f816e12":"Dr. Rahim","7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":"Dr. Mamdouh","3dd9c0995d54c0abd51a90f1d57b1ce77bc885fc8a7cea52dcad3c2540dda5ee":"Dr. Salam","165940940a02a187e4463ff467090930038c5af8fc26107bf301e714f599a1da":"Dr. Ezz","2ec42bc1f3e672fc1cf7fdcfc23246415dcf20f03c0d4a5bbbd92a185708f5b7":"Dr. R Gamal","df4865fca1f159162557359ef967f9502087f57527b0e030e139933e54f3061e":"Dr. Moghl","9553627933b214db60798fe40d2b4f8497781d024f53d62dc1b12469b7d53784":"Dr. Darwish","ef32cc5c2b7c62093d3ec4844b36a02b08bb83eee2efa6b6b5e85ad605790192":"Dr. Omar","b0ab628c9e14621846c58b4eb35060ef3885253a457d2d76136716d4850bad45":"Dr. Sajid","9989a37538faecc495bbe774b30fb447a1582b8f1bc14ac88dfd84996a7b799a":"Dr. Ali","61ab550f4c85a975cd46f8606ede483d8ee720a76f627773de1bc1dd8ce5fb35":"Dr. Eyad","f296867839c8befafed32b55a7c11ab4ad14387d2434b970a55237d537bc9353":"Dr. Mongy","cdad86ca9450d1c143675a8436131cabaf55905c114fa4524bf6a9ec5662cad7":"Dr. Bahlol","85d6385b945c0d602103db39b0b654b2af93b5127938e26a959c123f0789b948":"Prof. Zubaid","6c94e35ccc352d4e9ef0b99562cff995a5741ce8de8ad11b568892934daee366":"Dr. Abdullah","77459b9b941bcb4714d0c121313c900ecf30541d158eb2b9b178cdb8eca6457e":"Dr. Fahad","483029d526219f816e8e8f6a9de07b422633dba180ffc26faac22862a017519f":"Dr. Farouk","a20a2b7bb0842d5cf8a0c06c626421fd51ec103925c1819a51271f2779afa730":"Dr. Arab","6f6a4e56098cfd9af29e3ae549503b370211a4e94421457fe4cfd39a38a1fa08":"Dr. Nazanin","f1cfa5ebb149e8099d561aae57beed6c68f990f45a910ea9d7b460dbcc5350be":"Dr. Velibore","e5e53c784d5d49de1cabb6e904bf3380026aadcb9769775a268dd304dd9aa2df":"Dr. Ali Alsaygh","f37f3f2b0dc57a86dee4ba6ff855283bb4d2f0dea1c5bd1b708853444c2ffcec":"Dr. Ali Alsulaimi","38206b956d53155a677deb4b506f24e025fd66c62ccb3af33cd7f1319685ea73":"Dr. Hamza","b33ed571eded536f0f0bc2be4e4384055acd592fe6652a555320fdca4dbeb175":"Dr. Ibrahim Hassan","a20c25627ed7bbb6d2b999c589b698e6ecd84384e2e0e510d8869d79a5ad244c":"Dr. Hisham","3ba982075eba89702c1637b9ce03d8a3d8b6dce9434dd07a4c30b5525ab27850":"Dr. Farag","7a24738c1004bcc250f2e527aeab5e3b1891d00a5146a54b2e8c20df84a8c09d":"Dr. Hany","ad25fc1532c8454fdda1d5e5258dd5771e919eaf4db2ca59842043804ccb6fb5":"Dr. Ehab","56f2f6918fec1d2d8eaa4f1b900ee2241576ba4e24f6c601b1ca4f05173fdb5a":"Dr. Samir","59012b44adb8c2f5e94b7a197e260fa945cc23ddd4d8737195d9391396d0ec5c":"Dr. Maged","7e66b5dd3d158d14ba3300cad5702ee6d72befaec37890eed25c91687bb649df":"Dr. Ashraf","e276f59bc5a81f2968dfb34b6324f7d59fea2723fd733bc9e70d65e848ef8f42":"Dr. Fawzy","41214f55c1e8d6170239eb93d7cc105abbee1dc0fbe8f7a258962da285dfe9cd":"Dr. Akmal","ff4b467b7a593047c46682ecdbf6da36b3f3bb4b50d35f08f17f751ef5f15531":"Dr. Zaher","41c8fa7d060badc5618a28326dc00cf07e1ce22a79a94a1fed94f271d3127447":"Dr. Shafie","888df25ae35772424a560c7152a1de794440e0ea5cfee62828333a456a506e05":"Admin"};
 var ADMIN_HASH = "b2b2f104d32c638903e151a9b20d6e27b41d8c0c84cf8458738f83ca2f1dd744";
 var CLERK_HASH = "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab";
 
@@ -6115,22 +6160,77 @@ window.goOpdalTab = function(sub, btn){
 var oncallState = { year: new Date().getFullYear(), month: new Date().getMonth(), selected: null };
 
 // Build the full list of doctors for dropdowns (sorted, unique).
+// Resolve legacy/aliased doctor names so old roster entries keep working
+// after a rename. Returns the canonical display name for a given stored name.
+function resolveDocName(n){
+  if(!n) return n;
+  // Backward compatibility: old rosters / old data may have "Dr. Slam"
+  if(n === 'Dr. Slam') return 'Dr. Salam';
+  return n;
+}
+
 function getAllDoctorNames(){
   let names = new Set();
-  Object.values(docPINsHashed).forEach(n => { if(n && n !== 'Admin') names.add(n); });
+  Object.values(docPINsHashed).forEach(n => { if(n && n !== 'Admin') names.add(resolveDocName(n)); });
   // Also include any current live-pinned doctors
-  Object.values((window.S && window.S.docPins) || {}).forEach(n => { if(n && typeof n === 'string' && n !== 'Admin') names.add(n); });
+  Object.values((window.S && window.S.docPins) || {}).forEach(n => { if(n && typeof n === 'string' && n !== 'Admin') names.add(resolveDocName(n)); });
+  // Virtual entry: a generic "Fellow" rotation slot (no PIN needed)
+  names.add('Fellow');
   return [...names].sort();
 }
 
 function buildDocOptions(selectedValue, includeNone){
   let opts = includeNone ? '<option value="">— Not assigned —</option>' : '<option value="" disabled selected>Select doctor...</option>';
+  let resolved = resolveDocName(selectedValue);
   getAllDoctorNames().forEach(n => {
-    let sel = (n === selectedValue) ? ' selected' : '';
+    let sel = (n === resolved) ? ' selected' : '';
     opts += `<option value="${n}"${sel}>${n}</option>`;
   });
   return opts;
 }
+
+// =====================================================================
+// Doctor-list keyboard typeahead
+// Native <select> first-letter jump fails because every option starts
+// with "Dr. " — every keystroke just lands on the first doctor.
+// This handler buffers typed keys for ~700ms and jumps to the first
+// option whose name AFTER "Dr. " (or "Prof. ") starts with the buffer.
+// Attach by adding the attribute  data-doc-jump  to any <select>.
+// =====================================================================
+(function(){
+  let buffer = '';
+  let lastKeyTs = 0;
+  function stripPrefix(s){
+    if(!s) return '';
+    return s.replace(/^\s*(?:Dr|Prof|Mr|Ms|Mrs)\.?\s+/i, '').toLowerCase();
+  }
+  document.addEventListener('keydown', function(e){
+    let el = e.target;
+    if(!el || el.tagName !== 'SELECT') return;
+    if(!el.hasAttribute('data-doc-jump')) return;
+    // Only single printable letters
+    if(e.key.length !== 1) return;
+    if(!/^[a-zA-Z]$/.test(e.key)) return;
+    let now = Date.now();
+    if(now - lastKeyTs > 700) buffer = '';
+    buffer += e.key.toLowerCase();
+    lastKeyTs = now;
+    // Find the first option matching the buffer (after Dr. prefix)
+    let opts = el.options;
+    for(let i=0; i<opts.length; i++){
+      let cleaned = stripPrefix(opts[i].text);
+      if(cleaned.startsWith(buffer)){
+        if(el.selectedIndex !== i){
+          el.selectedIndex = i;
+          // Fire change so listeners (e.g. search filter) react
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        e.preventDefault();
+        return;
+      }
+    }
+  }, true);
+})();
 
 function oncallIso(y,m,d){
   let mm = String(m+1).padStart(2,'0');
@@ -6175,11 +6275,17 @@ window.renderOncallCalendar = function(){
     let isToday = (iso === todayIso_);
     let isSelected = (iso === oncallState.selected);
     let past = iso < todayIso_;
+    let dow = new Date(y,m,d).getDay(); // 0=Sun..6=Sat
     let cls = 'cal-cell';
     if(isToday) cls += ' today';
     if(isSelected) cls += ' selected';
     if(past) cls += ' past';
     if(cnt) cls += ' has-oncall';
+    // Day-of-week tints (Thu=4, Fri=5, Sat=6 — Fri+Sat share a "weekend" tint)
+    if(dow === 4) cls += ' cal-thu';
+    else if(dow === 5 || dow === 6) cls += ' cal-weekend';
+    // Eid vacation: May 26–30 of the current displayed month/year
+    if(y === 2026 && m === 4 && d >= 26 && d <= 30) cls += ' cal-eid';
     let dots = '';
     if(roster){
       // Small colored pills representing filled roles
@@ -6192,11 +6298,159 @@ window.renderOncallCalendar = function(){
   }
   grid.innerHTML = html;
   renderOncallDetail();
+  showOncallAdminSearchIfAdmin();
 };
 
 window.selectOncallDay = function(iso){
   oncallState.selected = iso;
   renderOncallCalendar();
+};
+
+// =====================================================================
+// On-Call ADMIN SEARCH — by doctor or specific date
+// =====================================================================
+function showOncallAdminSearchIfAdmin(){
+  let box = document.getElementById('oncallAdminSearch');
+  if(!box) return;
+  if(window.currentRole === 'admin'){
+    box.style.display = 'block';
+    // Populate doctors dropdown (once or whenever it's empty)
+    let sel = document.getElementById('oncallSearchDoc');
+    if(sel && sel.options.length <= 1){
+      let opts = '<option value="">— All doctors —</option>';
+      getAllDoctorNames().forEach(n => { opts += `<option value="${n}">${n}</option>`; });
+      sel.innerHTML = opts;
+    }
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+window.clearOncallSearch = function(){
+  let s = document.getElementById('oncallSearchDoc'); if(s) s.value = '';
+  let f = document.getElementById('oncallSearchFrom'); if(f) f.value = '';
+  let t = document.getElementById('oncallSearchTo'); if(t) t.value = '';
+  let r = document.getElementById('oncallSearchResults');
+  if(r){ r.style.display = 'none'; r.innerHTML = ''; }
+};
+
+// Helper: format Date → YYYY-MM-DD
+function _fmtIso(d){
+  let y = d.getFullYear();
+  let m = String(d.getMonth()+1).padStart(2,'0');
+  let dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+window.oncallQuickRange = function(kind){
+  let f = document.getElementById('oncallSearchFrom');
+  let t = document.getElementById('oncallSearchTo');
+  if(!f || !t) return;
+  let now = new Date();
+  let from, to;
+  if(kind === 'thisMonth'){
+    from = new Date(now.getFullYear(), now.getMonth(), 1);
+    to   = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  } else if(kind === 'nextMonth'){
+    from = new Date(now.getFullYear(), now.getMonth()+1, 1);
+    to   = new Date(now.getFullYear(), now.getMonth()+2, 0);
+  } else if(kind === 'next7'){
+    from = new Date(now); to = new Date(now); to.setDate(to.getDate()+7);
+  } else if(kind === 'next30'){
+    from = new Date(now); to = new Date(now); to.setDate(to.getDate()+30);
+  } else if(kind === 'eid'){
+    from = new Date(2026, 4, 26);
+    to   = new Date(2026, 4, 30);
+  } else {
+    return;
+  }
+  f.value = _fmtIso(from);
+  t.value = _fmtIso(to);
+  // Jump calendar to the start of the range
+  oncallState.year  = from.getFullYear();
+  oncallState.month = from.getMonth();
+  oncallState.selected = _fmtIso(from);
+  renderOncallCalendar();
+  runOncallSearch();
+};
+
+window.runOncallSearch = function(){
+  let docSel  = document.getElementById('oncallSearchDoc');
+  let fromEl  = document.getElementById('oncallSearchFrom');
+  let toEl    = document.getElementById('oncallSearchTo');
+  let resBox  = document.getElementById('oncallSearchResults');
+  if(!resBox) return;
+  let doctor = docSel ? docSel.value.trim() : '';
+  let fromIso = fromEl ? fromEl.value.trim() : '';
+  let toIso   = toEl   ? toEl.value.trim()   : '';
+
+  // If only one bound is provided, treat it as both (single-day query)
+  if(fromIso && !toIso) toIso = fromIso;
+  if(toIso && !fromIso) fromIso = toIso;
+  // Sanity: swap if reversed
+  if(fromIso && toIso && fromIso > toIso){ let tmp = fromIso; fromIso = toIso; toIso = tmp; }
+
+  // If a date is set, jump the calendar to the start of the range
+  if(fromIso){
+    let parts = fromIso.split('-');
+    if(parts.length === 3){
+      oncallState.year  = parseInt(parts[0],10);
+      oncallState.month = parseInt(parts[1],10) - 1;
+      oncallState.selected = fromIso;
+      renderOncallCalendar();
+    }
+  }
+
+  if(!doctor && !fromIso && !toIso){
+    resBox.style.display = 'none'; resBox.innerHTML = ''; return;
+  }
+
+  ensureExtState();
+  let onCallMap = (window.S && window.S.onCall) || {};
+  let matches = [];
+  Object.keys(onCallMap).sort().forEach(iso => {
+    if(fromIso && iso < fromIso) return;
+    if(toIso   && iso > toIso)   return;
+    let r = onCallMap[iso] || {};
+    let roles = [];
+    ['first1','first2','first3','ccu','second','interv'].forEach(k => {
+      let nm = resolveDocName(r[k]);
+      if(!nm) return;
+      if(doctor && nm !== doctor) return;
+      let label = ({first1:'1st',first2:'1st',first3:'1st',ccu:'CCU',second:'2nd',interv:'Interv'})[k] || k;
+      roles.push({role:label, name:nm});
+    });
+    if(roles.length){
+      matches.push({iso, roles});
+    }
+  });
+
+  let header = '';
+  if(matches.length){
+    if(doctor && (fromIso || toIso)){
+      header = `<div style="font-family:var(--font-mono);font-size:10px;color:var(--mid);margin-bottom:6px">${escapeHtml(doctor)} — ${matches.length} on-call day${matches.length===1?'':'s'} between ${fromIso} and ${toIso}</div>`;
+    } else if(doctor){
+      header = `<div style="font-family:var(--font-mono);font-size:10px;color:var(--mid);margin-bottom:6px">${escapeHtml(doctor)} — ${matches.length} on-call day${matches.length===1?'':'s'} found</div>`;
+    } else {
+      header = `<div style="font-family:var(--font-mono);font-size:10px;color:var(--mid);margin-bottom:6px">${matches.length} day${matches.length===1?'':'s'} found</div>`;
+    }
+  }
+
+  if(!matches.length){
+    resBox.style.display = 'block';
+    resBox.innerHTML = `<div style="font-family:var(--font-mono);font-size:11px;color:var(--dim);padding:8px 0">No matching on-call entries.</div>`;
+    return;
+  }
+
+  resBox.style.display = 'block';
+  resBox.innerHTML = header + matches.map(m => {
+    let dlabel = new Date(m.iso+'T00:00:00').toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+    let chips = m.roles.map(rr => `<span style="display:inline-block;background:var(--acc-soft);border:1px solid var(--acc-line);color:var(--acc2);font-family:var(--font-mono);font-size:10px;padding:2px 7px;border-radius:5px;margin-right:5px;margin-top:3px">${rr.role}: ${escapeHtml(rr.name)}</span>`).join('');
+    return `<div style="background:var(--sur);border:1px solid var(--bor);border-radius:7px;padding:8px 10px;margin-bottom:6px;cursor:pointer" onclick="selectOncallDay('${m.iso}')">
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--mid);font-weight:600">${dlabel}</div>
+      <div style="margin-top:4px">${chips}</div>
+    </div>`;
+  }).join('');
 };
 
 function renderOncallDetail(){
@@ -6566,15 +6820,101 @@ window.renderRemovalsList = function(){
         <div class="rem-meta"><b>Suggested procedure:</b> ${escapeHtml(r.proc||'—')}</div>
         <div class="rem-meta"><b>Originally added by:</b> ${escapeHtml(r.createdBy||'—')}</div>`;
     }
-    return `<div class="rem-card">
+    return `<div class="rem-card" data-rem-id="${r.id || r.ts}">
       <div class="rem-card-head">
         <span class="rem-badge ${badgeClass}">${badgeText}</span>
         <div class="rem-name">${escapeHtml(r.patientName||'—')}</div>
       </div>
       ${details}
       <div class="rem-meta" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--bor)"><b>🗑 Removed by:</b> <span style="color:var(--err)">${escapeHtml(r.by||'—')}</span> · ${when}</div>
+      <div class="rem-actions" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn" style="background:var(--acc-soft);border:1px solid var(--acc-line);color:var(--acc2);font-size:11px;padding:5px 10px;margin:0;flex:0 0 auto" onclick="restoreRemoval(${r.ts})">↩ Restore</button>
+        <button class="btn" style="background:rgba(229,100,100,.10);border:1px solid rgba(229,100,100,.45);color:var(--err);font-size:11px;padding:5px 10px;margin:0;flex:0 0 auto" onclick="permDeleteRemoval(${r.ts})">✕ Permanent Delete</button>
+      </div>
     </div>`;
   }).join('');
+};
+
+// ============================================================
+// Restore a removed entry / Permanently delete a removal record
+// ============================================================
+window.restoreRemoval = function(ts){
+  ensureExtState();
+  let arr = window.S.removals || [];
+  let idx = arr.findIndex(r => r.ts === ts);
+  if(idx === -1) return alert('Record not found.');
+  let r = arr[idx];
+  if(!confirm(`Restore "${r.patientName || '—'}" back to its original list?`)) return;
+
+  // Restoration logic by type
+  if(r.type === 'log'){
+    // Restore an OPD-allocator log entry
+    let entry = {
+      fn: r.mrn || '',
+      reg: r.createdBy || '—',
+      doc: r.originDoc || '—',
+      room: r.originRoom || '—',
+      apt: r.apt || '',
+      ts: r.createdAt || Date.now()
+    };
+    if(!Array.isArray(window.S.logs)) window.S.logs = [];
+    window.S.logs.push(entry);
+    arr.splice(idx,1);
+    dbUpdate({ logs: window.S.logs, removals: arr });
+  } else if(r.type === 'ip'){
+    // Restore an IP patient to the endorsements object
+    let newId = 'ip-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
+    let entry = {
+      name: r.patientName || '',
+      mrn: r.mrn || '',
+      ward: r.ward || '',
+      bed: r.bed || '',
+      reason: r.reason || '',
+      createdBy: r.createdBy || '—',
+      createdAt: r.createdAt || Date.now(),
+      updatedAt: Date.now()
+    };
+    if(!window.S.endorsements || typeof window.S.endorsements !== 'object') window.S.endorsements = {};
+    window.S.endorsements[newId] = entry;
+    arr.splice(idx,1);
+    dbUpdate({ ['endorsements/' + newId]: entry, removals: arr });
+  } else if(r.type === 'cath-sched' || r.type === 'cath-pending'){
+    let newId = 'cath-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
+    let entry = {
+      patientName: r.patientName || '',
+      cid: r.cid || '',
+      file: r.file || '',
+      proc: r.proc || '',
+      operator: r.operator || '',
+      date: r.date || '',
+      createdBy: r.createdBy || '—',
+      ts: Date.now()
+    };
+    let key = (r.type === 'cath-sched') ? 'cathScheduled' : 'cathPending';
+    if(!window.S[key] || typeof window.S[key] !== 'object') window.S[key] = {};
+    window.S[key][newId] = entry;
+    arr.splice(idx,1);
+    dbUpdate({ [key + '/' + newId]: entry, removals: arr });
+  } else {
+    alert('This record type cannot be auto-restored. Use Permanent Delete to remove it from the audit log.');
+    return;
+  }
+
+  renderRemovalsList();
+  rAll();
+  alert('Restored successfully.');
+};
+
+window.permDeleteRemoval = function(ts){
+  ensureExtState();
+  let arr = window.S.removals || [];
+  let idx = arr.findIndex(r => r.ts === ts);
+  if(idx === -1) return alert('Record not found.');
+  let r = arr[idx];
+  if(!confirm(`Permanently delete the audit record for "${r.patientName || '—'}"?\n\nThis cannot be undone. The patient will NOT be restored — the removal log entry itself will be erased.`)) return;
+  arr.splice(idx,1);
+  dbWrite('removals', arr);
+  renderRemovalsList();
 };
 
 // ============================================================
