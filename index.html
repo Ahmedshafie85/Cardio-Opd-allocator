@@ -369,6 +369,14 @@ hr.adm-hr{border:0;border-top:1px solid var(--bor);margin:20px 0}
 .hosp-search-bar{display:flex;gap:8px;margin-bottom:14px;align-items:center}
 .hosp-search{flex:1;background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:11px 14px;color:var(--txt);font-family:var(--font-ui);font-size:13.5px;outline:none;transition:all .15s}
 .hosp-search:focus{border-color:var(--acc-line);background:rgba(58,166,183,0.04)}
+.hosp-filter-select{flex:0 0 auto;min-width:140px;max-width:42%;background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:11px 32px 11px 12px;color:var(--txt);font-family:var(--font-mono);font-size:12px;font-weight:500;outline:none;cursor:pointer;transition:all .15s;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23808a99' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 10px center}
+.hosp-filter-select:focus{border-color:var(--acc-line);color:var(--acc2)}
+.hosp-filter-select:hover{border-color:var(--bor2)}
+@media (max-width:520px){
+  .hosp-search-bar{flex-wrap:wrap}
+  .hosp-search{flex:1 1 100%}
+  .hosp-filter-select{flex:1 1 100%;max-width:100%}
+}
 .hosp-filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
 .hosp-filter{background:var(--sur2);border:1px solid var(--bor);color:var(--mid);border-radius:6px;padding:6px 12px;cursor:pointer;font-family:var(--font-mono);font-size:11px;font-weight:500;transition:all .15s}
 .hosp-filter:hover{border-color:var(--bor2)}
@@ -863,6 +871,18 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
 
   /* Action buttons: 2 per row on phones so they all fit without horizontal overflow */
   .endo-act-btn{flex:1 1 calc(50% - 3px);font-size:9.5px;padding:9px 4px;letter-spacing:.04em}
+
+  /* HF / Endo card head on mobile: allow wrapping so the HFrEF badge and PDF
+     button never overflow the card. The bed pill stays on the left, name/MRN
+     beside it, and any badge wraps onto its own line under the name. */
+  .endo-card-head{flex-wrap:wrap;gap:8px}
+  .endo-card-head > div[style*="flex:1"]{flex:1 1 60%;min-width:0}
+  .endo-bed{font-size:11.5px;padding:6px 9px;min-width:auto;align-self:flex-start}
+  .endo-name{font-size:15px;display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+  .endo-name span{margin-left:0 !important;white-space:normal;font-size:8.5px !important;padding:1px 6px !important}
+  .endo-mrn{font-size:10.5px;word-break:break-word}
+  .endo-head-icons{margin-left:auto;flex-shrink:0}
+  .endo-icon-btn.pdf{font-size:9px;padding:0 6px;height:22px}
 
   /* Modal full-width on tiny screens */
   .mb{max-width:calc(100vw - 20px)}
@@ -2402,8 +2422,8 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
     </div>
     <div class="hosp-search-bar">
       <input type="text" class="hosp-search" id="hospSearch" placeholder="Search ward, location, or head nurse…" oninput="renderHospNumbers()">
+      <select class="hosp-filter-select" id="hospFilterSelect" onchange="setHospFilter(this.value)"></select>
     </div>
-    <div class="hosp-filter-bar" id="hospFilterBar"></div>
     <div id="hospGrid" class="hosp-grid"></div>
   </div>
 </div>
@@ -8475,21 +8495,33 @@ function showHospToast(msg){
 }
 
 window.renderHospNumbers = function(){
-  // Build filter chips
-  let bar = document.getElementById('hospFilterBar');
-  if(bar){
+  // Build location dropdown (replaces the old chip bar)
+  let sel = document.getElementById('hospFilterSelect');
+  if(sel){
     let counts = {};
     HOSPITAL_NUMBERS.forEach(r => { counts[r.loc] = (counts[r.loc]||0)+1; });
-    let html = `<button class="hosp-filter${window.currentHospFilter==='all'?' on':''}" onclick="setHospFilter('all')">All <span style="opacity:0.6">${HOSPITAL_NUMBERS.length}</span></button>`;
+    let html = `<option value="all">All locations (${HOSPITAL_NUMBERS.length})</option>`;
     HOSPITAL_GROUPS.forEach(loc => {
       let label = loc.replace(/^Ward /, 'W');
-      html += `<button class="hosp-filter${window.currentHospFilter===loc?' on':''}" onclick="setHospFilter('${loc.replace(/'/g,"\\'")}')">${label} <span style="opacity:0.6">${counts[loc]}</span></button>`;
+      let safe = loc.replace(/"/g, '&quot;');
+      html += `<option value="${safe}">${label} (${counts[loc]})</option>`;
     });
-    bar.innerHTML = html;
+    sel.innerHTML = html;
+    sel.value = window.currentHospFilter || 'all';
   }
 
   // Filter + search
   let q = (document.getElementById('hospSearch')?.value || '').trim().toLowerCase();
+  let grid = document.getElementById('hospGrid');
+  if(!grid) return;
+
+  // No location picked AND no search typed — keep the grid empty so the page
+  // doesn't dump every number on screen. The dropdown is the entry point.
+  if(window.currentHospFilter === 'all' && !q){
+    grid.innerHTML = '<div class="hosp-empty">Pick a location from the menu above, or type in the search bar to find a number.</div>';
+    return;
+  }
+
   let rows = HOSPITAL_NUMBERS.slice();
   if(window.currentHospFilter !== 'all'){
     rows = rows.filter(r => r.loc === window.currentHospFilter);
@@ -8505,8 +8537,6 @@ window.renderHospNumbers = function(){
     );
   }
 
-  let grid = document.getElementById('hospGrid');
-  if(!grid) return;
   if(!rows.length){
     grid.innerHTML = '<div class="hosp-empty">No matching numbers.</div>';
     return;
