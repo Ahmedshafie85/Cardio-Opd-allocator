@@ -2648,13 +2648,9 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
         <label>Date</label>
         <input type="date" id="tee-date" required class="pi">
 
-        <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap">
-          <button type="button" id="tee-delete-btn" onclick="deleteTeeCase()" style="display:none;background:transparent;border:1px solid rgba(226,100,100,.45);color:var(--err);border-radius:7px;padding:9px 14px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer">✕ Delete</button>
-          <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
-            <button type="button" class="btn btn-secondary" onclick="resetTeeForm(true);goEchoTab('teeCal',document.getElementById('echo-subtab-teecal'))">Cancel</button>
-            <button type="submit" id="teeFormSaveBtn" class="btn">💾 Save TEE Appointment</button>
-          </div>
-        </div>
+        <button type="submit" class="btn" style="margin-top:6px" id="teeFormSaveBtn">💾 Save TEE Appointment</button>
+        <button type="button" class="btn btn-secondary" style="margin-top:6px" onclick="resetTeeForm(true);goEchoTab('teeCal',document.getElementById('echo-subtab-teecal'))">Cancel</button>
+        <button type="button" id="tee-delete-btn" onclick="deleteTeeCase()" style="display:none;margin-top:6px;width:100%;background:transparent;border:1px solid rgba(226,100,100,.45);color:var(--err);border-radius:7px;padding:11px;font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer">✕ Delete</button>
       </form>
     </div>
   </div>
