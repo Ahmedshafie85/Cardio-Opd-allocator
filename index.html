@@ -367,11 +367,12 @@ hr.adm-hr{border:0;border-top:1px solid var(--bor);margin:20px 0}
 
 /* ============= HOSPITAL NUMBERS PANEL ============= */
 .hosp-search-bar{display:flex;gap:8px;margin-bottom:14px;align-items:center}
-.hosp-search{flex:1;background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:11px 14px;color:var(--txt);font-family:var(--font-ui);font-size:13.5px;outline:none;transition:all .15s;min-width:0}
+.hosp-search{flex:1;background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:11px 14px;color:var(--txt);font-family:var(--font-ui);font-size:13.5px;outline:none;transition:all .15s}
 .hosp-search:focus{border-color:var(--acc-line);background:rgba(58,166,183,0.04)}
-.hosp-jump{background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:11px 12px;color:var(--txt);font-family:var(--font-ui);font-size:12.5px;outline:none;cursor:pointer;flex-shrink:0;max-width:160px}
-.hosp-jump:focus{border-color:var(--acc-line)}
-
+.hosp-filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.hosp-filter{background:var(--sur2);border:1px solid var(--bor);color:var(--mid);border-radius:6px;padding:6px 12px;cursor:pointer;font-family:var(--font-mono);font-size:11px;font-weight:500;transition:all .15s}
+.hosp-filter:hover{border-color:var(--bor2)}
+.hosp-filter.on{border-color:var(--acc);color:var(--acc2);background:var(--acc-soft)}
 .hosp-grid{display:grid;gap:10px}
 .hosp-card{background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:13px 15px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;transition:border-color .15s}
 .hosp-card:hover{border-color:var(--acc-line)}
@@ -379,21 +380,14 @@ hr.adm-hr{border:0;border-top:1px solid var(--bor);margin:20px 0}
 .hosp-name{font-family:var(--font-ui);font-size:14px;color:var(--txt);font-weight:600;margin-bottom:2px;letter-spacing:-0.01em}
 .hosp-hn{font-family:var(--font-ui);font-size:12px;color:var(--mid);font-weight:500;margin-top:2px}
 .hosp-numbers{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
-.hosp-num-pill{display:inline-flex;align-items:center;gap:6px;background:var(--sur2);border:1px solid var(--bor);border-radius:6px;padding:5px 9px;font-family:var(--font-mono);font-size:11.5px;color:var(--acc2);cursor:pointer;transition:all .15s;font-weight:500;text-decoration:none}
+.hosp-num-pill{display:flex;align-items:center;gap:6px;background:var(--sur2);border:1px solid var(--bor);border-radius:6px;padding:5px 9px;font-family:var(--font-mono);font-size:11.5px;color:var(--acc2);cursor:pointer;transition:all .15s;font-weight:500;text-decoration:none}
 .hosp-num-pill:hover{border-color:var(--acc-line);background:var(--acc-soft)}
 .hosp-num-pill.ext{color:var(--mid)}
 .hosp-num-pill .lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;font-weight:600}
 .hosp-num-pill svg{width:11px;height:11px;flex-shrink:0;opacity:0.7}
-
 .hosp-empty{text-align:center;padding:36px 20px;color:var(--dim);font-family:var(--font-mono);font-size:11px}
 .hosp-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ok);color:#fff;padding:9px 16px;border-radius:8px;font-family:var(--font-ui);font-size:13px;font-weight:500;box-shadow:var(--shadow-pop);z-index:300;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
 .hosp-toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
-
-@media (max-width: 480px){
-  .hosp-jump{max-width:130px;font-size:11.5px}
-  .hosp-card{grid-template-columns:1fr;gap:8px}
-  .hosp-numbers{flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:flex-start}
-}
 
 /* ============= PREMIUM MEDICAL OVERRIDES ============= */
 body{background:var(--body-gradient);background-attachment:fixed}
@@ -607,7 +601,9 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
 .cal-accordion-bar{display:flex;align-items:center;gap:10px;width:100%;background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:11px 14px;cursor:pointer;font-family:var(--font-ui);transition:all .15s;margin-bottom:10px;text-align:left}
 .cal-accordion-bar:hover{border-color:var(--acc-line);background:rgba(58,166,183,.04)}
 .cal-accordion-bar:focus{outline:2px solid var(--acc-line);outline-offset:2px}
-.cal-accordion-icon{font-size:17px;line-height:1;flex-shrink:0}
+.cal-accordion-icon{display:inline-flex;align-items:center;justify-content:center;color:var(--mid);flex-shrink:0;line-height:0}
+.cal-accordion-icon svg{display:block}
+.cal-accordion-bar.expanded .cal-accordion-icon{color:var(--acc2)}
 .cal-accordion-label{font-size:14px;color:var(--txt);font-weight:600;letter-spacing:.2px;flex-shrink:0}
 .cal-accordion-hint{flex:1;font-family:var(--font-mono);font-size:10px;color:var(--dim);letter-spacing:.04em;text-align:right}
 .cal-accordion-chev{font-size:12px;color:var(--mid);transition:transform .2s;flex-shrink:0;margin-left:6px}
@@ -826,6 +822,20 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
   .theme-toggle, .lock-icon, .gs-trigger{width:30px;height:30px}
   .theme-toggle svg, .lock-icon svg{width:14px;height:14px}
   .gs-trigger{padding:5px 7px}
+
+  /* iOS-safe date inputs: ensure consistent height and tap target */
+  input[type="date"], input[type="time"], input[type="datetime-local"]{
+    min-height:46px;
+    -webkit-appearance:none;
+    appearance:none;
+    text-align:left;
+    letter-spacing:normal;
+    padding:11px 13px;
+    font-family:var(--font-mono);
+  }
+  input[type="date"]::-webkit-date-and-time-value{text-align:left}
+  /* The .pi class is normally centered with wide letter-spacing — override on mobile */
+  input.pi{text-align:left !important;letter-spacing:normal !important;padding:11px 13px !important}
 
   /* Logout button: smaller so it doesn't push off-screen */
   .logout-btn{padding:4px 8px;font-size:9px;margin-left:4px}
@@ -2290,7 +2300,7 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
       Tap any day in the calendar to view its on-call team.
     </div>
     <button type="button" class="cal-accordion-bar" id="oncallCalBar" onclick="toggleOncallCalendar()">
-      <span class="cal-accordion-icon" style="display:inline-flex;align-items:center;justify-content:center;color:var(--acc2);width:18px;height:18px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg></span>
+      <span class="cal-accordion-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
       <span class="cal-accordion-label" id="oncallCalBarLabel">—</span>
       <span class="cal-accordion-hint" id="oncallCalBarHint">tap to view calendar</span>
       <span class="cal-accordion-chev" id="oncallCalBarChev">▾</span>
@@ -2392,10 +2402,8 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
     </div>
     <div class="hosp-search-bar">
       <input type="text" class="hosp-search" id="hospSearch" placeholder="Search ward, location, or head nurse…" oninput="renderHospNumbers()">
-      <select class="hosp-jump" id="hospJump" onchange="hospJumpToWard(this.value)" aria-label="Jump to ward">
-        <option value="">Select ward…</option>
-      </select>
     </div>
+    <div class="hosp-filter-bar" id="hospFilterBar"></div>
     <div id="hospGrid" class="hosp-grid"></div>
   </div>
 </div>
@@ -2527,7 +2535,7 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
   <!-- TEE Calendar -->
   <div class="cath-sub" id="echo-teeCal">
     <button type="button" class="cal-accordion-bar" id="teeCalBar" onclick="toggleTeeCalendar()">
-      <span class="cal-accordion-icon" style="display:inline-flex;align-items:center;justify-content:center;color:var(--acc2);width:18px;height:18px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg></span>
+      <span class="cal-accordion-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
       <span class="cal-accordion-label" id="teeCalBarLabel">—</span>
       <span class="cal-accordion-hint" id="teeCalBarHint">tap to view calendar</span>
       <span class="cal-accordion-chev" id="teeCalBarChev">▾</span>
@@ -2548,8 +2556,8 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
   </div>
 
   <!-- + Schedule TEE — inline form, mirrors Cathlab schedule panel -->
-  <div class="cath-sub" id="echo-teeAdd" style="width:100%">
-    <div class="card" style="max-width:none;width:100%;box-sizing:border-box">
+  <div class="cath-sub" id="echo-teeAdd">
+    <div class="card">
       <div class="rl" style="margin-bottom:10px" id="teeFormTitle">SCHEDULE A TEE APPOINTMENT</div>
       <div id="teeFormEditing" style="display:none;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.3);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-family:var(--font-mono);font-size:10px;color:var(--acc);line-height:1.6">
         Editing existing TEE appointment.
@@ -2575,7 +2583,7 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
         </div>
 
         <label>Indication</label>
-        <select id="tee-indication" required>
+        <select id="tee-indication" class="fd-sel" style="margin-bottom:11px" required>
           <option value="">— Select indication —</option>
           <option>Suspected infective endocarditis</option>
           <option>Source of embolism / TIA / stroke workup</option>
@@ -2592,10 +2600,10 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
         </select>
 
         <label>Additional details <span style="font-weight:normal;color:var(--dim)">(optional)</span></label>
-        <textarea id="tee-indication-details" rows="2" style="font-family:var(--font-ui);line-height:1.5" placeholder="e.g. specific clinical context, prior imaging findings, anticoag history…"></textarea>
+        <textarea id="tee-indication-details" rows="2" placeholder="e.g. specific clinical context, prior imaging findings, anticoag history…"></textarea>
 
         <label>Operator</label>
-        <select id="tee-operator" required>
+        <select id="tee-operator" class="fd-sel" style="margin-bottom:11px" required>
           <option value="">— Select operator —</option>
           <option>Dr. Samir</option>
           <option>Dr. Hany</option>
@@ -2629,18 +2637,24 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
         </div>
 
         <label>Procedure Location</label>
-        <select id="tee-procloc" required>
+        <select id="tee-procloc" class="fd-sel" style="margin-bottom:11px" required>
           <option value="">— Select location —</option>
           <option>Echo Lab</option>
           <option>OT</option>
+          <option>CCU</option>
+          <option>ICU</option>
         </select>
 
         <label>Date</label>
-        <input type="date" id="tee-date" required style="background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:11px 12px;color:var(--txt);font-family:var(--font-mono);font-size:14px;width:100%;max-width:100%;box-sizing:border-box;margin-bottom:9px;-webkit-appearance:none;appearance:none">
+        <input type="date" id="tee-date" required class="pi">
 
-        <button type="submit" id="teeFormSaveBtn" class="btn" style="margin-top:6px">💾 Save TEE Appointment</button>
-        <button type="button" class="btn btn-secondary" style="margin-top:6px" onclick="resetTeeForm(true);goEchoTab('teeCal',document.getElementById('echo-subtab-teecal'))">Cancel</button>
-        <button type="button" id="tee-delete-btn" onclick="deleteTeeCase()" style="display:none;width:100%;background:transparent;border:1px solid rgba(226,100,100,.45);color:var(--err);border-radius:8px;padding:12px;font-family:var(--font-ui);font-size:13.5px;font-weight:600;letter-spacing:0.01em;cursor:pointer;margin-top:6px">✕ Delete Appointment</button>
+        <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap">
+          <button type="button" id="tee-delete-btn" onclick="deleteTeeCase()" style="display:none;background:transparent;border:1px solid rgba(226,100,100,.45);color:var(--err);border-radius:7px;padding:9px 14px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer">✕ Delete</button>
+          <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
+            <button type="button" class="btn btn-secondary" onclick="resetTeeForm(true);goEchoTab('teeCal',document.getElementById('echo-subtab-teecal'))">Cancel</button>
+            <button type="submit" id="teeFormSaveBtn" class="btn">💾 Save TEE Appointment</button>
+          </div>
+        </div>
       </form>
     </div>
   </div>
@@ -4575,7 +4589,7 @@ function renderHFList(){
     if(p.sex) demoParts.push(escapeHtml(p.sex));
     if(p.nationality) demoParts.push(escapeHtml(p.nationality));
     let demoLine = demoParts.length ? `<div class="endo-mrn" style="color:var(--mid)">${demoParts.join(' · ')}</div>` : '';
-    let hftypeBadge = p.hftype ? `<span style="display:inline-block;background:rgba(111,134,214,.15);color:var(--ep2);border:1px solid rgba(111,134,214,.4);border-radius:4px;padding:2px 7px;font-family:var(--font-mono);font-size:9px;margin-left:6px;font-weight:600;white-space:nowrap;vertical-align:middle">${escapeHtml(p.hftype)}</span>` : '';
+    let hftypeBadge = p.hftype ? `<span style="background:rgba(111,134,214,.15);color:var(--ep2);border:1px solid rgba(111,134,214,.4);border-radius:4px;padding:2px 7px;font-family:var(--font-mono);font-size:9px;margin-left:6px;font-weight:600">${escapeHtml(p.hftype)}</span>` : '';
     let reasonSummary = (p.reason||'').trim();
     let summary = reasonSummary ? (reasonSummary.length > 60 ? reasonSummary.slice(0,60).trim()+'…' : reasonSummary) : '';
     return `
@@ -6947,10 +6961,11 @@ function renderTeeDayDetail(){
       <div class="cal-day-detail-title">${titleLabel}</div>
       <div class="cal-day-detail-stats">
         <span class="cal-day-chip">Total: <b>${selCases.length}</b></span>
+        <button onclick="openTeeForm(null,'${iso}')" style="background:linear-gradient(180deg,var(--acc),#2e8b9a);border:1px solid var(--acc);border-radius:6px;color:#fff;font-family:var(--font-ui);font-size:11px;font-weight:600;padding:5px 12px;cursor:pointer;letter-spacing:.02em">＋ Add TEE</button>
       </div>
     </div>
     ${selCases.length === 0
-      ? `<div class="cath-empty" style="padding:20px 10px">No TEE cases scheduled ${isToday?'today':'on this day'}. Use the ＋ Schedule TEE tab to add one.</div>`
+      ? `<div class="cath-empty" style="padding:20px 10px">No TEE cases scheduled ${isToday?'today':'on this day'}. Click ＋ Add TEE to schedule one.</div>`
       : selCases.map(s => renderTeeCard(s)).join('')}
   </div>`;
   detailEl.innerHTML = detail;
@@ -7781,7 +7796,7 @@ function renderOncallDetail(){
   let isAdmin = (window.currentRole === 'admin');
   let editBtn = isAdmin ? `<button class="oncall-edit-btn" onclick="openOncallMo('${iso}')">✎ ${oncallHasAny(roster)?'Edit':'Assign'} Roster</button>` : '';
   function chip(name, cls){
-    if(!name) return `<span class="oncall-doc-chip empty">— not assigned —</span>`;
+    if(!name) return `<span class="oncall-doc-chip empty">—</span>`;
     return `<span class="oncall-doc-chip ${cls}">${name}</span>`;
   }
   box.innerHTML = `
@@ -7791,20 +7806,20 @@ function renderOncallDetail(){
         ${editBtn}
       </div>
       <div class="oncall-role-block">
-        <div class="oncall-role-label" style="color:var(--acc)">First On-call (3)</div>
-        <div class="oncall-role-docs">${chip(roster.first1,'first')} ${chip(roster.first2,'first')} ${chip(roster.first3,'first')}</div>
+        <div class="oncall-role-label" style="color:var(--acc)">First On-call</div>
+        <div class="oncall-role-docs">${[roster.first1,roster.first2,roster.first3].filter(Boolean).map(n=>chip(n,'first')).join(' ') || '<span class="oncall-doc-chip empty">—</span>'}</div>
       </div>
       <div class="oncall-role-block">
-        <div class="oncall-role-label" style="color:var(--warn)">CCU (1)</div>
-        <div class="oncall-role-docs">${chip(roster.ccu,'ccu')}</div>
+        <div class="oncall-role-label" style="color:var(--warn)">CCU</div>
+        <div class="oncall-role-docs">${roster.ccu ? chip(roster.ccu,'ccu') : '<span class="oncall-doc-chip empty">—</span>'}</div>
       </div>
       <div class="oncall-role-block">
-        <div class="oncall-role-label" style="color:var(--ok)">Second On-call (2)</div>
-        <div class="oncall-role-docs">${chip(roster.second,'second')} ${chip(roster.second2,'second')}</div>
+        <div class="oncall-role-label" style="color:var(--ok)">Second On-call</div>
+        <div class="oncall-role-docs">${[roster.second,roster.second2].filter(Boolean).map(n=>chip(n,'second')).join(' ') || '<span class="oncall-doc-chip empty">—</span>'}</div>
       </div>
       <div class="oncall-role-block" style="margin-bottom:0">
-        <div class="oncall-role-label" style="color:var(--ep)">Interventionist On-call (1)</div>
-        <div class="oncall-role-docs">${chip(roster.interv,'interv')}</div>
+        <div class="oncall-role-label" style="color:var(--ep)">Interventionist On-call</div>
+        <div class="oncall-role-docs">${roster.interv ? chip(roster.interv,'interv') : '<span class="oncall-doc-chip empty">—</span>'}</div>
       </div>
     </div>`;
 }
@@ -8423,20 +8438,17 @@ const HOSPITAL_NUMBERS = [
   { loc: 'Ward 28', name: 'Ward 28 — Head Nurse', ext: '56940', direct: '25364060', hn: 'Heba', phone: '90963111' }
 ];
 
-// Ward order for the dropdown (Casualty/ICU first, then numerical wards)
+// Grouping order for filter chips (Casualty/ICU first, then numerical wards)
 const HOSPITAL_GROUPS = (function(){
   let seen = [];
   HOSPITAL_NUMBERS.forEach(r => { if(!seen.includes(r.loc)) seen.push(r.loc); });
   return seen;
 })();
 
-// Selected ward in the dropdown ('' = none, show nothing until search or selection)
-window._hospSelectedWard = '';
+window.currentHospFilter = 'all';
 
-window.hospJumpToWard = function(loc){
-  window._hospSelectedWard = loc || '';
-  // Clear search when picking a ward, so the two filters don't fight each other
-  let s = document.getElementById('hospSearch'); if(s) s.value = '';
+window.setHospFilter = function(loc){
+  window.currentHospFilter = loc;
   renderHospNumbers();
 };
 
@@ -8444,6 +8456,7 @@ function copyToClipboard(text){
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(()=>showHospToast('Copied: ' + text));
   } else {
+    // Fallback
     let ta = document.createElement('textarea');
     ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
     document.body.appendChild(ta); ta.select();
@@ -8466,26 +8479,26 @@ function showHospToast(msg){
 }
 
 window.renderHospNumbers = function(){
-  // --- Populate "Select ward…" dropdown (once) ---
-  let jump = document.getElementById('hospJump');
-  if(jump && jump.options.length <= 1){
-    let frag = document.createDocumentFragment();
+  // Build filter chips
+  let bar = document.getElementById('hospFilterBar');
+  if(bar){
+    let counts = {};
+    HOSPITAL_NUMBERS.forEach(r => { counts[r.loc] = (counts[r.loc]||0)+1; });
+    let html = `<button class="hosp-filter${window.currentHospFilter==='all'?' on':''}" onclick="setHospFilter('all')">All <span style="opacity:0.6">${HOSPITAL_NUMBERS.length}</span></button>`;
     HOSPITAL_GROUPS.forEach(loc => {
-      let opt = document.createElement('option');
-      opt.value = loc;
-      opt.textContent = loc.replace(/^Ward /, 'W');
-      frag.appendChild(opt);
+      let label = loc.replace(/^Ward /, 'W');
+      html += `<button class="hosp-filter${window.currentHospFilter===loc?' on':''}" onclick="setHospFilter('${loc.replace(/'/g,"\\'")}')">${label} <span style="opacity:0.6">${counts[loc]}</span></button>`;
     });
-    jump.appendChild(frag);
+    bar.innerHTML = html;
   }
-  // Sync the dropdown to the currently-selected ward
-  if(jump) jump.value = window._hospSelectedWard || '';
 
-  // --- Filter ---
+  // Filter + search
   let q = (document.getElementById('hospSearch')?.value || '').trim().toLowerCase();
   let rows = HOSPITAL_NUMBERS.slice();
+  if(window.currentHospFilter !== 'all'){
+    rows = rows.filter(r => r.loc === window.currentHospFilter);
+  }
   if(q){
-    // Search overrides the dropdown
     rows = rows.filter(r =>
       (r.loc||'').toLowerCase().includes(q) ||
       (r.name||'').toLowerCase().includes(q) ||
@@ -8494,26 +8507,16 @@ window.renderHospNumbers = function(){
       (r.direct||'').includes(q) ||
       (r.phone||'').includes(q)
     );
-  } else if(window._hospSelectedWard){
-    rows = rows.filter(r => r.loc === window._hospSelectedWard);
-  } else {
-    // Nothing selected, no search — show empty placeholder so the user picks a ward
-    rows = [];
   }
 
   let grid = document.getElementById('hospGrid');
   if(!grid) return;
-
   if(!rows.length){
-    if(q){
-      grid.innerHTML = '<div class="hosp-empty">No matching numbers.</div>';
-    } else {
-      grid.innerHTML = '<div class="hosp-empty">Select a ward from the menu, or type in the search box.</div>';
-    }
+    grid.innerHTML = '<div class="hosp-empty">No matching numbers.</div>';
     return;
   }
 
-  // --- Render flat cards ---
+  // Phone SVG (used for direct/mobile pills)
   const PHONE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
   const EXT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>';
 
