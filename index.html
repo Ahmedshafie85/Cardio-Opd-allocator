@@ -435,8 +435,8 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
 .endo-search:focus{border-color:var(--acc-line);background:rgba(58,166,183,0.04)}
 .endo-add-btn{background:linear-gradient(180deg,var(--acc),#2e8b9a);border:1px solid var(--acc);border-radius:8px;padding:10px 16px;color:#fff;font-weight:600;cursor:pointer;font-size:12.5px;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .15s;box-shadow:0 1px 0 rgba(255,255,255,0.1) inset,0 2px 6px rgba(0,0,0,0.2)}
 .endo-add-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
-.endo-grid{display:grid;gap:12px}
-.endo-card{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:14px;transition:border-color .2s,box-shadow .2s;box-shadow:var(--shadow-card)}
+.endo-grid{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.endo-card{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:14px;transition:border-color .2s,box-shadow .2s;box-shadow:var(--shadow-card);min-width:0;max-width:100%;overflow:hidden}
 .endo-card:hover{border-color:var(--acc-line)}
 .endo-card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--bor)}
 .endo-bed{background:var(--bed-gradient);color:#fff;border:1px solid var(--acc-line);font-family:var(--font-mono);font-size:13px;font-weight:700;padding:8px 12px;border-radius:8px;min-width:60px;text-align:center;letter-spacing:0.04em;white-space:nowrap}
@@ -444,17 +444,18 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
 .endo-name{font-family:var(--font-ui);font-size:17px;font-weight:600;color:var(--txt);flex:1;line-height:1.2;letter-spacing:-0.01em}
 .endo-mrn{font-family:var(--font-mono);font-size:11px;color:var(--acc2);margin-top:3px;font-weight:500}
 .endo-meta-row{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-mono);font-size:10px;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px dashed var(--bor);flex-wrap:wrap;gap:6px}
+.endo-meta-row > div{min-width:0;word-break:break-word}
 .endo-field{margin-bottom:10px}
 .endo-field-label{font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;color:var(--dim);letter-spacing:0.1em;margin-bottom:4px;display:flex;align-items:center;gap:6px;font-weight:600}
-.endo-field-text{font-size:13px;line-height:1.55;color:var(--mid);white-space:pre-wrap;word-wrap:break-word}
+.endo-field-text{font-size:13px;line-height:1.55;color:var(--mid);white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere;min-width:0}
 .endo-field-text.empty{color:var(--dim2);font-style:italic}
 /* BIGGER fields for Investigations + Active Issues */
-.endo-field-big{background:var(--sur2);border:1px solid var(--bor);border-left:3px solid var(--acc);border-radius:8px;padding:11px 13px;margin-bottom:10px}
+.endo-field-big{background:var(--sur2);border:1px solid var(--bor);border-left:3px solid var(--acc);border-radius:8px;padding:11px 13px;margin-bottom:10px;min-width:0;overflow:hidden}
 .endo-field-big.active{border-left-color:var(--err)}
 .endo-field-big .endo-field-label{margin-bottom:6px;color:var(--mid)}
 .endo-field-big .endo-field-text{font-size:13.5px;line-height:1.6;color:var(--txt)}
-.endo-actions{display:flex;gap:6px;margin-top:8px}
-.endo-act-btn{flex:1;background:var(--sur2);border:1px solid var(--bor);color:var(--mid);border-radius:7px;padding:8px 0;cursor:pointer;font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;transition:all .15s;font-weight:600}
+.endo-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.endo-act-btn{flex:1 1 calc(50% - 3px);background:var(--sur2);border:1px solid var(--bor);color:var(--mid);border-radius:7px;padding:8px 6px;cursor:pointer;font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;transition:all .15s;font-weight:600;min-width:0;white-space:normal;line-height:1.25}
 .endo-act-btn:hover{border-color:var(--acc-line);color:var(--acc2);background:var(--acc-soft)}
 .endo-act-btn.danger:hover{border-color:var(--err);color:var(--err);background:rgba(226,100,100,0.08)}
 .endo-images{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
@@ -806,6 +807,13 @@ header{background:var(--header-gradient);backdrop-filter:blur(14px);-webkit-back
 
   /* Cards & full-bleed lists shouldn't extend past the page padding */
   .card, .endo-card, .cath-day-card, .an-card{max-width:100%}
+
+  /* Card meta row: stack Created / Updated vertically so doctor names never get cut off */
+  .endo-meta-row{flex-direction:column;align-items:flex-start;gap:3px}
+  .endo-meta-row > div{width:100%}
+
+  /* Action buttons: 2 per row on phones so they all fit without horizontal overflow */
+  .endo-act-btn{flex:1 1 calc(50% - 3px);font-size:9.5px;padding:9px 4px;letter-spacing:.04em}
 
   /* Modal full-width on tiny screens */
   .mb{max-width:calc(100vw - 20px)}
