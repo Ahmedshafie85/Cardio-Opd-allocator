@@ -2936,7 +2936,64 @@ var dataLoaded = false;  // tracks Firebase initial sync to prevent flash of wro
 function tn() { return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()]; }
 function nt() { return new Date().toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); }
 function nd() { return new Date().toLocaleDateString("en-GB", {day:"numeric", month:"short"}); }
-function isDocOff(docName, type) { return window.S.leave[docName]?.[type] === true; }
+// Pure helper: what does the blocked-date rule say for this doctor?
+//   Simple rule:
+//     IP — clinic is ON if there's at least one usable clinic day in the
+//          next 60 days (a usable day = doctor's clinic weekday AND not
+//          inside any of his blocked-date ranges). It's OFF only when the
+//          whole 60-day window is blocked. Re-opens automatically the
+//          moment a usable day appears in the window.
+//     OP — walk-in is for today, so just check today.
+function _autoOff(docName, type){
+  let bd = (window.S.blockedDates || {})[docName] || [];
+  function inAnyRange(iso){
+    if(!bd.length) return false;
+    return bd.some(r => {
+      if(typeof r === "string") return r === iso;
+      if(!r || !r.from || !r.to) return false;
+      return iso >= r.from && iso <= r.to;
+    });
+  }
+  function isoOf(d){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  if(type === 'op'){
+    return inAnyRange(isoOf(new Date()));
+  }
+  // type === 'ip' — collect this doctor's clinic weekdays from CL
+  let dayMap = {Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6};
+  let weekdays = new Set();
+  CL.forEach(c => {
+    if(c.d === docName) (c.days||[]).forEach(d => { if(dayMap[d] !== undefined) weekdays.add(dayMap[d]); });
+  });
+  if(!weekdays.size) return false;
+  // Allocation horizon: 7 weeks (49 days) from today. The patient being
+  // allocated NOW will land on this doctor's first clinic day at/after
+  // that horizon. Lock IP if THAT date is blocked.
+  let cur = new Date();
+  cur.setDate(cur.getDate() + 49);
+  for(let i = 0; i < 14; i++){       // safety cap — clinics run weekly so always resolves within 7 days
+    if(weekdays.has(cur.getDay())){
+      return inAnyRange(isoOf(cur)); // lock iff this exact slot is blocked
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return false;
+}
+
+// Effective OFF state. Auto-rule from blocked dates is the BASELINE; the
+// manual toggle stored in window.S.leave[name][type] is now an OVERRIDE flag
+// meaning "differs from auto". So:
+//   auto OFF, no override  → OFF
+//   auto OFF, override set → ON  (user forced doctor available despite block)
+//   auto ON,  no override  → ON
+//   auto ON,  override set → OFF (user manually marked off, e.g. sick)
+// When the user toggles back to match auto, the override clears (see toggleS).
+function isDocOff(docName, type) {
+  let auto = _autoOff(docName, type);
+  let override = window.S.leave[docName]?.[type] === true;
+  return override ? !auto : auto;
+}
 function cCnt(i) { return (window.S.logs||[]).concat(window.S.oplogs||[]).filter(e => e.si === i).length; }
 
 // Duplicate check: skip empty or placeholder
@@ -3597,8 +3654,62 @@ window.deleteLogEntry = function(ts){
   dbWrite(findAndEntry.key, window.S[findAndEntry.key]);
   rAll();
 };
-function renderLeaveAdmin(){ let g=document.getElementById("leave-grid"); g.innerHTML=""; [...new Set(CL.map(c=>c.d))].forEach(name=>{ let ipO=window.S.leave[name]?.ip, opO=window.S.leave[name]?.op, d=document.createElement("div"); d.className="dc"; d.style.textAlign="center"; d.innerHTML=`<div class="dd">${name}</div><div class="lv-btn-box"><button class="lv-btn ${ipO?'off':'on'}" onclick="toggleS('${name}','ip')">IP ${ipO?'OFF':'OK'}</button><button class="lv-btn ${opO?'off':'on'}" onclick="toggleS('${name}','op')">OP ${opO?'OFF':'OK'}</button></div>`; g.appendChild(d); }); }
-window.toggleS=(name,type)=>{ if(!window.S.leave[name]) window.S.leave[name]={ip:false,op:false}; window.S.leave[name][type]=!window.S.leave[name][type]; dbWrite('leave', window.S.leave); rAll(); };
+function renderLeaveAdmin(){
+  let g = document.getElementById("leave-grid");
+  if(!g) return;
+  g.innerHTML = "";
+  [...new Set(CL.map(c=>c.d))].forEach(name => {
+    // Auto-rule from blocked dates is the baseline; manual flag is an override.
+    // Build a label that reflects both: effective state + WHY (auto / override).
+    let autoIp = _autoOff(name, 'ip');
+    let autoOp = _autoOff(name, 'op');
+    let ovrIp  = !!window.S.leave[name]?.ip;
+    let ovrOp  = !!window.S.leave[name]?.op;
+    let effIp  = ovrIp ? !autoIp : autoIp;
+    let effOp  = ovrOp ? !autoOp : autoOp;
+    function lbl(prefix, eff, ovr, auto){
+      // Shown after the OK/OFF word: explains the source (auto = blocked-date,
+      // override = user manually flipped, blank = ON & no override needed)
+      if(eff && !ovr)  return prefix + ' OFF · auto';      // blocked-date driven
+      if(eff &&  ovr)  return prefix + ' OFF · manual';    // user forced off
+      if(!eff &&  ovr) return prefix + ' OK · override';   // user forced on despite block
+      return prefix + ' OK';                                // normal available
+    }
+    function tip(eff, ovr, auto, type){
+      if(eff && !ovr) return type==='ip'
+        ? 'Auto-off — this doctor\'s clinic day at the 7-week allocation horizon falls inside one of his blocked-date ranges. Re-opens automatically once that slot is no longer blocked. Tap to override and force ON.'
+        : 'Auto-off — this doctor has a blocked-date range covering today. Tap to override and force ON.';
+      if(eff &&  ovr) return 'Manually marked off. Tap to clear override.';
+      if(!eff && ovr) return 'You overrode the blocked-date auto-OFF. Tap to clear and follow auto again.';
+      return 'Available. Tap to manually mark off.';
+    }
+    let ipLabel = lbl('IP', effIp, ovrIp, autoIp);
+    let opLabel = lbl('OP', effOp, ovrOp, autoOp);
+    let ipTitle = tip(effIp, ovrIp, autoIp, 'ip');
+    let opTitle = tip(effOp, ovrOp, autoOp, 'op');
+    let d = document.createElement("div");
+    d.className = "dc";
+    d.style.textAlign = "center";
+    d.innerHTML = `<div class="dd">${name}</div><div class="lv-btn-box">`
+      + `<button class="lv-btn ${effIp?'off':'on'}" title="${ipTitle}" onclick="toggleS('${name}','ip')">${ipLabel}</button>`
+      + `<button class="lv-btn ${effOp?'off':'on'}" title="${opTitle}" onclick="toggleS('${name}','op')">${opLabel}</button>`
+      + `</div>`;
+    g.appendChild(d);
+  });
+}
+window.toggleS = (name, type) => {
+  // Auto-rule (from blocked dates) is the baseline. The stored manual flag is
+  // an OVERRIDE marker — true means "differ from auto". Toggling flips the
+  // effective state, then sets the override only when the new state disagrees
+  // with auto. If the user toggles back to match auto, the override clears.
+  if(!window.S.leave[name]) window.S.leave[name] = {ip:false, op:false};
+  let auto = _autoOff(name, type);
+  let nowEffectiveOff = isDocOff(name, type);
+  let newDesiredOff = !nowEffectiveOff;
+  window.S.leave[name][type] = (newDesiredOff !== auto);
+  dbWrite('leave', window.S.leave);
+  rAll();
+};
 
 // ===== BLOCKED DATES ADMIN (per-doctor) =====
 function populateBlockedDocDropdown(){
@@ -6977,11 +7088,10 @@ function renderTeeDayDetail(){
       <div class="cal-day-detail-title">${titleLabel}</div>
       <div class="cal-day-detail-stats">
         <span class="cal-day-chip">Total: <b>${selCases.length}</b></span>
-        <button onclick="openTeeForm(null,'${iso}')" style="background:linear-gradient(180deg,var(--acc),#2e8b9a);border:1px solid var(--acc);border-radius:6px;color:#fff;font-family:var(--font-ui);font-size:11px;font-weight:600;padding:5px 12px;cursor:pointer;letter-spacing:.02em">＋ Add TEE</button>
       </div>
     </div>
     ${selCases.length === 0
-      ? `<div class="cath-empty" style="padding:20px 10px">No TEE cases scheduled ${isToday?'today':'on this day'}. Click ＋ Add TEE to schedule one.</div>`
+      ? `<div class="cath-empty" style="padding:20px 10px">No TEE cases scheduled ${isToday?'today':'on this day'}.</div>`
       : selCases.map(s => renderTeeCard(s)).join('')}
   </div>`;
   detailEl.innerHTML = detail;
