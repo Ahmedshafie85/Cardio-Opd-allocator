@@ -2937,13 +2937,12 @@ function tn() { return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().ge
 function nt() { return new Date().toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); }
 function nd() { return new Date().toLocaleDateString("en-GB", {day:"numeric", month:"short"}); }
 // Pure helper: what does the blocked-date rule say for this doctor?
-//   Simple rule:
-//     IP — clinic is ON if there's at least one usable clinic day in the
-//          next 60 days (a usable day = doctor's clinic weekday AND not
-//          inside any of his blocked-date ranges). It's OFF only when the
-//          whole 60-day window is blocked. Re-opens automatically the
-//          moment a usable day appears in the window.
-//     OP — walk-in is for today, so just check today.
+//   IP — A patient allocated NOW lands on this doctor's first clinic day
+//        at/after today + 49 days (7-week allocation horizon). Lock the
+//        clinic only if THAT specific slot is inside one of his blocked
+//        ranges. Re-opens automatically as today rolls forward and the
+//        7-week slot moves past the leave.
+//   OP — walk-in is for today, so just check today.
 function _autoOff(docName, type){
   let bd = (window.S.blockedDates || {})[docName] || [];
   function inAnyRange(iso){
